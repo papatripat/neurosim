@@ -33,4 +33,20 @@ export const GAME_EVENTS = {
   UPDATE_PLAYER_CHARACTER: 'update-player-character',
   /** User selected a room from Dashboard/Lobby -> teleport player directly to room coordinates */
   TELEPORT_TO_ROOM: 'teleport-to-room',
+  /** Local player moved -> inform multiplayer service to broadcast */
+  LOCAL_PLAYER_MOVED: 'local-player-moved',
+  /** Remote player entered current room */
+  REMOTE_PLAYER_JOINED: 'remote-player-joined',
+  /** Remote player updated position/movement */
+  REMOTE_PLAYER_MOVED: 'remote-player-moved',
+  /** Remote player left room or disconnected */
+  REMOTE_PLAYER_LEFT: 'remote-player-left',
+  /** Remote player sent a chat message */
+  REMOTE_CHAT_RECEIVED: 'remote-chat-received',
+  /** Remote player triggered an emote reaction */
+  REMOTE_REACTION_RECEIVED: 'remote-reaction-received',
+  /** Remote player changed work status (available/busy/pantry) */
+  REMOTE_PLAYER_STATUS: 'remote-player-status',
+  /** Full list of connected online players in current room updated */
+  ONLINE_PLAYERS_UPDATED: 'online-players-updated',
 } as const;

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { OfficeRoom } from './DashboardView';
 import { UserProfile } from '../modals/AuthModal';
-import { CharacterCustomization } from '../../types/character';
+import { CharacterCustomization, CharacterDirection } from '../../types/character';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 
 interface Props {
@@ -33,6 +33,7 @@ export const RoomLobbyView: React.FC<Props> = ({
   onEnterRoom,
   onBackToDashboard,
 }) => {
+  const [previewDirection, setPreviewDirection] = useState<CharacterDirection>('south');
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
 
@@ -91,7 +92,8 @@ export const RoomLobbyView: React.FC<Props> = ({
 
             <CharacterCanvasPreview
               config={characterConfig}
-              direction="south"
+              direction={previewDirection}
+              onChangeDirection={setPreviewDirection}
               zoom={2.7}
               className="my-1"
             />

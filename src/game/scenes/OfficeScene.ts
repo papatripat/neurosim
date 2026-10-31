@@ -1,6 +1,9 @@
 import { generateFullLpcSpritesheet } from '../../lib/lpcCompositor';
 import Phaser from 'phaser';
 import { EventBus, GAME_EVENTS } from '../EventBus';
+import { multiplayerService } from '../../services/multiplayer.service';
+import { PlayerPresence, PlayerMovementPacket } from '../../types/multiplayer';
+import { UserStatus } from '../../components/gather/GatherDock';
 
 // ---------------------------------------------------------------------------
 // Types & Interfaces
@@ -33,6 +36,29 @@ export interface OfficeZone {
   borderColor: number;
   textColor: string;
   check: (x: number, y: number) => boolean;
+}
+
+interface RemotePlayerRecord {
+  presence: PlayerPresence;
+  container: Phaser.GameObjects.Container;
+  sprite: Phaser.GameObjects.Sprite;
+  nameBg: Phaser.GameObjects.Graphics;
+  nameText: Phaser.GameObjects.Text;
+  statusDot: Phaser.GameObjects.Graphics;
+  targetX: number;
+  targetY: number;
+  direction: 'north' | 'south' | 'east' | 'west';
+  isMoving: boolean;
+  archetypeKey: string;
+  activeChatBubble?: {
+    container: Phaser.GameObjects.Container;
+    offsetY: number;
+  } | null;
+  activeEmotes: {
+    container: Phaser.GameObjects.Container;
+    offsetX: number;
+    offsetY: number;
+  }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -136,6 +162,10 @@ export class OfficeScene extends Phaser.Scene {
 
   // NPCs
   private npcs: NPCData[] = [];
+
+  // Remote Multiplayer Players
+  private remotePlayers: Map<string, RemotePlayerRecord> = new Map();
+  private wasMovingLocally: boolean = false;
 
   // Physics Obstacles (Walls & Solid Furniture)
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
@@ -277,21 +307,23 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.on(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
     EventBus.on(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
     EventBus.on(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_JOINED, this.handleRemotePlayerJoined, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_MOVED, this.handleRemotePlayerMoved, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_LEFT, this.handleRemotePlayerLeft, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_STATUS, this.handleRemotePlayerStatus, this);
+
+    // Initial sync of players already present in room
+    const currentOnline = multiplayerService.getOnlinePlayers();
+    for (const player of currentOnline) {
+      this.handleRemotePlayerJoined(player);
+    }
 
     if (typeof localStorage !== 'undefined') {
       try {
         const saved = localStorage.getItem('neurosim_character_config');
-        const savedSheet = localStorage.getItem('neurosim_character_spritesheet');
-        if (savedSheet) {
-          this.handleUpdatePlayerCharacter({
-            config: saved ? JSON.parse(saved) : null,
-            spritesheetDataUrl: savedSheet,
-          });
-        } else if (saved) {
+        if (saved) {
           const cfg = JSON.parse(saved);
-          if (cfg?.archetype) {
-            this.handleUpdatePlayerCharacter(cfg);
-          }
+          this.handleUpdatePlayerCharacter(cfg);
         }
       } catch (e) {}
     }
@@ -416,6 +448,66 @@ export class OfficeScene extends Phaser.Scene {
       this.activeChatBubble.container.setDepth(this.player.y + 1050);
     }
 
+    // -------------------------------------------------------------------------
+    // Update Remote Multiplayer Players (Lerp movement, animations, nametags, emotes)
+    // -------------------------------------------------------------------------
+    for (const [, record] of this.remotePlayers.entries()) {
+      if (!record.container || !record.container.active) continue;
+
+      const dx = record.targetX - record.container.x;
+      const dy = record.targetY - record.container.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Smooth lerp towards network target position
+      if (dist > 1.2) {
+        record.container.x = Phaser.Math.Linear(record.container.x, record.targetX, 0.22);
+        record.container.y = Phaser.Math.Linear(record.container.y, record.targetY, 0.22);
+      } else {
+        record.container.x = record.targetX;
+        record.container.y = record.targetY;
+      }
+
+      // Dynamic Y-depth sorting based on player position on floor
+      record.container.setDepth(record.container.y);
+
+      // Animation handling: play walking if actively moving or converging towards target
+      const isMoving = record.isMoving || dist > 2.5;
+      if (isMoving) {
+        const walkAnim = `${record.archetypeKey}-walk-${record.direction}`;
+        if (this.anims.exists(walkAnim)) {
+          record.sprite.play(walkAnim, true);
+        }
+      } else {
+        const idleAnim = `${record.archetypeKey}-idle-${record.direction}`;
+        if (this.anims.exists(idleAnim)) {
+          record.sprite.play(idleAnim, true);
+        }
+      }
+
+      // Update active reaction emote positions for this remote player
+      for (let i = record.activeEmotes.length - 1; i >= 0; i--) {
+        const item = record.activeEmotes[i];
+        if (!item.container.active) {
+          record.activeEmotes.splice(i, 1);
+          continue;
+        }
+        item.container.setPosition(
+          record.container.x + item.offsetX,
+          record.container.y - item.offsetY
+        );
+        item.container.setDepth(record.container.y + 1000);
+      }
+
+      // Update active chat speech bubble for this remote player
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.setPosition(
+          record.container.x,
+          record.container.y - record.activeChatBubble.offsetY
+        );
+        record.activeChatBubble.container.setDepth(record.container.y + 1050);
+      }
+    }
+
     // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
     const isModalOpen = typeof document !== 'undefined' && Boolean(document.querySelector('[role="dialog"]'));
     const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -427,6 +519,17 @@ export class OfficeScene extends Phaser.Scene {
     );
 
     if (this.isPlayerLocked || isModalOpen || isUserTyping) {
+      if (this.wasMovingLocally) {
+        this.wasMovingLocally = false;
+        multiplayerService.sendMovement({
+          x: Math.round(this.player.x),
+          y: Math.round(this.player.y),
+          direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+          anim: `${this.playerArchetypeKey}-idle-${this.lastDirection}`,
+          isMoving: false,
+          zone: this.currentZoneId || 'koridor',
+        });
+      }
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
       this.input.keyboard?.disableGlobalCapture();
@@ -466,6 +569,7 @@ export class OfficeScene extends Phaser.Scene {
 
     // Continuous, blink-free walking animation with full diagonal (serong) support
     if (vx !== 0 || vy !== 0) {
+      this.wasMovingLocally = true;
       const isDiagonal = vx !== 0 && vy !== 0;
       let targetAngle = 0;
       let chosenAnim = '';
@@ -523,7 +627,29 @@ export class OfficeScene extends Phaser.Scene {
       } else {
         this.player.play(`${this.playerArchetypeKey}-walk-${this.lastDirection}`, true);
       }
+
+      // Broadcast pergerakan ke room online secara realtime
+      multiplayerService.sendMovement({
+        x: Math.round(this.player.x),
+        y: Math.round(this.player.y),
+        direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+        anim: chosenAnim,
+        isMoving: true,
+        zone: this.currentZoneId || 'koridor',
+      });
     } else {
+      if (this.wasMovingLocally) {
+        this.wasMovingLocally = false;
+        // Broadcast penghentian seketika ke pemain lain
+        multiplayerService.sendMovement({
+          x: Math.round(this.player.x),
+          y: Math.round(this.player.y),
+          direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+          anim: `${this.playerArchetypeKey}-idle-${this.lastDirection}`,
+          isMoving: false,
+          zone: this.currentZoneId || 'koridor',
+        });
+      }
       // Idle / Berhenti: pastikan badan tegak kembali
       this.player.setAngle(0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
@@ -1213,7 +1339,20 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   private buildPlayer(): void {
-    this.player = this.physics.add.sprite(SPAWN.x, SPAWN.y, 'char-player');
+    let initialKey = 'char-resident';
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('neurosim_character_config');
+        if (saved) {
+          const cfg = JSON.parse(saved);
+          if (cfg?.archetype && this.textures.exists(`char-${cfg.archetype}`)) {
+            initialKey = `char-${cfg.archetype}`;
+          }
+        }
+      } catch {}
+    }
+    this.playerArchetypeKey = initialKey;
+    this.player = this.physics.add.sprite(SPAWN.x, SPAWN.y, initialKey);
     this.player.setScale(CHAR_SCALE);
 
     // Collision body at feet: nimble & agile with no catching on doorways
@@ -1568,32 +1707,186 @@ export class OfficeScene extends Phaser.Scene {
     }
   };
 
-    // =========================================================================
-  // FLOATING REACTION EMOTES
+  // =========================================================================
+  // MULTIPLAYER REMOTE PLAYERS & STATUS HELPERS
   // =========================================================================
 
-  private handleTriggerReaction = ({ emoji }: { emoji: string }): void => {
-    if (!this.player || !this.player.active) return;
+  private getStatusColorHex(status?: UserStatus | string): number {
+    switch (status) {
+      case 'available':
+      case 'online':
+        return 0x10b981; // emerald / green
+      case 'busy':
+        return 0xef4444; // rose / red
+      case 'pantry':
+        return 0xf59e0b; // amber / coffee
+      default:
+        return 0x10b981;
+    }
+  }
 
-    // 1. Spam control: keep at most 3 simultaneous emotes to prevent clutter
-    if (this.activeEmotes.length >= 3) {
-      const oldest = this.activeEmotes.shift();
+  private drawStatusDot(graphics: Phaser.GameObjects.Graphics, x: number, y: number, status?: UserStatus | string): void {
+    graphics.clear();
+    const color = this.getStatusColorHex(status);
+    graphics.fillStyle(color, 1);
+    graphics.fillCircle(x, y, 3.5);
+    graphics.lineStyle(1, 0x141824, 0.85);
+    graphics.strokeCircle(x, y, 3.5);
+  }
+
+  private handleRemotePlayerJoined = (presence: PlayerPresence): void => {
+    if (!presence || !presence.socketId) return;
+
+    // Clean up if already exists
+    if (this.remotePlayers.has(presence.socketId)) {
+      this.handleRemotePlayerLeft({ socketId: presence.socketId });
+    }
+
+    const archetype = presence.archetype || presence.characterConfig?.archetype || 'resident';
+    let archetypeKey = `char-${archetype}`;
+    if (!this.textures.exists(archetypeKey)) {
+      archetypeKey = 'char-resident';
+    }
+
+    const container = this.add.container(presence.x, presence.y);
+    container.setDepth(presence.y);
+
+    const sprite = this.add.sprite(0, 0, archetypeKey);
+    sprite.setScale(CHAR_SCALE);
+    const idleAnim = `${archetypeKey}-idle-${presence.direction || 'south'}`;
+    if (this.anims.exists(idleAnim)) {
+      sprite.play(idleAnim);
+    }
+
+    // Nametag & Status indicator
+    const displayName = presence.fullName || presence.username || 'Tamu';
+    const nameText = this.add.text(0, 0, displayName, {
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
+      color: '#f4ead5',
+      fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+
+    const paddingX = 8;
+    const dotWidth = 12;
+    const pillW = Math.max(52, nameText.width + paddingX * 2 + dotWidth);
+    const pillH = 20;
+    const halfW = pillW / 2;
+    const pillY = -54;
+
+    const nameBg = this.add.graphics();
+    nameBg.fillStyle(0x141824, 0.88);
+    nameBg.lineStyle(1.2, 0x355c5a, 0.9);
+    nameBg.fillRoundedRect(-halfW, pillY - pillH / 2, pillW, pillH, 5);
+    nameBg.strokeRoundedRect(-halfW, pillY - pillH / 2, pillW, pillH, 5);
+
+    const statusDot = this.add.graphics();
+    this.drawStatusDot(statusDot, -halfW + 8, pillY, presence.status);
+
+    nameText.setPosition(-halfW + 16, pillY);
+
+    container.add([sprite, nameBg, statusDot, nameText]);
+
+    // Entrance pop-in animation
+    container.setScale(0);
+    container.setAlpha(0);
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      alpha: 1,
+      duration: 250,
+      ease: 'Back.easeOut',
+    });
+
+    const record: RemotePlayerRecord = {
+      presence,
+      container,
+      sprite,
+      nameBg,
+      nameText,
+      statusDot,
+      targetX: presence.x,
+      targetY: presence.y,
+      direction: presence.direction || 'south',
+      isMoving: Boolean(presence.isMoving),
+      archetypeKey,
+      activeEmotes: [],
+      activeChatBubble: null,
+    };
+
+    this.remotePlayers.set(presence.socketId, record);
+  };
+
+  private handleRemotePlayerMoved = (data: PlayerMovementPacket): void => {
+    if (!data || !data.socketId) return;
+    const record = this.remotePlayers.get(data.socketId);
+    if (!record) return;
+
+    record.targetX = data.x;
+    record.targetY = data.y;
+    record.direction = data.direction;
+    record.isMoving = data.isMoving;
+  };
+
+  private handleRemotePlayerLeft = ({ socketId }: { socketId: string }): void => {
+    const record = this.remotePlayers.get(socketId);
+    if (!record) return;
+
+    if (record.activeChatBubble && record.activeChatBubble.container.active) {
+      record.activeChatBubble.container.destroy();
+    }
+    for (const e of record.activeEmotes) {
+      if (e.container.active) e.container.destroy();
+    }
+
+    this.tweens.add({
+      targets: record.container,
+      alpha: 0,
+      scale: 0.6,
+      duration: 200,
+      onComplete: () => {
+        if (record.container.active) {
+          record.container.destroy();
+        }
+      },
+    });
+
+    this.remotePlayers.delete(socketId);
+  };
+
+  private handleRemotePlayerStatus = ({ socketId, status }: { socketId: string; status: UserStatus }): void => {
+    const record = this.remotePlayers.get(socketId);
+    if (!record) return;
+    record.presence.status = status;
+    const pillW = Math.max(52, record.nameText.width + 16 + 12);
+    const halfW = pillW / 2;
+    const pillY = -54;
+    this.drawStatusDot(record.statusDot, -halfW + 8, pillY, status);
+  };
+
+  // =========================================================================
+  // FLOATING REACTION EMOTES (LOCAL & REMOTE)
+  // =========================================================================
+
+  private spawnReactionForTarget(
+    targetX: number,
+    targetY: number,
+    emoji: string,
+    targetEmotesList: { container: Phaser.GameObjects.Container; offsetX: number; offsetY: number }[]
+  ): void {
+    if (targetEmotesList.length >= 3) {
+      const oldest = targetEmotesList.shift();
       if (oldest && oldest.container.active) {
         oldest.container.destroy();
       }
     }
 
-    // 2. Spawn offset directly above player head with slight horizontal jitter
     const offsetX = Phaser.Math.Between(-8, 8);
     const startOffsetY = 56;
 
-    const container = this.add.container(
-      this.player.x + offsetX,
-      this.player.y - startOffsetY
-    );
-    container.setDepth(this.player.y + 1000);
+    const container = this.add.container(targetX + offsetX, targetY - startOffsetY);
+    container.setDepth(targetY + 1000);
 
-    // Compact circular badge (diameter 28px)
     const radius = 14;
     const bg = this.add.graphics();
     bg.fillStyle(0xf4ead5, 0.95);
@@ -1615,9 +1908,8 @@ export class OfficeScene extends Phaser.Scene {
       offsetX,
       offsetY: startOffsetY,
     };
-    this.activeEmotes.push(emoteRecord);
+    targetEmotesList.push(emoteRecord);
 
-    // Pop-in bounce
     this.tweens.add({
       targets: container,
       scale: 1,
@@ -1625,7 +1917,6 @@ export class OfficeScene extends Phaser.Scene {
       duration: 160,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Float up smoothly and fade out
         this.tweens.addCounter({
           from: startOffsetY,
           to: startOffsetY + 40,
@@ -1643,35 +1934,44 @@ export class OfficeScene extends Phaser.Scene {
             if (container.active) {
               container.destroy();
             }
-            const idx = this.activeEmotes.indexOf(emoteRecord);
+            const idx = targetEmotesList.indexOf(emoteRecord);
             if (idx !== -1) {
-              this.activeEmotes.splice(idx, 1);
+              targetEmotesList.splice(idx, 1);
             }
           },
         });
       },
     });
+  }
+
+  private handleTriggerReaction = ({ emoji, socketId }: { emoji: string; socketId?: string }): void => {
+    if (!emoji) return;
+
+    if (socketId && this.remotePlayers.has(socketId)) {
+      const record = this.remotePlayers.get(socketId)!;
+      this.spawnReactionForTarget(record.container.x, record.container.y, emoji, record.activeEmotes);
+      return;
+    }
+
+    if (!this.player || !this.player.active) return;
+    this.spawnReactionForTarget(this.player.x, this.player.y, emoji, this.activeEmotes);
   };
 
   // =========================================================================
-  // LIVE CHAT SPEECH BUBBLE
+  // LIVE CHAT SPEECH BUBBLE (LOCAL & REMOTE)
   // =========================================================================
 
-  private handleTriggerChatBubble = ({ text }: { text: string }): void => {
-    if (!this.player || !this.player.active || !text.trim()) return;
-
-    // 1. Strictly 1 chat bubble at a time: immediately destroy previous one if exists
-    if (this.activeChatBubble && this.activeChatBubble.container.active) {
-      this.activeChatBubble.container.destroy();
-      this.activeChatBubble = null;
-    }
-
-    // 2. Format & wrap text (truncate if excessively long)
+  private spawnChatBubbleForTarget(
+    targetX: number,
+    targetY: number,
+    text: string,
+    onCreated: (bubble: { container: Phaser.GameObjects.Container; offsetY: number }) => void
+  ): void {
     const maxTextWidth = 190;
     const displayText = text.length > 80 ? text.slice(0, 77) + '...' : text;
 
-    const container = this.add.container(this.player.x, this.player.y);
-    container.setDepth(this.player.y + 1050);
+    const container = this.add.container(targetX, targetY);
+    container.setDepth(targetY + 1050);
 
     const txt = this.add.text(0, -3, displayText, {
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -1681,7 +1981,6 @@ export class OfficeScene extends Phaser.Scene {
       wordWrap: { width: maxTextWidth, useAdvancedWrap: true },
     }).setOrigin(0.5, 0.5);
 
-    // 3. Compute speech bubble dimensions
     const paddingX = 9;
     const paddingY = 5;
     const bw = Math.max(46, Math.min(220, txt.width + paddingX * 2));
@@ -1691,16 +1990,13 @@ export class OfficeScene extends Phaser.Scene {
     const halfH = bh / 2;
     const centerY = -3;
 
-    // Background bubble geometry
     const bg = this.add.graphics();
     bg.fillStyle(0xf4ead5, 0.96);
     bg.lineStyle(1.5, 0x355c5a, 0.95);
 
-    // Rounded rectangle body
     bg.fillRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
     bg.strokeRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
 
-    // Downward triangle tail pointing directly towards the player's head
     bg.fillTriangle(-4, centerY + halfH, 4, centerY + halfH, 0, centerY + halfH + 5);
     bg.beginPath();
     bg.moveTo(-4, centerY + halfH);
@@ -1708,26 +2004,20 @@ export class OfficeScene extends Phaser.Scene {
     bg.lineTo(4, centerY + halfH);
     bg.strokePath();
 
-    // Cover edge to merge body with tail
     const cover = this.add.graphics();
     cover.fillStyle(0xf4ead5, 1);
     cover.fillRect(-3, centerY + halfH - 1, 6, 2);
 
     container.add([bg, cover, txt]);
 
-    // Position above avatar head: avatar top is ~48px above feet, tail length 5px
     const offsetY = 54 + halfH;
-    container.setPosition(this.player.x, this.player.y - offsetY);
+    container.setPosition(targetX, targetY - offsetY);
 
-    // Pop-in bounce
     container.setScale(0.5);
     container.setAlpha(0);
 
-    const record = {
-      container,
-      offsetY,
-    };
-    this.activeChatBubble = record;
+    const bubbleRecord = { container, offsetY };
+    onCreated(bubbleRecord);
 
     this.tweens.add({
       targets: container,
@@ -1736,7 +2026,6 @@ export class OfficeScene extends Phaser.Scene {
       duration: 150,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Stay visible for 4.2 seconds, fading out during the last 600ms
         this.tweens.addCounter({
           from: 1,
           to: 0,
@@ -1751,12 +2040,34 @@ export class OfficeScene extends Phaser.Scene {
             if (container.active) {
               container.destroy();
             }
-            if (this.activeChatBubble === record) {
-              this.activeChatBubble = null;
-            }
           },
         });
       },
+    });
+  }
+
+  private handleTriggerChatBubble = ({ text, socketId }: { text: string; socketId?: string }): void => {
+    if (!text || !text.trim()) return;
+
+    if (socketId && this.remotePlayers.has(socketId)) {
+      const record = this.remotePlayers.get(socketId)!;
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.destroy();
+        record.activeChatBubble = null;
+      }
+      this.spawnChatBubbleForTarget(record.container.x, record.container.y, text, (bubble) => {
+        record.activeChatBubble = bubble;
+      });
+      return;
+    }
+
+    if (!this.player || !this.player.active) return;
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      this.activeChatBubble.container.destroy();
+      this.activeChatBubble = null;
+    }
+    this.spawnChatBubbleForTarget(this.player.x, this.player.y, text, (bubble) => {
+      this.activeChatBubble = bubble;
     });
   };
 
@@ -1778,6 +2089,11 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
     EventBus.off(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
     EventBus.off(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_JOINED, this.handleRemotePlayerJoined, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_MOVED, this.handleRemotePlayerMoved, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_LEFT, this.handleRemotePlayerLeft, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_STATUS, this.handleRemotePlayerStatus, this);
+
     if (this.activeChatBubble && this.activeChatBubble.container.active) {
       this.activeChatBubble.container.destroy();
       this.activeChatBubble = null;
@@ -1786,6 +2102,20 @@ export class OfficeScene extends Phaser.Scene {
       if (item.container.active) item.container.destroy();
     }
     this.activeEmotes = [];
+
+    // Clean up all remote player avatars
+    for (const [, record] of this.remotePlayers.entries()) {
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.destroy();
+      }
+      for (const item of record.activeEmotes) {
+        if (item.container.active) item.container.destroy();
+      }
+      if (record.container.active) {
+        record.container.destroy();
+      }
+    }
+    this.remotePlayers.clear();
   }
 
   destroy(): void {
@@ -1870,13 +2200,14 @@ export class OfficeScene extends Phaser.Scene {
   private handleUpdatePlayerCharacter = (payload: any): void => {
     if (!this.player) return;
     const config = payload?.config || payload;
-    const dataUrl =
-      payload?.spritesheetDataUrl ||
-      (typeof localStorage !== 'undefined'
-        ? localStorage.getItem('neurosim_character_spritesheet')
-        : null);
 
-    if (dataUrl) {
+    const isCustom = config?.archetype === 'custom';
+    const dataUrl =
+      isCustom && typeof localStorage !== 'undefined'
+        ? localStorage.getItem('neurosim_character_spritesheet')
+        : null;
+
+    if (isCustom && dataUrl) {
       const customKey = 'char-player-custom';
       const img = new Image();
       img.src = dataUrl;
@@ -1914,7 +2245,18 @@ export class OfficeScene extends Phaser.Scene {
         this.createCustomAnimations(customKey);
         this.playerArchetypeKey = customKey;
         this.player.setTexture(customKey);
-        const idleAnim = `${customKey}-idle-${this.lastDirection}`;
+        // Standardize LPC character height (50px * 1.52 = 76px, matching aligned.png 38px * 2.0 = 76px)
+        this.player.setScale(1.52);
+
+        const currentDir =
+          this.lastDirection === 'north' ||
+          this.lastDirection === 'south' ||
+          this.lastDirection === 'east' ||
+          this.lastDirection === 'west'
+            ? this.lastDirection
+            : 'south';
+
+        const idleAnim = `${customKey}-idle-${currentDir}`;
         if (this.anims.exists(idleAnim)) {
           this.player.play(idleAnim, true);
         }
@@ -1922,12 +2264,23 @@ export class OfficeScene extends Phaser.Scene {
       return;
     }
 
-    const arch = config?.archetype || 'resident';
+    const arch = config?.archetype && config.archetype !== 'custom' ? config.archetype : 'resident';
     const newKey = `char-${arch}`;
+
     if (this.textures.exists(newKey)) {
       this.playerArchetypeKey = newKey;
       this.player.setTexture(newKey);
-      const idleAnim = `${newKey}-idle-${this.lastDirection}`;
+      this.player.setScale(CHAR_SCALE); // Strictly maintain standard 2.0 scale (76px height)
+
+      const currentDir =
+        this.lastDirection === 'north' ||
+        this.lastDirection === 'south' ||
+        this.lastDirection === 'east' ||
+        this.lastDirection === 'west'
+          ? this.lastDirection
+          : 'south';
+
+      const idleAnim = `${newKey}-idle-${currentDir}`;
       if (this.anims.exists(idleAnim)) {
         this.player.play(idleAnim, true);
       }

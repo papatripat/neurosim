@@ -156,9 +156,9 @@ export function mapHairColorToLpc(id: string): string {
 export function mapClothColorToLpc(id: string): string {
   switch (id) {
     case 'white':
+    case 'white-sneaker':
       return 'white';
     case 'sky-blue':
-      return 'sky';
     case 'light-blue':
       return 'sky';
     case 'deep-navy':
@@ -175,14 +175,34 @@ export function mapClothColorToLpc(id: string): string {
     case 'khaki':
       return 'tan';
     case 'dark-brown':
+    case 'brown-suit':
       return 'brown';
+    case 'cognac-tan':
+      return 'leather';
+    case 'gray-suede':
+    case 'slate-suit':
+      return 'slate';
     case 'slate-teal':
       return 'teal';
     case 'forest-green':
+    case 'forest':
       return 'forest';
+    case 'sage':
+      return 'green';
     case 'crimson':
     case 'wine':
       return 'maroon';
+    case 'cream':
+    case 'beige-suit':
+      return 'tan';
+    case 'terracotta':
+      return 'orange';
+    case 'dark-denim':
+      return 'blue';
+    case 'gold':
+      return 'yellow';
+    case 'silver':
+      return 'gray';
     default:
       return 'white';
   }
@@ -292,7 +312,7 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     zPos: 35,
   });
 
-  // 7. Shirt / Top
+  // 7. Shirt / Top / Suit
   const shirt = config.shirtType || 'collared-formal';
   let shirtUrl = '/assets/lpc/torso/clothes/longsleeve/formal/male/walk.png';
   if (shirt === 'rolled-sleeves') {
@@ -305,14 +325,30 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     shirtUrl = '/assets/lpc/torso/clothes/longsleeve/longsleeve2_buttoned/male/walk.png';
   }
 
-  layers.push({
-    id: 'torso',
-    url: shirtUrl,
-    paletteType: 'cloth',
-    sourceVariant: 'white',
-    targetVariant: mapClothColorToLpc(config.shirtColor),
-    zPos: 45,
-  });
+  // If formal suit/blazer is selected
+  if (config.suitType && config.suitType !== 'none') {
+    const isStriped = config.suitType === 'smart-blazer';
+    const suitTorsoUrl = isStriped
+      ? '/assets/lpc/torso/clothes/longsleeve/formal_striped/male/walk.png'
+      : '/assets/lpc/torso/clothes/longsleeve/formal/male/walk.png';
+    layers.push({
+      id: 'torso',
+      url: suitTorsoUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.suitColor || 'navy-suit'),
+      zPos: 45,
+    });
+  } else {
+    layers.push({
+      id: 'torso',
+      url: shirtUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.shirtColor),
+      zPos: 45,
+    });
+  }
 
   // 8. Facial Hair (Beard & Mustache)
   const facial = config.facialHair || 'none';
