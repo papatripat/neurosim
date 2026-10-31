@@ -261,6 +261,7 @@ export const App: React.FC = () => {
   // Simpan preferensi kustomisasi karakter ke localStorage
   useEffect(() => {
     localStorage.setItem('neurosim_character_config', JSON.stringify(characterConfig));
+    localStorage.removeItem('neurosim_character_spritesheet');
   }, [characterConfig]);
 
   // Check URL query param e.g. ?room=DEV-UIUX-26 on initial mount
@@ -863,7 +864,24 @@ export const App: React.FC = () => {
         onSaveConfig={(newConfig) => {
           setCharacterConfig(newConfig);
           localStorage.setItem('neurosim_character_config', JSON.stringify(newConfig));
+          localStorage.removeItem('neurosim_character_spritesheet');
           EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, newConfig);
+
+          // Update multiplayer presence immediately
+          if (currentView === 'simulation') {
+            multiplayerService.joinRoom({
+              roomId: currentRoom.code,
+              user: {
+                id: currentUser?.id,
+                username: currentUser?.username || 'Pengunjung',
+                fullName: currentUser?.fullName || getUserDisplayName(currentUser),
+                role: currentUser?.role || 'Staff Tim',
+                avatar: currentUser?.avatar || `/assets/characters/${newConfig.archetype || 'resident'}/standing/south.png`,
+              },
+              characterConfig: newConfig,
+              spawnCoords: { x: 1810, y: 790 },
+            });
+          }
         }}
       />
 
