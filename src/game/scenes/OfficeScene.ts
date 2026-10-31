@@ -121,6 +121,7 @@ const OFFICE_ZONES: OfficeZone[] = [
 export class OfficeScene extends Phaser.Scene {
   // Player
   private player!: Phaser.Physics.Arcade.Sprite;
+  private playerArchetypeKey: string = 'char-player';
   private lastDirection: string = 'north';
 
   // NPCs
@@ -240,6 +241,20 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.on(GAME_EVENTS.RESUME_INPUT, this.handleCloseDialog, this);
     EventBus.on(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
     EventBus.on(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
+    EventBus.on(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
+    EventBus.on(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('neurosim_character_config');
+        if (saved) {
+          const cfg = JSON.parse(saved);
+          if (cfg?.archetype) {
+            this.handleUpdatePlayerCharacter(cfg);
+          }
+        }
+      } catch (e) {}
+    }
 
     // Otomatis bebaskan capture keyboard saat user mengetik di input/textbox mana pun di React
     if (typeof window !== 'undefined') {
@@ -342,7 +357,7 @@ export class OfficeScene extends Phaser.Scene {
 
     if (this.isPlayerLocked || isModalOpen || isUserTyping) {
       this.player.setVelocity(0, 0);
-      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+      this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
       this.input.keyboard?.disableGlobalCapture();
       this.input.keyboard?.resetKeys();
       if (this.wasd) {
@@ -387,9 +402,9 @@ export class OfficeScene extends Phaser.Scene {
         dir = vy > 0 ? 'south' : 'north';
       }
       this.lastDirection = dir;
-      this.player.play(`char-player-walk-${dir}`, true);
+      this.player.play(`${this.playerArchetypeKey}-walk-${dir}`, true);
     } else {
-      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+      this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
     }
 
     // Check room transitions
@@ -1041,7 +1056,7 @@ export class OfficeScene extends Phaser.Scene {
       .setOffset(21, 44);
 
     this.player.setCollideWorldBounds(true);
-    this.player.play('char-player-idle-north');
+    this.player.play(`${this.playerArchetypeKey}-idle-north`);
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
   }
 
@@ -1200,7 +1215,7 @@ export class OfficeScene extends Phaser.Scene {
     this.isPlayerLocked = true;
     if (this.player && this.player.body) {
       this.player.setVelocity(0, 0);
-      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+      this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
     }
     if (this.promptContainer) {
       this.promptContainer.setVisible(false);
@@ -1469,6 +1484,8 @@ export class OfficeScene extends Phaser.Scene {
     }
     EventBus.off(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
     EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
+    EventBus.off(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
+    EventBus.off(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
     if (this.activeChatBubble && this.activeChatBubble.container.active) {
       this.activeChatBubble.container.destroy();
       this.activeChatBubble = null;
@@ -1482,4 +1499,25 @@ export class OfficeScene extends Phaser.Scene {
   destroy(): void {
     this.shutdown();
   }
+  private handleUpdatePlayerCharacter = (config: any): void => {
+    if (!this.player) return;
+    const arch = config?.archetype || 'resident';
+    const newKey = `char-${arch}`;
+    if (this.textures.exists(newKey)) {
+      this.playerArchetypeKey = newKey;
+      this.player.setTexture(newKey);
+      const idleAnim = `${newKey}-idle-${this.lastDirection}`;
+      if (this.anims.exists(idleAnim)) {
+        this.player.play(idleAnim, true);
+      }
+    }
+  };
+
+  private handleTeleportToRoom = (coords: { x: number; y: number }): void => {
+    if (!this.player || !coords) return;
+    this.player.setPosition(coords.x, coords.y);
+    this.player.setVelocity(0, 0);
+    this.cameras.main.pan(coords.x, coords.y, 450, 'Power2');
+    this.updateCurrentZone(true);
+  };
 }

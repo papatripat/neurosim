@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, ShieldCheck } from 'lucide-react';
+import { User, ShieldCheck, LayoutDashboard, Shirt } from 'lucide-react';
 import { A11yControls, TextScale } from '../ui/A11yControls';
 import { UserProfile } from '../modals/AuthModal';
 
@@ -18,6 +18,8 @@ interface Props {
   totalCount: number;
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
+  onNavigateDashboard?: () => void;
+  onOpenCustomizer?: () => void;
 }
 
 export const Header: React.FC<Props> = ({
@@ -35,8 +37,10 @@ export const Header: React.FC<Props> = ({
   totalCount,
   currentUser,
   onOpenAuth,
+  onNavigateDashboard,
+  onOpenCustomizer,
 }) => (
-  <header className="flex-shrink-0 flex flex-wrap items-center justify-between px-4 py-2.5 bg-cream border-b border-[#d1c7b5] text-ink gap-3">
+  <header className="flex-shrink-0 flex flex-wrap items-center justify-between px-4 py-2 bg-cream border-b border-[#d1c7b5] text-ink gap-2">
     {/* Product Nameplate with Official Proposal Logo */}
     <div className="flex items-center gap-2.5">
       <div className="w-8 h-8 rounded overflow-hidden bg-cream border border-[#355c5a]/30 flex-shrink-0 shadow-xs">
@@ -50,45 +54,71 @@ export const Header: React.FC<Props> = ({
         <h1 className="font-bold text-sm sm:text-base tracking-tight text-ink leading-tight">
           NeuroSim
         </h1>
-        <p className="text-[11px] text-ink-muted leading-tight font-medium">
-          Komunikasi Kerja Online
+        <p className="text-[10px] text-ink-muted leading-tight font-medium">
+          Simulasi Kantor Online
         </p>
       </div>
     </div>
 
     {/* Center Navigation & Actions */}
     <div className="flex items-center gap-2 flex-wrap">
+      {/* Return to Dashboard */}
+      {onNavigateDashboard && (
+        <button
+          type="button"
+          onClick={onNavigateDashboard}
+          title="Kembali ke Dashboard Utama"
+          className="px-2.5 py-1 text-xs font-semibold rounded border border-[#d1c7b5] bg-cream hover:bg-sand text-ink transition-colors flex items-center gap-1.5 shadow-2xs"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5 text-teal" />
+          <span>Dashboard</span>
+        </button>
+      )}
+
       {/* Dual-Mode Desk Switcher */}
       <div
         role="tablist"
         aria-label="Mode tampilan simulasi"
-        className="flex rounded bg-sand p-1 border border-muted/30"
+        className="flex rounded bg-sand p-0.5 border border-muted/30"
       >
         <button
           role="tab"
           aria-selected={mode === '2d'}
           onClick={() => onModeChange('2d')}
-          className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+          className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
             mode === '2d'
               ? 'bg-teal text-soft shadow-xs'
               : 'text-ink hover:text-black hover:bg-cream/70'
           }`}
         >
-          Denah Kantor 2D
+          Denah 2D
         </button>
         <button
           role="tab"
           aria-selected={mode === 'list'}
           onClick={() => onModeChange('list')}
-          className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
+          className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
             mode === 'list'
               ? 'bg-teal text-soft shadow-xs'
               : 'text-ink hover:text-black hover:bg-cream/70'
           }`}
         >
-          Daftar Skenario
+          Skenario
         </button>
       </div>
+
+      {/* Character Customizer Shortcut */}
+      {onOpenCustomizer && (
+        <button
+          type="button"
+          onClick={onOpenCustomizer}
+          title="Buka Generator Kustomisasi Karakter"
+          className="px-2.5 py-1 text-xs font-medium rounded border border-muted/30 bg-parchment text-ink hover:bg-sand transition-colors flex items-center gap-1.5 hidden md:inline-flex"
+        >
+          <Shirt className="w-3.5 h-3.5 text-ochre" />
+          <span>Karakter</span>
+        </button>
+      )}
 
       {/* Agenda Button */}
       <button
@@ -106,9 +136,9 @@ export const Header: React.FC<Props> = ({
         type="button"
         onClick={onOpenProposal}
         title="Buka Ringkasan Proposal & Riset NeuroSim"
-        className="px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors"
+        className="px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors hidden sm:inline-block"
       >
-        Berkas Proposal
+        Proposal
       </button>
 
       {/* Employee ID / Auth Button */}
