@@ -1,14 +1,14 @@
 import React from 'react';
-import { User, ClipboardList, LayoutDashboard, Shirt } from 'lucide-react';
-import { A11yControls, TextScale } from '../ui/A11yControls';
+import { User, ClipboardList, LayoutDashboard } from 'lucide-react';
+import { AccessibilityControls, TextScale } from '../ui/A11yControls';
 import { UserProfile } from '../modals/AuthModal';
 import { OfficeRoom } from '../../types/room';
 
 interface Props {
   mode: '2d' | 'list';
   onModeChange: (m: '2d' | 'list') => void;
-  reduceMotion: boolean;
-  onToggleReduceMotion: () => void;
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: () => void;
   textScale: TextScale;
   onChangeTextScale: (s: TextScale) => void;
   highContrast: boolean;
@@ -75,7 +75,7 @@ export const Header: React.FC<Props> = ({
               NeuroSim
             </h1>
             <p className="text-[10.5px] text-ink-muted leading-tight font-medium hidden sm:block">
-              Komunikasi Kerja Online
+              Virtual Office AI Simulator
             </p>
           </div>
         </div>
@@ -147,19 +147,6 @@ export const Header: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Character Customizer Shortcut */}
-        {onOpenCustomizer && (
-          <button
-            type="button"
-            onClick={onOpenCustomizer}
-            title="Buka Generator Kustomisasi Karakter"
-            className="px-2.5 py-1 text-xs font-medium rounded border border-muted/30 bg-parchment text-ink hover:bg-sand transition-colors flex items-center gap-1.5 hidden md:inline-flex whitespace-nowrap"
-          >
-            <Shirt className="w-3.5 h-3.5 text-ochre" />
-            <span>Karakter</span>
-          </button>
-        )}
-
         {/* Agenda Button */}
         <button
           type="button"
@@ -172,22 +159,11 @@ export const Header: React.FC<Props> = ({
           <span className="font-mono font-bold text-wood-dark">{completedCount}/{totalCount}</span>
         </button>
 
-        {/* Proposal Dossier Button */}
-        <button
-          type="button"
-          onClick={onOpenProposal}
-          title="Buka Ringkasan Proposal & Riset NeuroSim"
-          className="px-2 sm:px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors whitespace-nowrap hidden sm:inline-block"
-        >
-          Berkas Proposal
-        </button>
-      </div>
+        </div>
 
-      {/* 3. Right: A11y Controls + Far-Right Sign In / Employee ID Button */}
+      {/* 3. Right: Accessibility Controls + Far-Right Sign In / Employee ID Button */}
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10 ml-auto">
-        <A11yControls
-          reduceMotion={reduceMotion}
-          onToggleReduceMotion={onToggleReduceMotion}
+        <AccessibilityControls
           textScale={textScale}
           onChangeTextScale={onChangeTextScale}
           highContrast={highContrast}

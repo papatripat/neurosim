@@ -149,6 +149,28 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
     }, 400);
   };
 
+  const handleGenderChange = (newGender: 'male' | 'female') => {
+    if (newGender === config.gender) return;
+    if (newGender === 'female') {
+      const isMasculineHair = ['short-parted', 'slicked-back', 'buzz-cut', 'afro-fade'].includes(config.hairStyle);
+      setConfig({
+        ...config,
+        gender: 'female',
+        facialHair: 'none',
+        hairStyle: isMasculineHair ? 'shoulder-waves' : config.hairStyle,
+      });
+    } else {
+      const isFeminineHair = ['shoulder-waves', 'office-bun', 'pixie-cut'].includes(config.hairStyle);
+      const isWearingSkirt = (config.pantsType || '').includes('skirt');
+      setConfig({
+        ...config,
+        gender: 'male',
+        hairStyle: isFeminineHair ? 'short-parted' : config.hairStyle,
+        pantsType: isWearingSkirt ? 'slacks-formal' : config.pantsType,
+      });
+    }
+  };
+
   const currentArchetype = ARCHETYPE_OPTIONS.find((a) => a.id === config.archetype) || ARCHETYPE_OPTIONS[0];
 
   return (
@@ -169,11 +191,8 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
             </div>
             <div>
               <h2 id="customizer-title" className="text-sm sm:text-base font-bold leading-tight">
-                Generator & Kustomisasi Karakter
+                Kustomisasi Karakter
               </h2>
-              <span className="text-[11px] text-soft/75 font-mono">
-                Referensi Universal LPC · Kompatibel Sprite Sheet 64×64
-              </span>
             </div>
           </div>
           <button
@@ -339,7 +358,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                     <div className="grid grid-cols-2 gap-2 max-w-sm">
                       <button
                         type="button"
-                        onClick={() => setConfig({ ...config, gender: 'male' })}
+                        onClick={() => handleGenderChange('male')}
                         className={`p-2 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
                           config.gender === 'male'
                             ? 'bg-teal text-soft border-teal shadow-xs'
@@ -351,7 +370,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setConfig({ ...config, gender: 'female' })}
+                        onClick={() => handleGenderChange('female')}
                         className={`p-2 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
                           config.gender === 'female'
                             ? 'bg-teal text-soft border-teal shadow-xs'
@@ -640,13 +659,13 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
               {/* TAB 4: BAWAHAN & SEPATU */}
               {activeTab === 'bottom' && (
                 <div className="space-y-4">
-                  {/* Pants Style */}
+                  {/* Pants / Skirts Style (Gender-aware) */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
-                      Model Celana / Rok:
+                      {config.gender === 'male' ? 'Model Celana:' : 'Model Celana / Rok:'}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {PANTS_OPTIONS.map((p) => (
+                      {PANTS_OPTIONS.filter((p) => config.gender === 'female' || p.category !== 'rok').map((p) => (
                         <button
                           key={p.id}
                           type="button"
@@ -669,7 +688,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                   {/* Pants Color */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
-                      Warna Celana / Rok:
+                      {config.gender === 'male' ? 'Warna Celana:' : 'Warna Celana / Rok:'}
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {PANTS_COLORS.map((col) => (
@@ -774,16 +793,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                     </div>
                   </div>
 
-                  <div className="p-3 bg-cream border border-[#d1c7b5] rounded-lg text-xs text-ink-muted space-y-1">
-                    <div className="flex items-center gap-1.5 text-teal font-semibold">
-                      <Info className="w-4 h-4" />
-                      <span>Format Standar Universal LPC 64×64 Pixel</span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed">
-                      Seluruh aset kustomisasi diselaraskan dengan frame 64×64 pixel dan 8 arah gerak animasi.
-                      Tampilan karakter yang kamu simpan akan langsung disinkronkan ke dalam simulator kantor 2D!
-                    </p>
-                  </div>
+
                 </div>
               )}
             </div>
@@ -800,7 +810,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
             )}
             {!saveToast && (
               <span className="text-xs text-ink-muted hidden sm:inline">
-                Perubahan tampilan tersimpan untuk sesi kantor online kamu.
+                Kustomisasi karakter akan otomatis disinkronkan ke seluruh ruangan kantor.
               </span>
             )}
           </div>

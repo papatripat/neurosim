@@ -3,8 +3,8 @@ import React from 'react';
 export type TextScale = 'normal' | 'medium' | 'large';
 
 interface Props {
-  reduceMotion: boolean;
-  onToggleReduceMotion: () => void;
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: () => void;
   textScale: TextScale;
   onChangeTextScale: (s: TextScale) => void;
   highContrast: boolean;
@@ -18,9 +18,7 @@ const SCALE_LABEL: Record<TextScale, string> = {
   large: 'Scale: 130%',
 };
 
-export const A11yControls: React.FC<Props> = ({
-  reduceMotion,
-  onToggleReduceMotion,
+export const AccessibilityControls: React.FC<Props> = ({
   textScale,
   onChangeTextScale,
   highContrast,
@@ -32,28 +30,13 @@ export const A11yControls: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
-      <button
-        type="button"
-        onClick={onToggleReduceMotion}
-        aria-pressed={reduceMotion}
-        aria-label="Kurangi animasi layar"
-        title="Kurangi Animasi (Reduce Motion)"
-        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
-          reduceMotion
-            ? 'bg-teal text-soft border-teal font-semibold'
-            : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
-        }`}
-      >
-        {reduceMotion ? 'Animasi: Min' : 'Animasi'}
-      </button>
-
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap" aria-label="Kontrol Aksesibilitas">
       <button
         type="button"
         onClick={nextScale}
         aria-label="Ubah skala tampilan"
         title="Skala Tampilan (Display Scale)"
-        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors font-mono whitespace-nowrap ${
+        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors font-mono whitespace-nowrap cursor-pointer ${
           textScale !== 'normal'
             ? 'bg-teal text-soft border-teal font-semibold shadow-xs'
             : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
@@ -68,7 +51,7 @@ export const A11yControls: React.FC<Props> = ({
         aria-pressed={highContrast}
         aria-label="Mode kontras tinggi"
         title="Mode Kontras Tinggi"
-        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
+        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors whitespace-nowrap cursor-pointer ${
           highContrast
             ? 'bg-black text-yellow-300 border-black ring-2 ring-yellow-400 font-semibold'
             : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
@@ -79,3 +62,6 @@ export const A11yControls: React.FC<Props> = ({
     </div>
   );
 };
+
+// Alias for backward compatibility
+export const A11yControls = AccessibilityControls;

@@ -199,11 +199,12 @@ export const TIE_OPTIONS: SelectOption[] = [
 ];
 
 export const PANTS_OPTIONS: SelectOption[] = [
-  { id: 'slacks-formal', name: 'Celana Bahan Formal (Slacks)', description: 'Celana kain lipatan tajam profesional' },
-  { id: 'chinos-neat', name: 'Celana Chino Rapi', description: 'Celana katun semi-formal modern' },
-  { id: 'pencil-skirt', name: 'Rok Pensil Kerja (Pencil Skirt)', description: 'Rok span selutut formal wanita kantoran' },
-  { id: 'a-line-skirt', name: 'Rok A-Line Panjang', description: 'Rok kerja anggun longgar nyaman' },
-  { id: 'dark-jeans', name: 'Jeans Gelap Rapi', description: 'Celana denim pekat tanpa sobekan untuk tech worker' },
+  { id: 'slacks-formal', name: 'Celana Bahan Formal (Slacks)', description: 'Celana kain lipatan tajam profesional', category: 'celana' },
+  { id: 'chinos-neat', name: 'Celana Chino Rapi', description: 'Celana katun semi-formal modern', category: 'celana' },
+  { id: 'dark-jeans', name: 'Jeans Gelap Rapi', description: 'Celana denim pekat tanpa sobekan untuk tech worker', category: 'celana' },
+  { id: 'slacks-striped', name: 'Celana Bahan Garis (Striped)', description: 'Celana kain motif garis formal eksekutif', category: 'celana' },
+  { id: 'pencil-skirt', name: 'Rok Pensil Kerja (Pencil Skirt)', description: 'Rok span selutut formal wanita kantoran', category: 'rok' },
+  { id: 'a-line-skirt', name: 'Rok A-Line Panjang', description: 'Rok kerja anggun longgar nyaman', category: 'rok' },
 ];
 
 export const SHOES_OPTIONS: SelectOption[] = [
@@ -215,11 +216,11 @@ export const SHOES_OPTIONS: SelectOption[] = [
 ];
 
 export const ACCESSORIES_OPTIONS: SelectOption[] = [
-  { id: 'id-badge', name: 'Tali Lanyard ID Card Kantor', description: 'Tanda pengenal karyawan tergantung di leher' },
-  { id: 'leather-watch', name: 'Jam Tangan Kulit Mewah', description: 'Aksesoris penunjuk waktu di pergelangan tangan' },
-  { id: 'briefcase', name: 'Tas Berkas / Laptop Case', description: 'Membawa map dokumen penting di tangan' },
-  { id: 'headset', name: 'Headset Peredam Bising (ANC)', description: 'Headphone over-ear untuk fokus kerja bebas distraksi' },
-  { id: 'none', name: 'Tanpa Aksesoris Tambahan', description: 'Tampilan bersih tanpa hiasan ekstra' },
+  { id: 'leather-watch', name: 'Jam Tangan Kulit Mewah', description: 'Arloji berkelas melingkar di pergelangan tangan' },
+  { id: 'belt-leather', name: 'Ikat Pinggang Kulit Formal', description: 'Sabuk kulit formal dengan gesper logam rapi' },
+  { id: 'scarf', name: 'Syal Leher Profesional (Scarf)', description: 'Syal kain halus pelengkap busana kantor ber-AC' },
+  { id: 'earrings', name: 'Anting Stud Emas Minimalis', description: 'Aksesoris anting kecil anggun untuk tampilan formal' },
+  { id: 'none', name: 'Tanpa Aksesoris Tambahan', description: 'Tampilan bersih minimalis tanpa hiasan ekstra' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -247,7 +248,7 @@ export const DEFAULT_CHARACTER: CharacterCustomization = {
   pantsColor: 'charcoal',
   shoesType: 'oxford-leather',
   shoesColor: 'black-leather',
-  accessory: 'id-badge',
+  accessory: 'none',
 };
 
 export const CHARACTER_PRESETS: CharacterPreset[] = [
@@ -294,7 +295,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'penny-loafers',
       shoesColor: 'dark-brown',
       glasses: 'wire-frame',
-      accessory: 'id-badge',
+      accessory: 'none',
     },
   },
   {
@@ -317,7 +318,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'clean-sneakers',
       shoesColor: 'white-sneaker',
       glasses: 'reading-oval',
-      accessory: 'headset',
+      accessory: 'leather-watch',
     },
   },
   {
@@ -340,7 +341,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'work-boots',
       shoesColor: 'dark-brown',
       glasses: 'none',
-      accessory: 'id-badge',
+      accessory: 'none',
     },
   },
   {
@@ -363,7 +364,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'clean-sneakers',
       shoesColor: 'black-leather',
       glasses: 'sunglasses',
-      accessory: 'briefcase',
+      accessory: 'belt-leather',
     },
   },
   {
@@ -386,7 +387,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'work-boots',
       shoesColor: 'dark-brown',
       glasses: 'wire-frame',
-      accessory: 'headset',
+      accessory: 'leather-watch',
     },
   },
   {
@@ -411,7 +412,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'flats-shoes',
       shoesColor: 'black-leather',
       glasses: 'none',
-      accessory: 'id-badge',
+      accessory: 'none',
     },
   },
 ];

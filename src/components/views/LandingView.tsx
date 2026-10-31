@@ -1,20 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Shirt,
   ShieldCheck,
   Sparkles,
-  Users,
   Compass,
   ArrowRight,
   CheckCircle2,
-  Lock,
-  Layers,
   Award,
   LogIn,
 } from 'lucide-react';
 import { UserProfile } from '../modals/AuthModal';
-import { CharacterCustomization } from '../../types/character';
+import { CharacterCustomization, CharacterDirection } from '../../types/character';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 
 interface Props {
@@ -24,7 +21,7 @@ interface Props {
   onEnterSimulation: () => void;
   onOpenCustomizer: () => void;
   onOpenAuth: () => void;
-  onOpenProposal: () => void;
+  onOpenProposal?: () => void;
 }
 
 export const LandingView: React.FC<Props> = ({
@@ -34,15 +31,16 @@ export const LandingView: React.FC<Props> = ({
   onEnterSimulation,
   onOpenCustomizer,
   onOpenAuth,
-  onOpenProposal,
 }) => {
+  const [previewDirection, setPreviewDirection] = useState<CharacterDirection>('south');
+
   return (
     <div className="w-full h-full overflow-y-auto bg-sand/30 text-ink select-none flex flex-col">
       {/* Top Navigation Bar */}
       <nav className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-cream border-b border-[#d1c7b5] sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg overflow-hidden bg-cream border border-teal/30 flex items-center justify-center shadow-xs">
-            <img src="/logo.webp" alt="NeuroSim Logo" className="w-full h-full object-contain" />
+            <img src="/logo.webp" alt="Logo NeuroSim" className="w-full h-full object-contain" />
           </div>
           <div>
             <span className="font-bold text-base tracking-tight text-ink block leading-tight font-serif">
@@ -57,16 +55,8 @@ export const LandingView: React.FC<Props> = ({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onOpenProposal}
-            className="text-xs font-semibold text-ink-muted hover:text-teal transition-colors px-3 py-1.5 rounded hover:bg-sand/60 hidden sm:inline-flex"
-          >
-            Proposal Dossier
-          </button>
-
-          <button
-            type="button"
             onClick={onOpenCustomizer}
-            className="text-xs font-semibold text-ink hover:text-teal transition-colors px-3 py-1.5 rounded border border-[#d1c7b5] bg-cream hover:bg-sand flex items-center gap-1.5 shadow-2xs"
+            className="text-xs font-semibold text-ink hover:text-teal transition-colors px-3 py-1.5 rounded border border-[#d1c7b5] bg-cream hover:bg-sand flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Shirt className="w-3.5 h-3.5 text-teal" />
             <span className="hidden md:inline">Kustomisasi Karakter</span>
@@ -76,9 +66,9 @@ export const LandingView: React.FC<Props> = ({
             <button
               type="button"
               onClick={onEnterDashboard}
-              className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-dark text-soft text-xs font-bold transition-all shadow-xs flex items-center gap-2"
+              className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-dark text-soft text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
-              <span>Dashboard ({currentUser.fullName.split(' ')[0]})</span>
+              <span>Dashboard ({currentUser.fullName ? currentUser.fullName.split(' ')[0] : currentUser.username})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
@@ -86,7 +76,7 @@ export const LandingView: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="px-3.5 py-1.5 rounded-lg border border-teal text-teal hover:bg-teal/10 text-xs font-bold transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg border border-teal text-teal hover:bg-teal/10 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Masuk ID Karyawan</span>
@@ -94,7 +84,7 @@ export const LandingView: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={onEnterSimulation}
-                className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-dark text-soft text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-teal hover:bg-teal-dark text-soft text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Mulai Simulasi Tamu</span>
@@ -106,25 +96,24 @@ export const LandingView: React.FC<Props> = ({
 
       {/* Hero Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
-        {/* Left: Text & Pitch */}
+        {/* Left: Text & Content */}
         <div className="flex-1 space-y-5 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal/10 border border-teal/20 text-teal text-xs font-bold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Simulasi Ruang Kerja Bebas Risiko & Evaluasi Objektif</span>
+            <span>Simulasi Ruang Kerja & Evaluasi Objektif</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-ink leading-[1.18] font-serif tracking-tight">
-            Simulator Interaksi Kantor{' '}
+            Ruang Latihan Komunikasi Kerja{' '}
             <span className="text-teal underline decoration-ochre underline-offset-4">
-              Berbasis Agen AI
-            </span>{' '}
-            untuk Pekerja Neurodivergen
+              di Kantor Virtual 2D
+            </span>
           </h1>
 
           <p className="text-sm sm:text-base text-ink-muted leading-relaxed max-w-2xl">
-            Mengubah tantangan sosial menjadi kesiapan profesional melalui simulasi kantor 2D interaktif.
-            Berlatih menghadapi rapat, diskusi santai di pantry, hingga instruksi atasan bersama rekan kerja AI
-            dengan tingkat bantuan percakapan adaptif.
+            Simulasi interaktif untuk mengasah komunikasi di lingkungan kerja secara mandiri.
+            Latih kesiapanmu menghadapi instruksi atasan, obrolan santai di pantry, hingga
+            negosiasi tugas bersama karakter AI dengan panduan percakapan yang adaptif.
           </p>
 
           {/* Action CTAs */}
@@ -133,7 +122,7 @@ export const LandingView: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={onEnterDashboard}
-                className="px-6 py-3 rounded-xl bg-teal hover:bg-teal-dark text-soft font-bold text-sm sm:text-base transition-all shadow-md hover:shadow-lg flex items-center gap-2.5 transform hover:-translate-y-0.5"
+                className="px-6 py-3 rounded-xl bg-teal hover:bg-teal-dark text-soft font-bold text-sm sm:text-base transition-all shadow-md hover:shadow-lg flex items-center gap-2.5 transform hover:-translate-y-0.5 cursor-pointer"
               >
                 <span>Buka Dashboard Karyawan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -142,7 +131,7 @@ export const LandingView: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={onOpenAuth}
-                className="px-6 py-3 rounded-xl bg-teal hover:bg-teal-dark text-soft font-bold text-sm sm:text-base transition-all shadow-md hover:shadow-lg flex items-center gap-2.5 transform hover:-translate-y-0.5"
+                className="px-6 py-3 rounded-xl bg-teal hover:bg-teal-dark text-soft font-bold text-sm sm:text-base transition-all shadow-md hover:shadow-lg flex items-center gap-2.5 transform hover:-translate-y-0.5 cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Masuk Portal Karyawan</span>
@@ -152,35 +141,26 @@ export const LandingView: React.FC<Props> = ({
             <button
               type="button"
               onClick={onEnterSimulation}
-              className="px-5 py-3 rounded-xl bg-cream hover:bg-sand border-2 border-teal text-teal font-bold text-sm sm:text-base transition-all shadow-xs flex items-center gap-2"
+              className="px-5 py-3 rounded-xl bg-cream hover:bg-sand border-2 border-teal text-teal font-bold text-sm sm:text-base transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
               <span>Jelajahi Kantor 2D Langsung</span>
             </button>
-
-            <button
-              type="button"
-              onClick={onOpenCustomizer}
-              className="px-4 py-3 rounded-xl bg-cream hover:bg-sand border border-[#b5aa94] text-ink font-semibold text-sm transition-colors flex items-center gap-2"
-            >
-              <Shirt className="w-4 h-4 text-ochre" />
-              <span>Kustomisasi Karakter</span>
-            </button>
           </div>
 
-          {/* Trust & Psychological Safety Guarantee */}
-          <div className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-ink-muted font-medium">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Bebas Penghakiman Sosial</span>
+          {/* 3 Standout Project Pillars */}
+          <div className="pt-6 sm:pt-8 flex flex-wrap items-center justify-center lg:justify-start gap-y-2.5 gap-x-6 text-xs text-ink-muted font-medium">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Denah Kantor 2D Interaktif</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>3 Tingkat Scaffolding AI</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Panduan Percakapan 3 Level AI</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Terhubung Remote MySQL & Gemini API</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Evaluasi Objektif & Riwayat Terdata</span>
             </div>
           </div>
         </div>
@@ -194,24 +174,25 @@ export const LandingView: React.FC<Props> = ({
 
             <CharacterCanvasPreview
               config={characterConfig}
-              direction="south"
+              direction={previewDirection}
+              onChangeDirection={setPreviewDirection}
               className="my-3"
             />
 
             <div className="text-center w-full mt-1">
               <span className="font-bold text-sm text-ink block">{characterConfig.name}</span>
               <span className="text-xs text-ink-muted block mt-0.5">
-                {characterConfig.gender === 'male' ? 'Karyawan Pria' : 'Karyawan Wanita'} · Aset 64×64 Pixel
+                {characterConfig.gender === 'male' ? 'Karyawan Pria' : 'Karyawan Wanita'}
               </span>
             </div>
 
             <button
               type="button"
               onClick={onOpenCustomizer}
-              className="w-full mt-4 py-2.5 px-4 rounded-xl bg-sand hover:bg-[#d8ccb8] border border-[#b5aa94] text-xs font-bold text-ink transition-colors flex items-center justify-center gap-2 shadow-2xs"
+              className="w-full mt-4 py-2.5 px-4 rounded-xl bg-sand hover:bg-[#d8ccb8] border border-[#b5aa94] text-xs font-bold text-ink transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer"
             >
               <Shirt className="w-4 h-4 text-teal" />
-              <span>Ubah Tampilan Karakter (LPC Generator)</span>
+              <span>Ubah Tampilan Karakter</span>
             </button>
           </div>
         </div>
@@ -222,14 +203,14 @@ export const LandingView: React.FC<Props> = ({
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-xs font-bold text-teal tracking-wider uppercase">
-              Pilar Keunggulan NeuroSim
+              Fitur & Sistem Utama
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold text-ink font-serif">
-              Pengalaman Simulasi Terintegrasi dari Hulu ke Hilir
+              Dirancang Nyata untuk Kesiapan Komunikasi Kerja
             </h2>
             <p className="text-xs sm:text-sm text-ink-muted">
-              Setiap elemen didesain ramah sensori, konsisten, dan terhubung langsung antara game engine 2D,
-              sistem autentikasi MySQL, dan inteligensi buatan Gemini.
+              Mulai dari navigasi kantor virtual 2D yang ramah sensori, simulasi dialog kontekstual bersama AI,
+              hingga lembar evaluasi terukur yang membantu melihat perkembanganmu.
             </p>
           </div>
 
@@ -239,10 +220,10 @@ export const LandingView: React.FC<Props> = ({
               <div className="w-10 h-10 rounded-lg bg-teal text-soft flex items-center justify-center">
                 <Compass className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-sm text-ink">Kantor 2D Pixel-Art Lengkap</h3>
+              <h3 className="font-bold text-sm text-ink">Eksplorasi Kantor 2D Real-time</h3>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Ruangan kantor virtual interaktif (Workstation, Ruang Rapat, Pantry, AFK Room & Lounge, Ruang Eksekutif, Koridor)
-                dengan barrier fisik presisi, bebas tembus, dan navigasi leluasa.
+                Jelajahi berbagai zona kerja seperti Workstation, Ruang Rapat, Pantry, hingga AFK Lounge
+                dengan pergerakan karakter responsif dan tata letak yang rapi.
               </p>
             </div>
 
@@ -251,10 +232,10 @@ export const LandingView: React.FC<Props> = ({
               <div className="w-10 h-10 rounded-lg bg-teal text-soft flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-sm text-ink">Roleplay AI Gemini Adaptif</h3>
+              <h3 className="font-bold text-sm text-ink">Simulasi Percakapan Berbasis Peran</h3>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Interaksi realistis dengan Bu Rina (atasan), Dimas (rekan senior), dan Pak Hendra (klien)
-                didukung 3 level scaffolding bimbingan percakapan profesional.
+                Berlatih langsung dengan Bu Rina (atasan), Dimas (rekan kerja), dan Pak Hendra (klien)
+                didukung 3 tingkat bantuan dialog yang bisa disesuaikan dengan kebutuhanmu.
               </p>
             </div>
 
@@ -263,10 +244,10 @@ export const LandingView: React.FC<Props> = ({
               <div className="w-10 h-10 rounded-lg bg-teal text-soft flex items-center justify-center">
                 <Shirt className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-sm text-ink">Universal LPC Generator</h3>
+              <h3 className="font-bold text-sm text-ink">Kustomisasi Karakter Lengkap</h3>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Kustomisasi mandiri 6 peran kantor, warna kulit, pakaian, rambut, kacamata, dan aksesoris
-                dengan animasi canvas 4 arah yang tersinkronisasi ke dalam game.
+                Pilih peran kerja, pakaian formal maupun santai, gaya rambut, dan aksesoris avatarmu
+                dengan format standar Universal LPC yang tampil konsisten di denah kantor.
               </p>
             </div>
 
@@ -275,23 +256,23 @@ export const LandingView: React.FC<Props> = ({
               <div className="w-10 h-10 rounded-lg bg-teal text-soft flex items-center justify-center">
                 <Award className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-sm text-ink">Evaluasi Komunikasi Objektif</h3>
+              <h3 className="font-bold text-sm text-ink">Lembar Evaluasi Objektif</h3>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Analisis berbasis data atas Kejelasan, Konteks, Batasan, dan Rekomendasi Level berikutnya
-                tersimpan aman di database remote MySQL.
+                Dapatkan umpan balik terperinci mengenai kejelasan pesan, pemahaman konteks, serta batasan profesional,
+                lengkap dengan riwayat latihan yang tersimpan.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Hackathon Developer & Jury Info Footer */}
+      {/* Developer Info Footer */}
       <footer className="mt-auto px-6 py-6 bg-cream border-t border-[#d1c7b5] text-xs text-ink-muted">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-teal" />
             <span className="font-semibold text-ink">
-              NEUROSIM © 2026 · Solusi Hackathon Inception 2026
+              NEUROSIM © 2026
             </span>
           </div>
 
@@ -300,11 +281,10 @@ export const LandingView: React.FC<Props> = ({
             <span>·</span>
             <span>Rifat Abhista (Backend & AI)</span>
             <span>·</span>
-            <span>Baginda Putra Krista (UI/UX & A11y)</span>
+            <span>Baginda Putra Krista (UI/UX & Accessibility)</span>
           </div>
         </div>
       </footer>
     </div>
   );
 };
-

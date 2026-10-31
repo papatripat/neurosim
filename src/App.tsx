@@ -202,7 +202,7 @@ export const App: React.FC = () => {
     }
   });
 
-  // A11y States
+  // Accessibility States
   const [reduceMotion, setReduceMotion] = useState(false);
   const [textScale, setTextScale] = useState<TextScale>('normal');
   const [highContrast, setHighContrast] = useState(false);
