@@ -154,6 +154,35 @@ export class OfficeScene extends Phaser.Scene {
     offsetY: number;
   }[] = [];
 
+  // Screen Share Live Badge Container & State
+  private screenShareBadgeContainer: Phaser.GameObjects.Container | null = null;
+  private isScreenSharingActive = false;
+  private screenSharerName = '';
+
+  private focusTimeoutId: number | null = null;
+
+  private safeDisableCapture(): void {
+    try {
+      const keyboard = this.input?.keyboard as any;
+      if (this.sys?.isActive() && keyboard && keyboard.manager) {
+        keyboard.disableGlobalCapture();
+      }
+    } catch {
+      // Safely ignore unmounted keyboard manager
+    }
+  }
+
+  private safeEnableCapture(): void {
+    try {
+      const keyboard = this.input?.keyboard as any;
+      if (this.sys?.isActive() && keyboard && keyboard.manager) {
+        keyboard.enableGlobalCapture();
+      }
+    } catch {
+      // Safely ignore unmounted keyboard manager
+    }
+  }
+
   // Room Location HUD
   private currentZoneId: string | null = null;
   private locationPillContainer!: Phaser.GameObjects.Container;
@@ -234,7 +263,7 @@ export class OfficeScene extends Phaser.Scene {
     this.keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     // Prevent Phaser from hijacking default browser typing behavior (Space, Arrows, Tab)
-    this.input.keyboard?.disableGlobalCapture();
+    this.safeDisableCapture();
 
     // 12. Interactive Prompt Box
     this.buildInteractivePrompt();
@@ -254,6 +283,7 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.on(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
     EventBus.on(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
     EventBus.on(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
+    EventBus.on(GAME_EVENTS.SCREEN_SHARE_CHANGED, this.handleScreenShareChanged, this);
 
     if (typeof localStorage !== 'undefined') {
       try {
@@ -280,6 +310,8 @@ export class OfficeScene extends Phaser.Scene {
     }
 
     // 16. Notify React UI
+    this.events.once('shutdown', this.shutdown, this);
+    this.events.once('destroy', this.destroy, this);
     EventBus.emit(GAME_EVENTS.SCENE_READY);
   }
 
@@ -367,6 +399,12 @@ export class OfficeScene extends Phaser.Scene {
       this.activeChatBubble.container.setDepth(this.player.y + 1050);
     }
 
+    // Update screen share live badge position so it follows player
+    if (this.screenShareBadgeContainer && this.screenShareBadgeContainer.active) {
+      this.screenShareBadgeContainer.setPosition(this.player.x, this.player.y - 48);
+      this.screenShareBadgeContainer.setDepth(this.player.y + 1030);
+    }
+
     // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
     const isModalOpen = typeof document !== 'undefined' && Boolean(document.querySelector('[role="dialog"]'));
     const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -380,7 +418,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.isPlayerLocked || isModalOpen || isUserTyping) {
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
-      this.input.keyboard?.disableGlobalCapture();
+      this.safeDisableCapture();
       this.input.keyboard?.resetKeys();
       if (this.wasd) {
         this.wasd.W?.reset();
@@ -583,6 +621,9 @@ export class OfficeScene extends Phaser.Scene {
         zoneId: detected.id,
         name: detected.name,
       });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('neurosim_current_zone_id', detected.id);
+      }
     }
   }
 
@@ -1304,7 +1345,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.promptContainer) {
       this.promptContainer.setVisible(false);
     }
-    this.input.keyboard?.disableGlobalCapture();
+    this.safeDisableCapture();
     if (this.wasd) {
       this.wasd.W?.reset();
       this.wasd.A?.reset();
@@ -1325,11 +1366,12 @@ export class OfficeScene extends Phaser.Scene {
 
     if (!isTyping) {
       this.isPlayerLocked = false;
-      this.input.keyboard?.enableGlobalCapture();
+      this.safeEnableCapture();
     }
   };
 
   private handleWindowFocusIn = (e: FocusEvent): void => {
+    if (!this.sys || !this.sys.isActive()) return;
     const target = e.target as HTMLElement | null;
     if (
       target &&
@@ -1340,12 +1382,20 @@ export class OfficeScene extends Phaser.Scene {
   };
 
   private handleWindowFocusOut = (e: FocusEvent): void => {
+    if (this.focusTimeoutId) {
+      window.clearTimeout(this.focusTimeoutId);
+      this.focusTimeoutId = null;
+    }
+
+    if (!this.sys || !this.sys.isActive()) return;
+
     const target = e.target as HTMLElement | null;
     if (
       target &&
       (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
     ) {
-      setTimeout(() => {
+      this.focusTimeoutId = window.setTimeout(() => {
+        if (!this.sys || !this.sys.isActive()) return;
         const nextActive = typeof document !== 'undefined' ? document.activeElement : null;
         const stillTyping = Boolean(
           nextActive &&
@@ -1354,7 +1404,7 @@ export class OfficeScene extends Phaser.Scene {
               (nextActive as HTMLElement).isContentEditable)
         );
         if (!stillTyping && !this.isPlayerLocked) {
-          this.input.keyboard?.enableGlobalCapture();
+          this.safeEnableCapture();
         }
       }, 50);
     }
@@ -1557,6 +1607,11 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   shutdown(): void {
+    if (this.focusTimeoutId) {
+      window.clearTimeout(this.focusTimeoutId);
+      this.focusTimeoutId = null;
+    }
+    this.safeDisableCapture();
     this.scale.off('resize', this.handleResize, this);
     EventBus.off(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
     EventBus.off(GAME_EVENTS.CLOSE_TODO_LIST, this.handleCloseDialog, this);
@@ -1570,6 +1625,11 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
     EventBus.off(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
     EventBus.off(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
+    EventBus.off(GAME_EVENTS.SCREEN_SHARE_CHANGED, this.handleScreenShareChanged, this);
+    if (this.screenShareBadgeContainer && this.screenShareBadgeContainer.active) {
+      this.screenShareBadgeContainer.destroy();
+      this.screenShareBadgeContainer = null;
+    }
     if (this.activeChatBubble && this.activeChatBubble.container.active) {
       this.activeChatBubble.container.destroy();
       this.activeChatBubble = null;
@@ -1689,5 +1749,55 @@ export class OfficeScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
     this.cameras.main.pan(coords.x, coords.y, 450, 'Power2');
     this.updateCurrentZone(true);
+  };
+
+  private handleScreenShareChanged = ({
+    isSharing,
+    sharerName,
+  }: {
+    isSharing: boolean;
+    sharerName?: string;
+  }): void => {
+    this.isScreenSharingActive = Boolean(isSharing);
+    this.screenSharerName = sharerName || 'Rekan';
+
+    if (this.screenShareBadgeContainer && this.screenShareBadgeContainer.active) {
+      this.screenShareBadgeContainer.destroy();
+      this.screenShareBadgeContainer = null;
+    }
+
+    if (this.isScreenSharingActive && this.player && this.player.active) {
+      const container = this.add.container(this.player.x, this.player.y - 48);
+      container.setDepth(this.player.y + 1030);
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x131722, 0.95);
+      bg.lineStyle(1.5, 0xeab308, 1);
+      bg.fillRoundedRect(-52, -10, 104, 20, 5);
+      bg.strokeRoundedRect(-52, -10, 104, 20, 5);
+
+      const txt = this.add.text(0, 0, '🖥️ LIVE SCREEN', {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '9.5px',
+        color: '#fef08a',
+        fontStyle: 'bold',
+        align: 'center',
+      });
+      txt.setOrigin(0.5, 0.5);
+
+      container.add([bg, txt]);
+      this.screenShareBadgeContainer = container;
+
+      // Animasi denyut glowing lembut
+      this.tweens.add({
+        targets: container,
+        scaleX: 1.06,
+        scaleY: 1.06,
+        yoyo: true,
+        repeat: -1,
+        duration: 800,
+        ease: 'Sine.easeInOut',
+      });
+    }
   };
 }

@@ -20,6 +20,7 @@ interface Props {
   onLoginSuccess: (user: UserProfile, history?: any[]) => void;
   onLogout: () => void;
   userHistory?: any[];
+  userAvatar?: string;
 }
 
 const AVATAR_OPTIONS = [
@@ -35,6 +36,7 @@ export const AuthModal: React.FC<Props> = ({
   onLoginSuccess,
   onLogout,
   userHistory = [],
+  userAvatar,
 }) => {
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState(false);
@@ -161,9 +163,9 @@ export const AuthModal: React.FC<Props> = ({
             <div className="p-4 bg-parchment border-2 border-teal/40 rounded-lg shadow-sm flex items-center gap-4">
               <div className="w-16 h-16 rounded border-2 border-teal overflow-hidden bg-sand flex-shrink-0">
                 <img
-                  src={currentUser?.avatar || '/assets/characters/resident/standing/south.png'}
+                  src={userAvatar || currentUser?.avatar || '/assets/characters/resident/standing/south.png'}
                   alt={currentUser?.fullName || currentUser?.username || 'Pegawai'}
-                  className="w-full h-full object-contain scale-[1.9] pixelated"
+                  className="w-full h-full object-contain scale-[1.35] origin-center pixelated"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -186,7 +188,7 @@ export const AuthModal: React.FC<Props> = ({
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
                   <History className="w-3.5 h-3.5 text-teal" />
-                  Riwayat Simulasi Tersimpan (MySQL):
+                  Riwayat Sesi Simulasi & Evaluasi AI:
                 </h4>
                 <span className="text-[11px] text-ink-muted">
                   {userHistory.length} Sesi Terdata
@@ -195,7 +197,7 @@ export const AuthModal: React.FC<Props> = ({
 
               {userHistory.length === 0 ? (
                 <div className="p-3 bg-sand/50 rounded border border-[#d1c7b5] text-center text-xs text-ink-muted">
-                  Belum ada riwayat simulasi yang tersimpan di database. Mulai latihan dengan Bu Rina atau Dimas!
+                  Belum ada riwayat simulasi tersimpan. Selesaikan sesi latihan mandiri untuk merekam evaluasi kompetensi.
                 </div>
               ) : (
                 <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 text-xs">

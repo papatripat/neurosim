@@ -47,6 +47,8 @@ interface Props {
   onClose: () => void;
   currentConfig?: CharacterCustomization;
   onSaveConfig: (config: CharacterCustomization) => void;
+  userName?: string;
+  userRole?: string;
 }
 
 type TabCategory = 'identity' | 'hair' | 'top' | 'bottom' | 'accessories';
@@ -56,10 +58,16 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
   onClose,
   currentConfig,
   onSaveConfig,
+  userName,
+  userRole,
 }) => {
-  const [config, setConfig] = useState<CharacterCustomization>(
-    currentConfig || DEFAULT_CHARACTER
-  );
+  const [config, setConfig] = useState<CharacterCustomization>(() => {
+    const base = currentConfig || DEFAULT_CHARACTER;
+    return {
+      ...base,
+      name: userName || base.name || 'Baginda',
+    };
+  });
   const [activeTab, setActiveTab] = useState<TabCategory>('identity');
   const [previewDirection, setPreviewDirection] = useState<CharacterDirection>('south');
   const [saveToast, setSaveToast] = useState(false);
@@ -67,9 +75,17 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (currentConfig) {
-      setConfig(currentConfig);
+      setConfig({
+        ...currentConfig,
+        name: userName || currentConfig.name || 'Baginda',
+      });
+    } else if (userName) {
+      setConfig((prev) => ({
+        ...prev,
+        name: userName,
+      }));
     }
-  }, [currentConfig]);
+  }, [currentConfig, userName]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -119,27 +135,35 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
   };
 
   const handleReset = () => {
-    setConfig(currentConfig || DEFAULT_CHARACTER);
+    const base = currentConfig || DEFAULT_CHARACTER;
+    setConfig({
+      ...base,
+      name: userName || base.name || 'Baginda',
+    });
   };
 
   const handleSave = async () => {
-    onSaveConfig(config);
+    const toSave: CharacterCustomization = {
+      ...config,
+      name: userName || config.name || 'Baginda',
+    };
+    onSaveConfig(toSave);
     // Simpan ke localStorage agar awet antar sesi
-    localStorage.setItem('neurosim_character_config', JSON.stringify(config));
+    localStorage.setItem('neurosim_character_config', JSON.stringify(toSave));
 
     try {
-      const fullCanvas = await generateFullLpcSpritesheet(config);
+      const fullCanvas = await generateFullLpcSpritesheet(toSave);
       const dataUrl = fullCanvas.toDataURL('image/png');
       localStorage.setItem('neurosim_character_spritesheet', dataUrl);
 
       // Emit ke Phaser engine agar sprite player langsung diupdate seketika
       EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, {
-        config,
+        config: toSave,
         spritesheetDataUrl: dataUrl,
       });
     } catch (err) {
       console.warn('Could not generate full LPC spritesheet:', err);
-      EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, { config });
+      EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, { config: toSave });
     }
 
     setSaveToast(true);
@@ -218,9 +242,9 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
               />
 
               <div className="text-center mt-3 w-full">
-                <span className="font-bold text-xs block text-ink">{config.name}</span>
+                <span className="font-bold text-xs block text-ink">{userName || config.name}</span>
                 <span className="text-[10px] text-ink-muted block mt-0.5">
-                  {currentArchetype.name} · {config.gender === 'male' ? 'Pria' : 'Wanita'}
+                  {userRole || currentArchetype.name} · {config.gender === 'male' ? 'Pria' : 'Wanita'}
                 </span>
               </div>
             </div>
@@ -312,7 +336,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                   {/* Archetype / Role Selection (Universal 64x64 Office Characters) */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
-                      Pilihan Peran & Arketipe Karakter (Aset Modular 64×64):
+                      Pilihan Peran & Tipe Karakter:
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {ARCHETYPE_OPTIONS.map((arch) => (

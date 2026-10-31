@@ -32,64 +32,81 @@ export interface OfficeRoom {
   npcs: string[];
 }
 
-export const OFFICE_ROOMS: OfficeRoom[] = [
-  {
-    id: 'room-main',
-    name: 'Kantor Utama & Open Workspace',
-    zone: 'Workstation Utama',
-    description: 'Pusat workstation tim dengan 16 meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.',
-    spawnCoords: { x: 1810, y: 790 },
-    capacity: 25,
-    activeCount: 3,
-    npcs: ['Priyoga', 'Rifat', 'Baginda'],
-  },
-  {
-    id: 'room-meeting',
-    name: 'Ruang Rapat Strategis',
-    zone: 'Ruang Rapat & Konferensi',
-    description: 'Ruang konferensi formal berlantai kayu untuk presentasi proposal dan negosiasi proyek bersama Pak Hendra.',
-    spawnCoords: { x: 600, y: 480 },
-    capacity: 12,
-    activeCount: 1,
-    npcs: ['Pak Hendra (Klien)'],
-  },
-  {
-    id: 'room-pantry',
-    name: 'Pantry & Coffee Breakroom',
-    zone: 'Pantry & Dapur',
-    description: 'Area santai dengan espresso machine, meja kafe, dan rekan kerja senior Dimas untuk obrolan santai.',
-    spawnCoords: { x: 480, y: 950 },
-    capacity: 15,
-    activeCount: 2,
-    npcs: ['Dimas', 'Host Barista'],
-  },
-  {
-    id: 'room-executive',
-    name: 'Ruang Eksekutif & Manajemen',
-    zone: 'Ruang Eksekutif & Manajemen',
-    description: 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas, arahan prioritas, dan feedback kerja berkala.',
-    spawnCoords: { x: 2150, y: 360 },
-    capacity: 8,
-    activeCount: 1,
-    npcs: ['Bu Rina (Atasan)'],
-  },
-  {
-    id: 'room-afk',
-    name: 'AFK Room & Area Santai',
-    zone: 'AFK Room & Area Santai',
-    description: 'Ruang istirahat dan relaksasi tenang dilengkapi sofa empuk, sudut buku, dan dispenser untuk jeda istirahat.',
-    spawnCoords: { x: 600, y: 1180 },
-    capacity: 10,
-    activeCount: 1,
-    npcs: ['Area Relaksasi Karyawan'],
-  },
-];
+export const mapZoneToRoomId = (zoneId?: string): string => {
+  if (!zoneId) return 'room-main';
+  if (zoneId === 'afk-room' || zoneId === 'room-afk') return 'room-afk';
+  if (zoneId === 'room-pantry') return 'room-pantry';
+  if (zoneId === 'room-meeting') return 'room-meeting';
+  if (zoneId === 'room-executive') return 'room-executive';
+  return 'room-main';
+};
+
+export const getOfficeRooms = (userName: string, activeZoneId: string = 'room-workspace'): OfficeRoom[] => {
+  const currentRoomId = mapZoneToRoomId(activeZoneId);
+  const selfLabel = userName ? `${userName} (Kamu)` : 'Baginda (Kamu)';
+
+  return [
+    {
+      id: 'room-main',
+      name: 'Kantor Utama & Open Workspace',
+      zone: 'Workstation Utama',
+      description: 'Pusat workstation tim dengan 16 meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.',
+      spawnCoords: { x: 1810, y: 790 },
+      capacity: 25,
+      activeCount: currentRoomId === 'room-main' ? 1 : 0,
+      npcs: currentRoomId === 'room-main' ? [selfLabel] : ['Meja Kerja Siap Pakai'],
+    },
+    {
+      id: 'room-meeting',
+      name: 'Ruang Rapat Strategis',
+      zone: 'Ruang Rapat & Konferensi',
+      description: 'Ruang konferensi formal berlantai kayu untuk presentasi proposal dan negosiasi proyek bersama Pak Hendra.',
+      spawnCoords: { x: 600, y: 480 },
+      capacity: 12,
+      activeCount: currentRoomId === 'room-meeting' ? 2 : 1,
+      npcs: currentRoomId === 'room-meeting' ? [selfLabel, 'Pak Hendra (Klien)'] : ['Pak Hendra (Klien)'],
+    },
+    {
+      id: 'room-pantry',
+      name: 'Pantry & Coffee Breakroom',
+      zone: 'Pantry & Dapur',
+      description: 'Area santai dengan espresso machine, meja kafe, dan rekan kerja senior Dimas untuk obrolan santai.',
+      spawnCoords: { x: 480, y: 950 },
+      capacity: 15,
+      activeCount: currentRoomId === 'room-pantry' ? 2 : 1,
+      npcs: currentRoomId === 'room-pantry' ? [selfLabel, 'Dimas (Senior)'] : ['Dimas (Senior)'],
+    },
+    {
+      id: 'room-executive',
+      name: 'Ruang Eksekutif & Manajemen',
+      zone: 'Ruang Eksekutif & Manajemen',
+      description: 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas, arahan prioritas, dan feedback kerja berkala.',
+      spawnCoords: { x: 2150, y: 360 },
+      capacity: 8,
+      activeCount: currentRoomId === 'room-executive' ? 2 : 1,
+      npcs: currentRoomId === 'room-executive' ? [selfLabel, 'Bu Rina (Atasan)'] : ['Bu Rina (Atasan)'],
+    },
+    {
+      id: 'room-afk',
+      name: 'AFK Room & Area Santai',
+      zone: 'AFK Room & Area Santai',
+      description: 'Ruang istirahat dan relaksasi tenang dilengkapi sofa empuk, sudut buku, dan dispenser untuk jeda istirahat.',
+      spawnCoords: { x: 600, y: 1180 },
+      capacity: 10,
+      activeCount: currentRoomId === 'room-afk' ? 1 : 0,
+      npcs: currentRoomId === 'room-afk' ? [selfLabel] : ['Area Relaksasi Karyawan'],
+    },
+  ];
+};
+
+export const OFFICE_ROOMS: OfficeRoom[] = getOfficeRooms('Baginda Putra Krista');
 
 interface Props {
   currentUser: UserProfile | null;
   characterConfig: CharacterCustomization;
   tasks: OfficeTask[];
   userHistory: any[];
+  currentZoneId?: string;
   onSelectRoom: (room: OfficeRoom) => void;
   onEnterSimulationDirect: (room?: OfficeRoom) => void;
   onOpenCustomizer: () => void;
@@ -103,6 +120,7 @@ export const DashboardView: React.FC<Props> = ({
   characterConfig,
   tasks,
   userHistory,
+  currentZoneId,
   onSelectRoom,
   onEnterSimulationDirect,
   onOpenCustomizer,
@@ -112,6 +130,8 @@ export const DashboardView: React.FC<Props> = ({
 }) => {
   const completedTasks = tasks.filter((t) => t.completed).length;
   const progressPercent = Math.round((completedTasks / tasks.length) * 100);
+  const currentRoomId = mapZoneToRoomId(currentZoneId);
+  const officeRooms = React.useMemo(() => getOfficeRooms(currentUser?.fullName || 'Baginda Putra Krista', currentZoneId), [currentUser?.fullName, currentZoneId]);
 
   return (
     <div className="w-full h-full overflow-y-auto bg-sand/30 text-ink select-none flex flex-col">
@@ -246,7 +266,7 @@ export const DashboardView: React.FC<Props> = ({
               </div>
               <div className="p-2 rounded bg-sand/40 border border-[#d1c7b5]">
                 <span className="text-[10px] text-ink-muted block">Database Status:</span>
-                <span className="font-bold text-emerald-700">Tersinkronisasi</span>
+                <span className="font-bold text-emerald-700">{currentUser ? "Tersinkronisasi" : "Mode Tamu"}</span>
               </div>
             </div>
           </div>
@@ -258,7 +278,7 @@ export const DashboardView: React.FC<Props> = ({
                 <Shirt className="w-4 h-4 text-teal" />
                 <span>Karakter Simulator Aktif</span>
               </span>
-              <span className="text-[10px] font-mono text-ink-muted">64×64 LPC</span>
+              
             </div>
 
             <CharacterCanvasPreview
@@ -269,10 +289,11 @@ export const DashboardView: React.FC<Props> = ({
             />
 
             <div className="text-center w-full mt-2">
-              <span className="font-bold text-xs text-ink block">{characterConfig.name}</span>
-              <span className="text-[10px] text-ink-muted block">
-                {characterConfig.gender === 'male' ? 'Karyawan Pria' : 'Karyawan Wanita'} ·{' '}
-                {characterConfig.archetype || 'resident'}
+              <span className="font-bold text-xs text-ink block">
+                {currentUser?.fullName || characterConfig.name}
+              </span>
+              <span className="text-[10px] text-teal font-medium block">
+                {currentUser?.role || (characterConfig.gender === 'male' ? 'Karyawan Pria' : 'Karyawan Wanita')}
               </span>
             </div>
 
@@ -282,7 +303,7 @@ export const DashboardView: React.FC<Props> = ({
               className="w-full mt-3 py-2 px-3 rounded-xl bg-teal hover:bg-teal-dark text-soft text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
             >
               <Shirt className="w-3.5 h-3.5" />
-              <span>Buka Generator Karakter</span>
+              <span>Buka Kustomisasi Karakter</span>
             </button>
           </div>
 
@@ -348,22 +369,36 @@ export const DashboardView: React.FC<Props> = ({
               </div>
 
               <span className="text-[11px] font-mono font-bold text-teal bg-teal/10 px-2.5 py-1 rounded-lg border border-teal/20 self-start sm:self-auto">
-                {OFFICE_ROOMS.length} RUANGAN TERSEDIA
+                {officeRooms.length} RUANGAN TERSEDIA
               </span>
             </div>
 
             {/* Room Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {OFFICE_ROOMS.map((room) => (
+              {officeRooms.map((room) => {
+                const isCurrent = room.id === currentRoomId;
+                return (
                 <div
                   key={room.id}
-                  className="bg-sand/30 hover:bg-sand/60 border border-[#d1c7b5] hover:border-teal rounded-xl p-4 transition-all flex flex-col justify-between space-y-3 group shadow-2xs"
+                  className={
+                    isCurrent
+                      ? 'bg-sand/70 border-teal shadow-xs ring-1 ring-teal/30 p-4 transition-all flex flex-col justify-between space-y-3 group rounded-xl border'
+                      : 'bg-sand/30 hover:bg-sand/60 border-[#d1c7b5] hover:border-teal p-4 transition-all flex flex-col justify-between space-y-3 group shadow-2xs rounded-xl border'
+                  }
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-bold text-teal uppercase tracking-wide bg-cream px-2 py-0.5 rounded border border-[#d1c7b5]">
-                        {room.zone}
-                      </span>
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-teal uppercase tracking-wide bg-cream px-2 py-0.5 rounded border border-[#d1c7b5]">
+                          {room.zone}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[9.5px] font-bold text-soft bg-emerald-700 px-2 py-0.5 rounded-full uppercase flex items-center gap-1 shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            Lokasi Avatar Saat Ini
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 text-[10px] text-ink-muted font-mono">
                         <Users className="w-3 h-3 text-teal" />
                         <span>{room.activeCount} aktif</span>
@@ -404,7 +439,8 @@ export const DashboardView: React.FC<Props> = ({
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
 
