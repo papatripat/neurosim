@@ -13,32 +13,106 @@ interface NPCData {
   scenarioId: string;
 }
 
+export interface OfficeZone {
+  id: string;
+  name: string;
+  subtitle: string;
+  badge: string;
+  borderColor: number;
+  textColor: string;
+  check: (x: number, y: number) => boolean;
+}
+
 // ---------------------------------------------------------------------------
-// Constants
+// Constants & Map Geometry
 // ---------------------------------------------------------------------------
 
 const MAP_W = 2752;
 const MAP_H = 1536;
-const PLAYER_SPEED = 145;
-const NPC_INTERACT_DIST = 65;
-const TODO_INTERACT_DIST = 55;
+const PLAYER_SPEED = 185;
+const NPC_INTERACT_DIST = 85;
+const TODO_INTERACT_DIST = 80;
 
 // Proportional scales for 64×64 sprites onto 2752×1536 map
-const CHAR_SCALE = 1.75;
-const PROP_SCALE = 1.75;
+// Prominent, chunky, and detailed (2.0 scale)
+const CHAR_SCALE = 2.0;
+const PROP_SCALE = 2.0;
 
-// Safe spawn point — inside central corridor south hallway
-const SPAWN = { x: 1375, y: 1240 };
+// Default Spawn: In Main Room (Zona 5) at employee workstation facing desk!
+// "semisal awal spawn dia tuh fokusnya ke main room"
+const SPAWN = { x: 1687, y: 840 };
 
-// To-Do List board in central corridor
-const TODO_POS = { x: 1400, y: 460 };
+// To-Do List board mounted ON THE TOP WALL of the central corridor
+// "untuk bagian todolist itu tolong jangan di taroh di tengah-tengah gitu jadi tolong benerin agar to do list nya itu lebih keatas dan buat semacam papan gituann dan itu ada barriernya"
+const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 260 },   // Zona 4 — Ruangan Bos (Skenario 1)
-  dimas: { x: 580, y: 280 },   // Zona 1 — Pantry & Dapur (Skenario 2)
+  rina: { x: 2150, y: 250 },   // Zona 4 — Ruangan Bos (Skenario 1)
+  dimas: { x: 580, y: 270 },   // Zona 1 — Pantry & Dapur (Skenario 2)
   klien: { x: 640, y: 700 },   // Zona 2 — Meeting Room (Skenario 3)
 } as const;
+
+// ---------------------------------------------------------------------------
+// Office Zones Definition
+// ---------------------------------------------------------------------------
+
+const OFFICE_ZONES: OfficeZone[] = [
+  {
+    id: 'zona-4',
+    name: 'Zona 4 · Ruangan Bos',
+    subtitle: 'Ruang Manajemen & Atasan (Bu Rina)',
+    badge: 'EXECUTIVE SUITE',
+    borderColor: 0xe0b65d,
+    textColor: '#f4ead5',
+    check: (x, y) => x >= 1715 && x <= 2595 && y >= 100 && y <= 518,
+  },
+  {
+    id: 'zona-1',
+    name: 'Zona 1 · Pantry & Dapur',
+    subtitle: 'Area Istirahat & Rekan Kerja (Dimas)',
+    badge: 'PANTRY & BREAKROOM',
+    borderColor: 0xba8a5c,
+    textColor: '#fff9eb',
+    check: (x, y) => x >= 100 && x <= 1166 && y >= 100 && y <= 518,
+  },
+  {
+    id: 'zona-2',
+    name: 'Zona 2 · Meeting Room',
+    subtitle: 'Ruang Rapat & Presentasi Klien (Pak Hendra)',
+    badge: 'CONFERENCE ROOM',
+    borderColor: 0x355c5a,
+    textColor: '#fff9eb',
+    check: (x, y) => x >= 100 && x <= 1166 && y > 518 && y <= 970,
+  },
+  {
+    id: 'zona-3',
+    name: 'Zona 3 · Smoking & Creative Lounge',
+    subtitle: 'Area Santai & Diskusi Informal',
+    badge: 'SMOKING LOUNGE',
+    borderColor: 0x697b8b,
+    textColor: '#fff9eb',
+    check: (x, y) => x >= 100 && x <= 1166 && y > 970 && y <= 1260,
+  },
+  {
+    id: 'zona-5',
+    name: 'Zona 5 · Workstation Utama',
+    subtitle: 'Ruang Kerja Karyawan & Kolaborasi Tim',
+    badge: 'MAIN WORKSPACE',
+    borderColor: 0x2b6e4f,
+    textColor: '#e0b65d',
+    check: (x, y) => x >= 1420 && x <= 2595 && y >= 520 && y <= 1380,
+  },
+  {
+    id: 'koridor',
+    name: 'Koridor Utama & Pintu Masuk',
+    subtitle: 'Pusat Navigasi & Papan Agenda Skenario',
+    badge: 'CENTRAL CORRIDOR',
+    borderColor: 0x3d485b,
+    textColor: '#fff9eb',
+    check: () => true, // Fallback when in hallway / entrance
+  },
+];
 
 // ---------------------------------------------------------------------------
 // OfficeScene
@@ -47,7 +121,7 @@ const NPC_POSITIONS = {
 export class OfficeScene extends Phaser.Scene {
   // Player
   private player!: Phaser.Physics.Arcade.Sprite;
-  private lastDirection: string = 'south';
+  private lastDirection: string = 'north';
 
   // NPCs
   private npcs: NPCData[] = [];
@@ -68,7 +142,6 @@ export class OfficeScene extends Phaser.Scene {
   private activeNpcNear: NPCData | null = null;
   private isNearTodoList = false;
 
-  // Active Floating Emotes
   // Active Chat Speech Bubble (Strictly 1 at a time, replaced on new chat)
   private activeChatBubble: {
     container: Phaser.GameObjects.Container;
@@ -82,6 +155,20 @@ export class OfficeScene extends Phaser.Scene {
     offsetY: number;
   }[] = [];
 
+  // Room Location HUD
+  private currentZoneId: string | null = null;
+  private locationPillContainer!: Phaser.GameObjects.Container;
+  private locationPillText!: Phaser.GameObjects.Text;
+  private locationPillBg!: Phaser.GameObjects.Rectangle;
+
+  // Top-Area Sleek Zone Notification (Placed at top so it doesn't block center-screen!)
+  // "juga untuk notif pindah-pindah tempatnya itu arahin ke bagian atas aja karena kalo tengah sepertinya ngalangin"
+  private topBannerContainer!: Phaser.GameObjects.Container;
+  private topBannerBg!: Phaser.GameObjects.Rectangle;
+  private topBannerTitleText!: Phaser.GameObjects.Text;
+  private topBannerSubText!: Phaser.GameObjects.Text;
+  private topBannerTween: Phaser.Tweens.Tween | null = null;
+
   constructor() {
     super('OfficeScene');
   }
@@ -91,7 +178,7 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   create(): void {
-    // 1. Office Ground Texture
+    // 1. Office Ground Texture (WebP 2752×1536)
     this.add.image(0, 0, 'office-ground').setOrigin(0, 0).setDepth(0);
     this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
 
@@ -101,29 +188,32 @@ export class OfficeScene extends Phaser.Scene {
     // 3. Walls & Architectural Barriers (Impenetrable Outer & Inner Colliders)
     this.buildArchitecturalWalls();
 
-    // 4. Lavish Furniture & Props Across All 5 Zones (Solid Desks with No Penetration)
+    // 4. Lavish & Dense Office Furnishings Across All 5 Zones (Bustling & Dense!)
+    // "terus buat lebih padet lagi engine game nya fokus ke improve keseluruhan barriernya dong"
     this.buildOfficeFurnishings();
 
-    // 5. Central Corridor Signage (Clean To-Do List Board without clutter)
+    // 5. Central Corridor Wall-Mounted To-Do List Board
     this.buildCorridorElements();
 
-    // 6. Spawn Player
+    // 6. Refresh static obstacles so Arcade Physics indexes all bodies immediately
+    this.obstacles.refresh();
+
+    // 7. Spawn Player in Main Room (Zona 5)
     this.buildPlayer();
 
-    // 7. Spawn NPCs
+    // 8. Spawn NPCs (Bu Rina, Dimas, Pak Hendra)
     this.buildNPCs();
 
-    // 8. Physics Colliders
+    // 9. Physics Colliders
     this.physics.add.collider(this.player, this.obstacles);
     for (const npc of this.npcs) {
       this.physics.add.collider(this.player, npc.sprite);
     }
 
-    // 9. Camera Follow
-    this.cameras.main.setBounds(0, 0, MAP_W, MAP_H);
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    // 10. Camera Follow & Zoom Setup (Zoom 1.22 for rich, detailed pixel view)
+    this.setupCamera();
 
-    // 10. Controls Setup
+    // 11. Controls Setup
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<
       string,
@@ -134,25 +224,79 @@ export class OfficeScene extends Phaser.Scene {
     // Prevent Phaser from hijacking default browser typing behavior (Space, Arrows, Tab)
     this.input.keyboard?.disableGlobalCapture();
 
-    // 11. Interactive Prompt Box
+    // 12. Interactive Prompt Box
     this.buildInteractivePrompt();
 
-    // 12. Listeners
+    // 13. Room Location HUD (Persistent Top-Left Pill + Top-Area Announcement Banner)
+    this.buildLocationHUD();
+
+    // 14. Initial Zone Detection (Announces Main Room on spawn)
+    this.updateCurrentZone(true);
+
+    // 15. Listeners
     EventBus.on(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
     EventBus.on(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
     EventBus.on(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
 
-    // 13. Notify React
+    // 16. Notify React UI
     EventBus.emit(GAME_EVENTS.SCENE_READY);
   }
 
   // =========================================================================
-  // UPDATE
+  // CAMERA SETUP & RESIZING
+  // =========================================================================
+
+  private setupCamera(): void {
+    const cam = this.cameras.main;
+    cam.setBounds(0, 0, MAP_W, MAP_H);
+    cam.startFollow(this.player, true, 0.08, 0.08);
+
+    // Zoom 1.22 makes character & furniture look big, prominent, and rich
+    cam.setZoom(1.22);
+
+    this.scale.on('resize', this.handleResize, this);
+    this.refreshHUDPositions();
+  }
+
+  private handleResize(gameSize: Phaser.Structs.Size): void {
+    this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+    this.refreshHUDPositions();
+  }
+
+  /**
+   * Helper: Map screen-space pixel coordinates (CSS pixels) to camera coordinates
+   * taking into account main camera zoom so HUD elements stay pinned and 1:1 crisp.
+   */
+  private getScreenCoord(screenX: number, screenY: number): { x: number; y: number } {
+    const cam = this.cameras?.main;
+    const zoom = cam ? cam.zoom : 1;
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    return {
+      x: cx + (screenX - cx) / zoom,
+      y: cy + (screenY - cy) / zoom,
+    };
+  }
+
+  private refreshHUDPositions(): void {
+    const zoom = this.cameras?.main?.zoom || 1.22;
+    if (this.locationPillContainer) {
+      const { x: pillX, y: pillY } = this.getScreenCoord(24, 24);
+      this.locationPillContainer.setPosition(pillX, pillY).setScale(1 / zoom);
+    }
+    if (this.topBannerContainer && !this.topBannerTween) {
+      const { x: bannerX, y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
+      this.topBannerContainer.setPosition(bannerX, hiddenY).setScale(1 / zoom);
+    }
+  }
+
+  // =========================================================================
+  // UPDATE LOOP
   // =========================================================================
 
   update(): void {
-    // Dynamic Y-depth sorting for realistic 2.5D perspective
-    this.player.setDepth(this.player.y);
+    // Dynamic Y-depth sorting based on where feet touch the floor
+    this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
 
     // Update active reaction emote positions so they strictly track the player sprite
     for (let i = this.activeEmotes.length - 1; i >= 0; i--) {
@@ -231,8 +375,155 @@ export class OfficeScene extends Phaser.Scene {
       this.player.play(`char-player-idle-${this.lastDirection}`, true);
     }
 
+    // Check room transitions
+    this.updateCurrentZone(false);
+
     // Check nearby interactive objects
     this.checkInteractions();
+  }
+
+  // =========================================================================
+  // ROOM ZONE DETECTION & TOP-AREA HUD NOTIFICATION (DOES NOT BLOCK VIEW)
+  // =========================================================================
+
+  private buildLocationHUD(): void {
+    const zoom = 1.22;
+
+    // A. Persistent Mini Location Pill (Top-Left of Screen at screen x=24, y=24, always visible)
+    const { x: pillX, y: pillY } = this.getScreenCoord(24, 24);
+    this.locationPillContainer = this.add
+      .container(pillX, pillY)
+      .setScrollFactor(0)
+      .setScale(1 / zoom)
+      .setDepth(9990);
+
+    this.locationPillBg = this.add
+      .rectangle(0, 0, 200, 32, 0x141824, 0.9)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1.5, 0x355c5a);
+
+    this.locationPillText = this.add
+      .text(12, 7, 'Memuat Ruangan...', {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '13px',
+        color: '#e0b65d',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0, 0);
+
+    this.locationPillContainer.add([this.locationPillBg, this.locationPillText]);
+
+    // B. TOP-AREA Sleek Notification Banner
+    const { x: bannerX, y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
+
+    this.topBannerContainer = this.add
+      .container(bannerX, hiddenY)
+      .setScrollFactor(0)
+      .setScale(1 / zoom)
+      .setDepth(9995)
+      .setAlpha(0);
+
+    // Clean, refined top banner card
+    this.topBannerBg = this.add
+      .rectangle(0, 0, 380, 50, 0x0f172a, 0.95)
+      .setStrokeStyle(1.5, 0xe0b65d);
+
+    this.topBannerTitleText = this.add
+      .text(0, -9, 'Zona 5 · Workstation Utama', {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '15px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+
+    this.topBannerSubText = this.add
+      .text(0, 11, 'Ruang Kerja Karyawan & Kolaborasi Tim', {
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '11px',
+        color: '#94a3b8',
+      })
+      .setOrigin(0.5);
+
+    this.topBannerContainer.add([
+      this.topBannerBg,
+      this.topBannerTitleText,
+      this.topBannerSubText,
+    ]);
+  }
+
+  private updateCurrentZone(forceAnnouncement: boolean = false): void {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    const detected =
+      OFFICE_ZONES.find((z) => z.check(px, py)) ||
+      OFFICE_ZONES[OFFICE_ZONES.length - 1];
+
+    if (detected.id !== this.currentZoneId || forceAnnouncement) {
+      this.currentZoneId = detected.id;
+
+      // Update persistent top-left mini pill (clean typography, no emoji)
+      this.locationPillText.setText(detected.name);
+      this.locationPillText.setColor(detected.textColor);
+      const pillWidth = Math.max(180, this.locationPillText.width + 24);
+      this.locationPillBg.setSize(pillWidth, 32);
+      this.locationPillBg.setStrokeStyle(1.5, detected.borderColor);
+
+      // Trigger TOP-AREA announcement banner
+      this.triggerTopBanner(detected);
+
+      // Notify React UI
+      EventBus.emit(GAME_EVENTS.ZONE_CHANGED, {
+        zoneId: detected.id,
+        name: detected.name,
+      });
+    }
+  }
+
+  private triggerTopBanner(zone: OfficeZone): void {
+    if (this.topBannerTween) {
+      this.topBannerTween.stop();
+      this.topBannerTween = null;
+    }
+
+    const zoom = this.cameras.main?.zoom || 1.22;
+    // Target Y = 85px on screen (generous headroom below top header and location pill without colliding!)
+    const { x: bannerX, y: targetY } = this.getScreenCoord(this.scale.width / 2, 85);
+    const { y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
+
+    this.topBannerContainer.setX(bannerX).setScale(1 / zoom);
+    this.topBannerTitleText.setText(zone.name);
+    this.topBannerSubText.setText(zone.subtitle);
+    this.topBannerBg.setStrokeStyle(1.5, zone.borderColor);
+
+    const bannerW = Math.max(380, this.topBannerTitleText.width + 60);
+    this.topBannerBg.setSize(bannerW, 50);
+
+    // Initial state: above viewport in screen space
+    this.topBannerContainer.setY(hiddenY).setAlpha(0);
+
+    // Drops down to targetY (screen Y = 85px), holds for 2.4s, then slides back up smoothly
+    this.topBannerTween = this.tweens.add({
+      targets: this.topBannerContainer,
+      y: targetY,
+      alpha: 1,
+      duration: 320,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(2400, () => {
+          if (this.topBannerContainer) {
+            this.tweens.add({
+              targets: this.topBannerContainer,
+              y: hiddenY,
+              alpha: 0,
+              duration: 280,
+              ease: 'Power2.easeIn',
+            });
+          }
+        });
+      },
+    });
   }
 
   // =========================================================================
@@ -241,7 +532,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private buildArchitecturalWalls(): void {
     // -----------------------------------------------------------------------
-    // A. TOP, LEFT, RIGHT OUTER PERIMETER (Impenetrable boundaries)
+    // A. OUTER PERIMETER (Impenetrable outer boundaries)
     // -----------------------------------------------------------------------
     // Top outer wall (seals y: 0..105 across full map width)
     this.addStaticWall(MAP_W / 2, 52, MAP_W, 105);
@@ -249,47 +540,42 @@ export class OfficeScene extends Phaser.Scene {
     // Left outer wall (seals x: 0..105 across full map height)
     this.addStaticWall(52, MAP_H / 2, 105, MAP_H);
 
-    // Right outer wall (seals x: 2590..2752 across full map height)
-    this.addStaticWall(2671, MAP_H / 2, 162, MAP_H);
+    // Right outer wall (seals x: 2595..2752 across full map height)
+    this.addStaticWall(2673, MAP_H / 2, 158, MAP_H);
 
     // -----------------------------------------------------------------------
-    // B. BOTTOM OUTER WALL PROFILE (Seals all windows & boundaries perfectly)
+    // B. BOTTOM OUTER WALL PROFILE (Seals all windows & outer grass completely)
     // -----------------------------------------------------------------------
-    // 1. Bottom wall under Zona 3 (Smoking Room: x: 95..1166, floor ends at y=1230)
-    // Seals y from 1230 down to 1450 (width=1071, center X=630, center Y=1340, height=220)
-    this.addStaticWall(630, 1340, 1071, 220);
+    // 1. Under Zona 3 (Smoking Room: x: 95..1166, floor ends at y=1230)
+    this.addStaticWall(630, 1383, 1071, 306);
 
     // 2. Entrance Hallway Bottom Boundary (keeps player safely inside entrance)
-    // Seals y from 1330 down to 1480 across entrance (x: 1220..1420)
-    this.addStaticWall(1320, 1405, 200, 150);
+    this.addStaticWall(1320, 1433, 200, 206);
 
     // 3. Bottom wall right of entrance (Under corridor window: x: 1420..1890, floor ends at y=1324)
-    // Seals y from 1324 down to 1480 (width=470, center X=1655, center Y=1402, height=156)
-    // (Prevents walking on window as shown in user screenshot!)
-    this.addStaticWall(1655, 1402, 470, 156);
+    this.addStaticWall(1655, 1430, 470, 212);
 
     // 4. Vertical jog step between corridor window and main hall window (at x = 1890)
-    this.addStaticWall(1890, 1348, 30, 56);
+    this.addStaticWall(1890, 1347, 30, 56);
 
     // 5. Bottom wall under Zona 5 (Main Workspace: x: 1890..2600, floor ends at y=1370)
-    // Seals y from 1370 down to 1500 (width=710, center X=2245, center Y=1435, height=130)
-    this.addStaticWall(2245, 1435, 710, 130);
+    this.addStaticWall(2245, 1453, 710, 166);
 
     // -----------------------------------------------------------------------
     // C. VERTICAL DIVIDING WALL (Left Rooms vs Corridor at X = 1166)
-    //    Tested walk-through clearances:
-    //    - Zona 1 Door: y = 315 .. 425 (OPEN)
-    //    - Zona 2 Door: y = 720 .. 835 (OPEN)
-    //    - Zona 3 Door: y = 1140 .. 1230 (OPEN)
+    //    Generous walk-through clearances for 2.0 scale:
+    //    - Zona 1 Door: y = 290 .. 445 (OPEN gap = 155px)
+    //    - Zona 2 Door: y = 700 .. 855 (OPEN gap = 155px)
+    //    - Zona 3 Door: y = 1120 .. 1230 (OPEN gap = 110px)
     // -----------------------------------------------------------------------
-    // Solid 1: Above Zona 1 Door (y: 100..315)
-    this.addStaticWall(1166, 207, 56, 215);
+    // Solid 1: Above Zona 1 Door (y: 105..290)
+    this.addStaticWall(1166, 198, 56, 185);
 
-    // Solid 2: Between Zona 1 & Zona 2 Doors (y: 425..720)
-    this.addStaticWall(1166, 572, 56, 295);
+    // Solid 2: Between Zona 1 & Zona 2 Doors (y: 445..700)
+    this.addStaticWall(1166, 573, 56, 255);
 
-    // Solid 3: Between Zona 2 & Zona 3 Doors (y: 835..1140)
-    this.addStaticWall(1166, 987, 56, 305);
+    // Solid 3: Between Zona 2 & Zona 3 Doors (y: 855..1100)
+    this.addStaticWall(1166, 978, 56, 245);
 
     // -----------------------------------------------------------------------
     // D. HORIZONTAL ROOM DIVIDERS (Left Rooms)
@@ -302,26 +588,27 @@ export class OfficeScene extends Phaser.Scene {
 
     // -----------------------------------------------------------------------
     // E. ZONA 4 (BOSS ROOM - BU RINA) WALLS & DOORWAY
-    //    Doorway gap: x = 2100 .. 2230 (OPEN at y = 518)
+    //    Doorway gap: x = 2080 .. 2250 (OPEN gap = 170px at y = 518)
     // -----------------------------------------------------------------------
     // Vertical left wall of Boss room (x = 1730, y: 100..518)
     this.addStaticWall(1730, 309, 44, 418);
 
-    // Bottom wall left of door (x: 1730..2100 at y = 518)
-    this.addStaticWall(1915, 518, 370, 44);
+    // Bottom wall left of door (x: 1730..2080 at y = 518)
+    this.addStaticWall(1905, 518, 350, 44);
 
-    // Bottom wall right of door (x: 2230..2600 at y = 518)
-    this.addStaticWall(2415, 518, 370, 44);
+    // Bottom wall right of door (x: 2250..2600 at y = 518)
+    this.addStaticWall(2425, 518, 350, 44);
   }
 
   private addStaticWall(x: number, y: number, w: number, h: number): void {
     const wall = this.add.rectangle(x, y, w, h, 0x000000, 0);
     this.physics.add.existing(wall, true);
+    (wall.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(wall);
   }
 
   // =========================================================================
-  // LAVISH OFFICE FURNISHINGS & PROPS (SOLID DESKS - NO PENETRATION)
+  // DENSE, LAVISH & BUSTLING OFFICE FURNISHINGS (2.0 SCALE & SOLID BARRIERS)
   // =========================================================================
 
   private buildOfficeFurnishings(): void {
@@ -329,253 +616,302 @@ export class OfficeScene extends Phaser.Scene {
     // 1. ZONA 1: PANTRY & DAPUR (Dimas - Skenario 2)
     // =======================================================================
     // Kitchen Countertop along top wall (solid full depth)
-    this.addSolidProp('fridge', 190, 150, 56, 70);
-    this.addSolidProp('kitchen-cabinet', 260, 145, 56, 50);
-    this.addSolidProp('counter', 330, 145, 56, 50);
-    this.addDecorativeProp('sink', 330, 120);
-    this.addSolidProp('counter', 400, 145, 56, 50);
-    this.addDecorativeProp('stove', 400, 120);
-    this.addSolidProp('counter', 470, 145, 56, 50);
-    this.addDecorativeProp('espresso-machine', 470, 115);
-    this.addSolidProp('counter', 540, 145, 56, 50);
-    this.addDecorativeProp('pastry-case', 540, 115);
+    this.addSolidProp('fridge', 190, 150, 70, 80);
+    this.addSolidProp('kitchen-cabinet', 270, 145, 64, 60);
+    this.addSolidProp('counter', 350, 145, 64, 60);
+    this.addDecorativeProp('sink', 350, 115);
+    this.addSolidProp('counter', 430, 145, 64, 60);
+    this.addDecorativeProp('stove', 430, 115);
+    this.addSolidProp('counter', 510, 145, 64, 60);
+    this.addDecorativeProp('espresso-machine', 510, 110);
+    this.addSolidProp('counter', 590, 145, 64, 60);
+    this.addDecorativeProp('pastry-case', 590, 110);
 
     // Kitchen Island Bar
-    this.addSolidProp('counter', 720, 155, 56, 50);
-    this.addSolidProp('counter', 790, 155, 56, 50);
-    this.addDecorativeProp('bar-stool', 720, 200);
-    this.addDecorativeProp('bar-stool', 790, 200);
+    this.addSolidProp('counter', 770, 155, 64, 60);
+    this.addSolidProp('counter', 850, 155, 64, 60);
+    this.addDecorativeProp('bar-stool', 770, 205);
+    this.addDecorativeProp('bar-stool', 850, 205);
 
     // Cafe Tables & Seating (Break Area)
     this.addDecorativeProp('rug', 340, 330);
-    this.addSolidProp('cafe-table', 340, 320, 48, 44);
-    this.addDecorativeProp('cafe-chair', 285, 320);
-    this.addDecorativeProp('cafe-chair', 395, 320);
+    this.addSolidProp('cafe-table', 340, 320, 56, 52);
+    this.addDecorativeProp('cafe-chair', 280, 320);
+    this.addDecorativeProp('cafe-chair', 400, 320);
 
     this.addDecorativeProp('rug', 650, 330);
-    this.addSolidProp('cafe-table', 650, 320, 48, 44);
-    this.addDecorativeProp('cafe-chair', 595, 320);
-    this.addDecorativeProp('cafe-chair', 705, 320);
+    this.addSolidProp('cafe-table', 650, 320, 56, 52);
+    this.addDecorativeProp('cafe-chair', 590, 320);
+    this.addDecorativeProp('cafe-chair', 710, 320);
 
-    // Refreshment & Greenery
-    this.addSolidProp('water-cooler', 920, 200, 44, 44);
-    this.addSolidProp('plant-large', 160, 250, 44, 44);
-    this.addSolidProp('plant-large', 160, 440, 44, 44);
-    this.addSolidProp('plant-large', 1080, 160, 44, 44);
+    // Refreshment & Greenery (tucked against perimeter)
+    this.addSolidProp('water-cooler', 960, 200, 52, 52);
+    this.addSolidProp('plant-large', 160, 250, 52, 52);
+    this.addSolidProp('plant-large', 160, 440, 52, 52);
+    this.addSolidProp('plant-large', 1060, 160, 52, 52);
 
     // Wall Accents
     this.addDecorativeProp('wall-clock', 470, 95);
-    this.addDecorativeProp('wall-art', 640, 95);
-    this.addDecorativeProp('wall-art', 850, 95);
+    this.addDecorativeProp('wall-art', 690, 95);
+    this.addDecorativeProp('wall-art', 890, 95);
 
     // =======================================================================
     // 2. ZONA 2: MEETING ROOM (Pak Hendra / Klien - Skenario 3)
     // =======================================================================
     // Boardroom Carpet
-    this.addDecorativeProp('rug', 570, 720);
+    this.addDecorativeProp('rug', 580, 720);
 
-    // Massive Impenetrable Boardroom Table (Solid 4 Desks Cluster)
+    // Impenetrable Boardroom Table (Solid 4 Desks Cluster)
     this.addSolidDesk(450, 720);
-    this.addSolidDesk(530, 720);
-    this.addSolidDesk(610, 720);
-    this.addSolidDesk(690, 720);
+    this.addSolidDesk(540, 720);
+    this.addSolidDesk(630, 720);
+    this.addSolidDesk(720, 720);
 
     // Laptops on Meeting Table
-    this.addDecorativeProp('computer', 450, 695);
-    this.addDecorativeProp('computer', 610, 695);
-    this.addDecorativeProp('plant-small', 530, 700);
+    this.addDecorativeProp('computer', 450, 690);
+    this.addDecorativeProp('computer', 630, 690);
+    this.addDecorativeProp('plant-small', 540, 695);
 
     // Executive Meeting Chairs around table
-    this.addDecorativeProp('office-chair', 450, 650);
-    this.addDecorativeProp('office-chair', 530, 650);
-    this.addDecorativeProp('office-chair', 610, 650);
-    this.addDecorativeProp('office-chair', 690, 650);
-    this.addDecorativeProp('office-chair', 450, 790);
-    this.addDecorativeProp('office-chair', 530, 790);
-    this.addDecorativeProp('office-chair', 610, 790);
-    this.addDecorativeProp('office-chair', 690, 790);
-    this.addDecorativeProp('office-chair', 370, 720); // Head of table
+    this.addDecorativeProp('office-chair', 450, 645);
+    this.addDecorativeProp('office-chair', 540, 645);
+    this.addDecorativeProp('office-chair', 630, 645);
+    this.addDecorativeProp('office-chair', 720, 645);
+    this.addDecorativeProp('office-chair', 450, 795);
+    this.addDecorativeProp('office-chair', 540, 795);
+    this.addDecorativeProp('office-chair', 630, 795);
+    this.addDecorativeProp('office-chair', 720, 795);
+    this.addDecorativeProp('office-chair', 360, 720); // Head of table
 
     // Credenza & Storage against top wall
-    this.addSolidProp('bookcase', 250, 570, 68, 50);
-    this.addSolidProp('bookcase', 320, 570, 68, 50);
-    this.addSolidProp('filing-cabinet', 860, 570, 50, 50);
-    this.addSolidProp('filing-cabinet', 920, 570, 50, 50);
-    this.addSolidProp('water-cooler', 1040, 620, 44, 44);
+    this.addSolidProp('bookcase', 250, 565, 75, 58);
+    this.addSolidProp('bookcase', 330, 565, 75, 58);
+    this.addSolidProp('filing-cabinet', 870, 565, 58, 58);
+    this.addSolidProp('filing-cabinet', 940, 565, 58, 58);
+    this.addSolidProp('water-cooler', 1040, 615, 52, 52);
 
-    // Plants & Illumination
-    this.addSolidProp('plant-large', 160, 580, 44, 44);
-    this.addSolidProp('plant-large', 160, 890, 44, 44);
-    this.addSolidProp('plant-large', 1060, 890, 44, 44);
-    this.addDecorativeProp('floor-lamp', 1060, 570);
+    // Plants & Illumination (tucked against corners)
+    this.addSolidProp('plant-large', 160, 580, 52, 52);
+    this.addSolidProp('plant-large', 160, 890, 52, 52);
+    this.addSolidProp('plant-large', 1050, 890, 52, 52);
+    this.addDecorativeProp('floor-lamp', 1050, 570);
 
     // Presentation Wall Art
-    this.addDecorativeProp('wall-art', 530, 520);
-    this.addDecorativeProp('wall-art', 690, 520);
-    this.addDecorativeProp('wall-clock', 610, 520);
+    this.addDecorativeProp('wall-art', 540, 520);
+    this.addDecorativeProp('wall-art', 720, 520);
+    this.addDecorativeProp('wall-clock', 630, 520);
 
     // =======================================================================
     // 3. ZONA 3: SMOKING & CREATIVE LOUNGE
     // =======================================================================
     // Primary Lounge Cluster
-    this.addDecorativeProp('rug', 350, 1140);
-    this.addSolidProp('sofa', 350, 1110, 96, 50);
-    this.addSolidProp('coffee-table', 350, 1165, 56, 36);
-    this.addSolidProp('armchair', 220, 1130, 50, 44);
-    this.addSolidProp('armchair', 480, 1130, 50, 44);
+    this.addDecorativeProp('rug', 350, 1130);
+    this.addSolidProp('sofa', 350, 1100, 110, 58);
+    this.addSolidProp('coffee-table', 350, 1160, 64, 40);
+    this.addSolidProp('armchair', 220, 1125, 58, 52);
+    this.addSolidProp('armchair', 480, 1125, 58, 52);
 
     // Secondary Lounge Cluster
-    this.addDecorativeProp('rug', 720, 1140);
-    this.addSolidProp('sofa', 720, 1110, 96, 50);
-    this.addSolidProp('coffee-table', 720, 1165, 56, 36);
-    this.addSolidProp('armchair', 590, 1130, 50, 44);
-    this.addSolidProp('armchair', 850, 1130, 50, 44);
+    this.addDecorativeProp('rug', 730, 1130);
+    this.addSolidProp('sofa', 730, 1100, 110, 58);
+    this.addSolidProp('coffee-table', 730, 1160, 64, 40);
+    this.addSolidProp('armchair', 600, 1125, 58, 52);
+    this.addSolidProp('armchair', 860, 1125, 58, 52);
 
     // Lounge Amenities
-    this.addSolidProp('water-cooler', 1040, 1050, 44, 44);
-    this.addDecorativeProp('floor-lamp', 160, 1130);
+    this.addSolidProp('water-cooler', 1040, 1050, 52, 52);
+    this.addDecorativeProp('floor-lamp', 160, 1125);
     this.addDecorativeProp('floor-lamp', 950, 1050);
-    this.addSolidProp('plant-large', 160, 1030, 44, 44);
-    this.addSolidProp('plant-large', 160, 1190, 44, 44);
-    this.addSolidProp('plant-large', 950, 1190, 44, 44);
+    this.addSolidProp('plant-large', 160, 1030, 52, 52);
+    this.addSolidProp('plant-large', 160, 1190, 52, 52);
+    this.addSolidProp('plant-large', 950, 1190, 52, 52);
     this.addDecorativeProp('wall-art', 350, 975);
-    this.addDecorativeProp('wall-art', 720, 975);
+    this.addDecorativeProp('wall-art', 730, 975);
 
     // =======================================================================
     // 4. ZONA 4: RUANGAN BOS (Bu Rina - Skenario 1)
     // =======================================================================
     // Luxury Executive Carpet
-    this.addDecorativeProp('rug', 2150, 250);
+    this.addDecorativeProp('rug', 2150, 245);
 
     // Impenetrable Executive Desk Suite
-    this.addSolidDesk(2150, 235);
-    this.addDecorativeProp('computer', 2150, 210);
-    this.addDecorativeProp('plant-small', 2110, 215);
-    this.addDecorativeProp('office-chair', 2150, 175); // Bu Rina's Chair
-    this.addSolidProp('armchair', 2070, 310, 50, 44); // Guest Chair 1
-    this.addSolidProp('armchair', 2230, 310, 50, 44); // Guest Chair 2
+    this.addSolidDesk(2150, 230);
+    this.addDecorativeProp('computer', 2150, 202);
+    this.addDecorativeProp('plant-small', 2110, 206);
+    this.addDecorativeProp('office-chair', 2150, 166); // Bu Rina's Chair
+    this.addSolidProp('armchair', 2060, 305, 58, 52);  // Guest Chair 1
+    this.addSolidProp('armchair', 2240, 305, 58, 52);  // Guest Chair 2
 
     // Executive Library Wall
-    this.addSolidProp('bookcase', 1850, 145, 68, 50);
-    this.addSolidProp('bookcase', 1920, 145, 68, 50);
-    this.addSolidProp('bookcase', 2380, 145, 68, 50);
-    this.addSolidProp('bookcase', 2450, 145, 68, 50);
+    this.addSolidProp('bookcase', 1850, 140, 75, 58);
+    this.addSolidProp('bookcase', 1930, 140, 75, 58);
+    this.addSolidProp('bookcase', 2370, 140, 75, 58);
+    this.addSolidProp('bookcase', 2450, 140, 75, 58);
 
     // Executive Archives & Floor Lamp
-    this.addSolidProp('filing-cabinet', 1780, 220, 50, 50);
-    this.addSolidProp('filing-cabinet', 1780, 280, 50, 50);
-    this.addDecorativeProp('floor-lamp', 2530, 150);
+    this.addSolidProp('filing-cabinet', 1780, 215, 58, 58);
+    this.addSolidProp('filing-cabinet', 1780, 285, 58, 58);
+    this.addDecorativeProp('floor-lamp', 2530, 145);
 
     // Private Executive Discussion Lounge
     this.addDecorativeProp('rug', 1920, 390);
-    this.addSolidProp('coffee-table', 1920, 390, 56, 36);
-    this.addSolidProp('armchair', 1850, 390, 50, 44);
-    this.addSolidProp('armchair', 1990, 390, 50, 44);
+    this.addSolidProp('coffee-table', 1920, 390, 64, 40);
+    this.addSolidProp('armchair', 1845, 390, 58, 52);
+    this.addSolidProp('armchair', 1995, 390, 58, 52);
 
-    // Greenery & Accents
-    this.addSolidProp('plant-large', 1780, 440, 44, 44);
-    this.addSolidProp('plant-large', 2560, 240, 44, 44);
-    this.addSolidProp('plant-large', 2560, 440, 44, 44);
+    // Greenery & Accents (tucked against corners)
+    this.addSolidProp('plant-large', 1780, 440, 52, 52);
+    this.addSolidProp('plant-large', 2550, 235, 52, 52);
+    this.addSolidProp('plant-large', 2550, 440, 52, 52);
     this.addDecorativeProp('wall-art', 2030, 100);
     this.addDecorativeProp('wall-art', 2270, 100);
     this.addDecorativeProp('wall-clock', 2150, 100);
 
     // =======================================================================
-    // 5. ZONA 5: MAIN OPEN-PLAN WORKSPACE (Ruang Kerja Karyawan)
+    // 5. ZONA 5: DENSE & ORGANIZED WORKSPACE (Klaster Pod Meja Tim yang Rapi)
     // =======================================================================
-    // Row 1 (Workstations facing North)
-    this.createWorkstation(1680, 720, 'north', false);
-    this.createWorkstation(1830, 720, 'north', false);
-    this.createWorkstation(1980, 720, 'north', false);
-    this.createWorkstation(2130, 720, 'north', false);
+    // Modern Workstation Pods (2×2 Desk Islands) — Rapi, Padat, Profesional
+    // Tidak amburadul: tertata simetris dengan aisle/lorong luas & tidak menutupi pintu!
 
-    // Row 2 (Workstations facing South - PLAYER DESK at 1680, 850)
-    this.createWorkstation(1680, 850, 'south', true); // Player Workstation
-    this.createWorkstation(1830, 850, 'south', false);
-    this.createWorkstation(1980, 850, 'south', false);
-    this.createWorkstation(2130, 850, 'south', false);
+    // Pod 1 (Top-Left): Frontend & UI (Termasuk MEJA KAMU)
+    this.createWorkstationPod(1750, 740, 'left');
 
-    // Row 3 (Workstations facing South)
-    this.createWorkstation(1680, 1070, 'south', false);
-    this.createWorkstation(1830, 1070, 'south', false);
-    this.createWorkstation(1980, 1070, 'south', false);
-    this.createWorkstation(2130, 1070, 'south', false);
+    // Pod 2 (Top-Right): Backend & AI
+    this.createWorkstationPod(2210, 740);
 
-    // Operations, Printing & Utility Area (Along Right Perimeter)
-    this.addSolidProp('printer', 2550, 680, 52, 48);
-    this.addSolidProp('printer', 2550, 760, 52, 48);
-    this.addSolidProp('filing-cabinet', 2550, 840, 50, 50);
-    this.addSolidProp('filing-cabinet', 2550, 905, 50, 50);
-    this.addSolidProp('filing-cabinet', 2550, 970, 50, 50);
-    this.addSolidProp('water-cooler', 2550, 1060, 44, 44);
-    this.addSolidProp('parcel-stack', 2550, 1160, 48, 44);
-    this.addSolidProp('parcel-stack', 2550, 1225, 48, 44);
-    this.addSolidProp('toolbox', 2550, 1290, 40, 36);
+    // Pod 3 (Bottom-Left): Game Engine
+    this.createWorkstationPod(1750, 1040);
 
-    // Main Hall Greenery
-    this.addSolidProp('plant-large', 1550, 720, 44, 44);
-    this.addSolidProp('plant-large', 1550, 1070, 44, 44);
-    this.addSolidProp('plant-large', 2320, 720, 44, 44);
-    this.addSolidProp('plant-large', 2320, 1070, 44, 44);
-    this.addSolidProp('plant-large', 2550, 1340, 44, 44);
-    this.addDecorativeProp('floor-lamp', 2320, 890);
+    // Pod 4 (Bottom-Right): QA & Otomasi
+    this.createWorkstationPod(2210, 1040);
+
+    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan, bukan di tengah jalan!)
+    this.addDecorativeProp('rug', 2100, 1270);
+    this.addSolidProp('sofa', 2100, 1245, 108, 54);
+    this.addSolidProp('coffee-table', 2100, 1295, 64, 38);
+    this.addSolidProp('armchair', 1995, 1270, 56, 50);
+    this.addSolidProp('armchair', 2205, 1270, 56, 50);
+    this.addDecorativeProp('floor-lamp', 2275, 1245);
+    this.addSolidProp('plant-large', 1915, 1270, 52, 52);
+
+    // Operations, Printing & Utility Area (Sepanjang Dinding Kanan x = 2550)
+    this.addSolidProp('printer', 2550, 680, 60, 54);
+    this.addSolidProp('printer', 2550, 760, 60, 54);
+    this.addSolidProp('filing-cabinet', 2550, 850, 58, 58);
+    this.addSolidProp('filing-cabinet', 2550, 920, 58, 58);
+    this.addSolidProp('filing-cabinet', 2550, 990, 58, 58);
+    this.addSolidProp('water-cooler', 2550, 1075, 52, 52);
+    this.addSolidProp('parcel-stack', 2550, 1160, 56, 52);
+    this.addSolidProp('parcel-stack', 2550, 1230, 56, 52);
+
+    // Left Divider & Corridor Wall Area (Sepanjang Sekat Kiri x = 1470)
+    this.addSolidProp('plant-large', 1470, 580, 52, 52); // Sudut atas dekat ruang Bos
+    this.addSolidProp('filing-cabinet', 1470, 700, 58, 58);
+    this.addSolidProp('filing-cabinet', 1470, 770, 58, 58);
+    this.addSolidProp('water-cooler', 1470, 870, 52, 52);
+    this.addSolidProp('toolbox', 1470, 950, 52, 48);
+    this.addSolidProp('plant-large', 1470, 1330, 52, 52); // Sudut bawah
+
+    // Border Greenery Accents
+    this.addSolidProp('plant-large', 2340, 580, 52, 52);
+    this.addSolidProp('plant-large', 2550, 590, 52, 52);
+    this.addSolidProp('plant-large', 2550, 1330, 52, 52);
+    this.addDecorativeProp('floor-lamp', 2340, 880);
   }
 
   /**
    * Helper: Add a 100% Solid Desk (Cannot be penetrated from any angle!)
    */
   private addSolidDesk(x: number, y: number): void {
-    // Render visual desk
+    // Render visual desk with proper depth sorting at base
     this.add
       .image(x, y, 'prop-desk')
       .setScale(PROP_SCALE)
-      .setDepth(y);
+      .setDepth(y + 15);
 
     // Impenetrable physics body covering the desk width & depth
-    const col = this.add.rectangle(x, y, 92, 52, 0x000000, 0);
+    const col = this.add.rectangle(x, y + 8, 110, 64, 0x000000, 0);
     this.physics.add.existing(col, true);
+    (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
   }
 
   /**
-   * Helper: Build complete employee workstation (Solid Desk + PC + Chair + Tag)
+   * Helper: Build an organized, professional 4-desk team workstation pod (2×2 island).
+   * Dense, clean, and 100% impenetrable with solid colliders.
    */
-  private createWorkstation(
-    x: number,
-    y: number,
-    facing: 'north' | 'south',
-    isPlayer: boolean
+  private createWorkstationPod(
+    podX: number,
+    podY: number,
+    playerDeskCol?: 'left' | 'right'
   ): void {
-    // 100% Solid Desk (Cannot be penetrated!)
-    this.addSolidDesk(x, y);
+    const colSpacing = 63;
+    const leftDeskX = podX - colSpacing;
+    const rightDeskX = podX + colSpacing;
 
-    // Computer Monitor
-    const pcY = facing === 'south' ? y - 24 : y + 14;
-    this.addDecorativeProp('computer', x, pcY);
+    const northDeskY = podY - 36;
+    const southDeskY = podY + 36;
 
-    // Office Chair
-    const chairY = facing === 'south' ? y + 48 : y - 48;
-    this.addDecorativeProp('office-chair', x, chairY);
+    // 1. Desks Sprites (4 desks joined back-to-back in a pod)
+    // North pair
+    this.add.image(leftDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
+    this.add.image(rightDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
+    // South pair
+    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
+    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
 
-    // Player Desk Accent
-    if (isPlayer) {
-      this.addDecorativeProp('plant-small', x - 22, pcY + 4);
-      // Desk tag
+    // 2. Computers & Monitors
+    // North desks: monitors face south toward user sitting above
+    this.addDecorativeProp('computer', leftDeskX, northDeskY + 14);
+    this.addDecorativeProp('computer', rightDeskX, northDeskY + 14);
+    // South desks: monitors face north toward user sitting below
+    this.addDecorativeProp('computer', leftDeskX, southDeskY - 14);
+    this.addDecorativeProp('computer', rightDeskX, southDeskY - 14);
+
+    // Center seam decorative succulent
+    this.addDecorativeProp('plant-small', podX, podY);
+
+    // 3. Ergonomic Office Chairs
+    // North chairs (sitting above desks facing south)
+    this.addDecorativeProp('office-chair', leftDeskX, northDeskY - 56);
+    this.addDecorativeProp('office-chair', rightDeskX, northDeskY - 56);
+    // South chairs (sitting below desks facing north)
+    this.addDecorativeProp('office-chair', leftDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair', rightDeskX, southDeskY + 56);
+
+    // 4. 100% Solid Physics Collider covering entire 4-desk island
+    const podCollider = this.add.rectangle(podX, podY, 244, 144, 0x000000, 0);
+    this.physics.add.existing(podCollider, true);
+    (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.obstacles.add(podCollider);
+
+    // 5. Player Desk Highlight ("MEJA KAMU")
+    if (playerDeskCol) {
+      const pX = playerDeskCol === 'left' ? leftDeskX : rightDeskX;
+      const pY = southDeskY;
+
+      // Small personalized desk succulent
+      this.addDecorativeProp('plant-small', pX - 22, pY - 12);
+
+      // "MEJA KAMU" prominent tag placed above the monitor seam so player standing below never obscures it
       this.add
-        .text(x, y - 40, 'MEJA KAMU', {
+        .rectangle(pX, pY - 32, 80, 18, 0x1e293b, 0.95)
+        .setStrokeStyle(1.5, 0xe0b65d)
+        .setDepth(pY + 30);
+      this.add
+        .text(pX, pY - 32, 'MEJA KAMU', {
           fontFamily: 'monospace',
-          fontSize: '9px',
+          fontSize: '10px',
           color: '#e0b65d',
-          backgroundColor: '#242a38',
-          padding: { x: 4, y: 2 },
+          fontStyle: 'bold',
         })
         .setOrigin(0.5)
-        .setDepth(y + 5);
+        .setDepth(pY + 31);
     }
   }
 
   /**
-   * Add a solid prop: visual sprite has depth=y, with solid collision body
+   * Add a solid prop: visual sprite has depth=y+18, with solid collision body
    */
   private addSolidProp(
     name: string,
@@ -587,10 +923,11 @@ export class OfficeScene extends Phaser.Scene {
     const img = this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(y);
+      .setDepth(y + 12);
 
     const col = this.add.rectangle(x, y, bodyW, bodyH, 0x000000, 0);
     this.physics.add.existing(col, true);
+    (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
 
     return img;
@@ -611,58 +948,84 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   // =========================================================================
-  // CORRIDOR & TO-DO LIST BOARD (CLEAN, NO REDUNDANT LOGO)
+  // CORRIDOR & WALL-MOUNTED TO-DO LIST BOARD (PAPAN AGENDA DINDING ATAS)
   // =========================================================================
 
   private buildCorridorElements(): void {
-    // Interactive To-Do List Board (Clean, no floating logo above it per user request)
-    this.add
-      .rectangle(TODO_POS.x, TODO_POS.y, 48, 64, 0x355c5a)
-      .setStrokeStyle(2, 0xe0b65d)
-      .setDepth(TODO_POS.y);
+    // Mounted against the top corridor wall (x = 1450, y = 140)
 
+    // 1. Board Outer Wooden Frame
     this.add
-      .text(TODO_POS.x, TODO_POS.y - 8, 'TO-DO\nLIST', {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#fff9eb',
-        fontStyle: 'bold',
-        align: 'center',
-      })
-      .setOrigin(0.5)
+      .rectangle(TODO_POS.x, TODO_POS.y, 148, 76, 0x533e3b)
       .setDepth(TODO_POS.y + 1);
 
-    // Impenetrable base collider for To-Do List board
-    const boardCol = this.add.rectangle(TODO_POS.x, TODO_POS.y, 48, 60, 0x000000, 0);
+    // 2. Cork/Chalkboard Surface
+    this.add
+      .rectangle(TODO_POS.x, TODO_POS.y, 138, 66, 0x1e293b)
+      .setDepth(TODO_POS.y + 2);
+
+    // 3. Header Title Badge
+    this.add
+      .rectangle(TODO_POS.x, TODO_POS.y - 19, 128, 18, 0x355c5a)
+      .setStrokeStyle(1.5, 0xe0b65d)
+      .setDepth(TODO_POS.y + 3);
+
+    this.add
+      .text(TODO_POS.x, TODO_POS.y - 19, 'PAPAN AGENDA KERJA', {
+        fontFamily: 'monospace',
+        fontSize: '9px',
+        color: '#fff9eb',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(TODO_POS.y + 4);
+
+    // 4. Pinned Task Notes on Board
+    this.add
+      .text(
+        TODO_POS.x,
+        TODO_POS.y + 9,
+        '• Skenario 1: Bu Rina (Bos)\n• Skenario 2: Dimas (Pantry)\n• Skenario 3: Pak Hendra',
+        {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '9px',
+          color: '#e2e8f0',
+          lineSpacing: 2,
+        }
+      )
+      .setOrigin(0.5)
+      .setDepth(TODO_POS.y + 4);
+
+    // 5. Impenetrable Physics Barrier for the Board (Player cannot walk through wall/board!)
+    const boardCol = this.add.rectangle(TODO_POS.x, TODO_POS.y, 150, 72, 0x000000, 0);
     this.physics.add.existing(boardCol, true);
+    (boardCol.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(boardCol);
 
-    // Central Corridor Plants & Entrance Mat
+    // 6. Central Corridor Decorative Elements
     this.addDecorativeProp('rug', 1375, 1260); // Entrance Welcome Mat
-    this.addSolidProp('plant-large', 1240, 290, 44, 44);
-    this.addSolidProp('plant-large', 1240, 440, 44, 44);
-    this.addSolidProp('plant-large', 1240, 680, 44, 44);
-    this.addSolidProp('plant-large', 1240, 860, 44, 44);
-    this.addSolidProp('plant-large', 1240, 1100, 44, 44);
-    this.addDecorativeProp('floor-lamp', 1500, 460);
+    this.addSolidProp('plant-large', 1230, 240, 52, 52); // Above pantry door, flush to wall
+    this.addSolidProp('plant-large', 1230, 580, 52, 52); // Between pantry & meeting door
+    this.addSolidProp('plant-large', 1230, 990, 52, 52); // Between meeting & smoking door
+    this.addDecorativeProp('floor-lamp', 1600, 180);
   }
 
   // =========================================================================
-  // PLAYER CREATION
+  // PLAYER CREATION (BIGGER SCALE 2.0 & ACCURATE COLLIDER)
   // =========================================================================
 
   private buildPlayer(): void {
     this.player = this.physics.add.sprite(SPAWN.x, SPAWN.y, 'char-player');
     this.player.setScale(CHAR_SCALE);
 
-    // Proportional, tight physics collision body at player's feet
+    // Collision body at feet: nimble & agile with no catching on doorways
     (this.player.body as Phaser.Physics.Arcade.Body)
-      .setSize(20, 16)
-      .setOffset(22, 48);
+      .setSize(22, 16)
+      .setOffset(21, 44);
 
     this.player.setCollideWorldBounds(true);
-    this.player.play('char-player-idle-south');
-    this.player.setDepth(SPAWN.y);
+    this.player.play('char-player-idle-north');
+    this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
   }
 
   // =========================================================================
@@ -716,11 +1079,11 @@ export class OfficeScene extends Phaser.Scene {
 
     // Solid collision body for NPC
     (sprite.body as Phaser.Physics.Arcade.Body)
-      .setSize(24, 20)
-      .setOffset(20, 44);
+      .setSize(26, 20)
+      .setOffset(19, 44);
 
     sprite.play(`${spriteKey}-idle-south`);
-    sprite.setDepth(pos.y);
+    sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
 
     this.npcs.push({ id, name, role, sprite, scenarioId });
   }
@@ -733,7 +1096,7 @@ export class OfficeScene extends Phaser.Scene {
     this.promptContainer = this.add.container(0, 0).setDepth(9999).setVisible(false);
 
     this.promptBg = this.add
-      .rectangle(0, 0, 180, 28, 0x242a38, 0.95)
+      .rectangle(0, 0, 230, 32, 0x141824, 0.95)
       .setStrokeStyle(1.5, 0xe0b65d);
 
     this.promptText = this.add
@@ -749,17 +1112,17 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private checkInteractions(): void {
-    // 1. Proximity to To-Do List Board
+    // 1. Proximity to Wall-Mounted To-Do List Board
     const distToTodo = Phaser.Math.Distance.Between(
       this.player.x,
       this.player.y,
       TODO_POS.x,
-      TODO_POS.y
+      TODO_POS.y + 40
     );
 
     if (distToTodo < TODO_INTERACT_DIST) {
       this.isNearTodoList = true;
-      this.showPrompt(TODO_POS.x, TODO_POS.y - 50, 'Tekan [E] Buka To-Do List');
+      this.showPrompt(TODO_POS.x, TODO_POS.y + 65, 'Tekan [E] Buka Papan Agenda');
 
       if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
         this.lockPlayer();
@@ -789,7 +1152,7 @@ export class OfficeScene extends Phaser.Scene {
     if (this.activeNpcNear) {
       this.showPrompt(
         this.activeNpcNear.sprite.x,
-        this.activeNpcNear.sprite.y - 55,
+        this.activeNpcNear.sprite.y - 58,
         `Tekan [E] Bicara (${this.activeNpcNear.name})`
       );
 
@@ -808,7 +1171,7 @@ export class OfficeScene extends Phaser.Scene {
   private showPrompt(x: number, y: number, text: string): void {
     this.promptText.setText(text);
     const textWidth = this.promptText.width;
-    this.promptBg.setSize(textWidth + 24, 28);
+    this.promptBg.setSize(textWidth + 28, 32);
     this.promptContainer.setPosition(x, y).setVisible(true);
   }
 
@@ -1025,6 +1388,7 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   shutdown(): void {
+    this.scale.off('resize', this.handleResize, this);
     EventBus.off(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
     EventBus.off(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
     EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
