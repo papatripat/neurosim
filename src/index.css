@@ -77,3 +77,48 @@ html.reduce-motion *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
+/* App Chrome Stabilization: Prevents top navbar and action dock from ballooning when root text is scaled */
+.app-header {
+  height: 52px;
+  max-height: 52px;
+  min-height: 52px;
+}
+
+.app-header button,
+.app-header [role="tab"] {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.app-header h1 {
+  font-size: 14px;
+}
+
+.app-safety-banner {
+  min-height: 28px;
+  max-height: 34px;
+}
+
+.app-safety-banner p,
+.app-safety-banner button,
+.app-safety-banner strong {
+  font-size: 11.5px;
+}
+
+.app-gather-dock {
+  font-size: 12px;
+}
+
+.app-gather-dock button {
+  font-size: 11.5px;
+}
+
+/* Hide scrollbar utility for sleek horizontal overflow */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

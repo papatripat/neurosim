@@ -94,7 +94,7 @@ export const GatherDock: React.FC<Props> = ({
       )}
 
       {/* Main Gather Bar */}
-      <div className="bg-cream/95 backdrop-blur-xs border-2 border-teal rounded-lg shadow-xl px-2.5 py-1.5 flex items-center gap-1 sm:gap-2 text-ink">
+      <div className="app-gather-dock bg-cream/95 backdrop-blur-xs border-2 border-teal rounded-lg shadow-xl px-2.5 py-1.5 flex items-center gap-1 sm:gap-2 text-ink">
         {/* User Identity & Status */}
         <div className="relative">
           <button

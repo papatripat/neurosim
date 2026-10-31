@@ -251,11 +251,6 @@ export const App: React.FC = () => {
     EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
   };
 
-  const scaleClass = () => {
-    if (textScale === 'medium') return 'text-[110%]';
-    if (textScale === 'large') return 'text-[125%]';
-    return 'text-base';
-  };
 
   const completedCount = tasks.filter((t) => t.completed).length;
 
@@ -263,7 +258,7 @@ export const App: React.FC = () => {
     <div
       className={`h-screen w-screen overflow-hidden flex flex-col bg-sand text-ink select-none ${
         reduceMotion ? 'motion-reduce' : ''
-      } ${highContrast ? 'contrast-125' : ''} ${scaleClass()}`}
+      } ${highContrast ? 'contrast-125' : ''}`}
     >
       {/* 1. Psychological Safety Banner */}
       <SafetyBanner onLearnMore={() => setIsProposalOpen(true)} />
