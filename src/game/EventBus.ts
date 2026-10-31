@@ -15,5 +15,7 @@ export const GAME_EVENTS = {
   CLOSE_DIALOG: 'close-dialog',
   /** Player pressed [E] near To-Do List board → open todo overlay */
   OPEN_TODO_LIST: 'open-todo-list',
+  /** Player entered a new office room/zone */
+  ZONE_CHANGED: 'zone-changed',
 } as const;
 
