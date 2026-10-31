@@ -91,6 +91,8 @@ export const OfficeChatDrawer: React.FC<Props> = ({
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
           placeholder="Ketik pesan kantor..."
           className="flex-1 px-2.5 py-1.5 bg-soft border border-muted/30 rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-teal"
         />

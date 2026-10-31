@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mic, MicOff, Video, VideoOff, ScreenShare, Users, MessageSquare, Smile, ChevronUp } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Mic, MicOff, Video, VideoOff, ScreenShare, Users, MessageSquare, Smile, ChevronUp, Shirt } from 'lucide-react';
 
 export type UserStatus = 'available' | 'busy' | 'pantry';
 
@@ -20,9 +20,10 @@ interface Props {
   userName?: string;
   userAvatar?: string;
   onOpenProfile?: () => void;
+  onOpenCustomizer: () => void;
 }
 
-const REACTIONS = ['✋', '👍', '👏', '❤️', '💡', '☕'];
+const REACTIONS = ['✋', '👍', '👏', '❤️', '💡', '☕', '🔥'];
 
 export const GatherDock: React.FC<Props> = ({
   isMicOn,
@@ -41,9 +42,22 @@ export const GatherDock: React.FC<Props> = ({
   userName,
   userAvatar,
   onOpenProfile,
+  onOpenCustomizer,
 }) => {
   const [showReactions, setShowReactions] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dockRef.current && !dockRef.current.contains(e.target as Node)) {
+        setShowReactions(false);
+        setShowStatusMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getStatusColor = () => {
     switch (status) {
@@ -68,7 +82,7 @@ export const GatherDock: React.FC<Props> = ({
   };
 
   return (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-[95vw]">
+    <div ref={dockRef} className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-[95vw]">
       {/* Reactions Popup */}
       {showReactions && (
         <div className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-cream border-2 border-teal rounded-lg shadow-lg p-1.5 flex items-center gap-1.5 animate-in fade-in zoom-in-95">
@@ -76,10 +90,7 @@ export const GatherDock: React.FC<Props> = ({
             <button
               key={emoji}
               type="button"
-              onClick={() => {
-                onSendReaction(emoji);
-                setShowReactions(false);
-              }}
+              onClick={() => onSendReaction(emoji)}
               className="w-8 h-8 rounded hover:bg-sand flex items-center justify-center text-base transition-transform hover:scale-110"
             >
               {emoji}
@@ -167,6 +178,18 @@ export const GatherDock: React.FC<Props> = ({
                 <span className="w-2 h-2 rounded-full bg-ochre" />
                 <span>Di Pantry</span>
               </button>
+              <div className="h-[1px] bg-[#d1c7b5] my-1" />
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenCustomizer();
+                  setShowStatusMenu(false);
+                }}
+                className="w-full text-left px-2 py-1.5 rounded hover:bg-sand flex items-center gap-2 text-teal font-semibold"
+              >
+                <Shirt className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Ubah Pakaian</span>
+              </button>
             </div>
           )}
         </div>
@@ -225,6 +248,17 @@ export const GatherDock: React.FC<Props> = ({
           className="p-2 rounded border bg-soft border-muted/30 text-ink hover:bg-sand transition-colors"
         >
           <Smile className="w-4 h-4" />
+        </button>
+
+        {/* Outfit / Character Customizer Button */}
+        <button
+          type="button"
+          onClick={onOpenCustomizer}
+          aria-label="Kustomisasi Karakter & Pakaian"
+          title="Kustomisasi Pakaian (Universal LPC)"
+          className="p-2 rounded border bg-soft border-muted/30 text-ink hover:bg-sand hover:text-teal transition-colors"
+        >
+          <Shirt className="w-4 h-4" />
         </button>
 
         <div className="w-[1px] h-6 bg-muted/20 mx-0.5" />

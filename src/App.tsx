@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SafetyBanner } from './components/layout/SafetyBanner';
 import { Header } from './components/layout/Header';
 import { ProposalModal } from './components/modals/ProposalModal';
+import { CharacterCustomizerModal } from './components/modals/CharacterCustomizerModal';
+import { CharacterCustomization } from './types/character';
+import { DEFAULT_CHARACTER } from './config/characterOptions';
 import { TodoListModal } from './components/modals/TodoListModal';
 import { DialogueModal } from './components/modals/DialogueModal';
 import { EvaluationModal } from './components/modals/EvaluationModal';
@@ -19,7 +22,6 @@ import { GatherDock, UserStatus } from './components/gather/GatherDock';
 import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
-import { FloatingReactions } from './components/gather/FloatingReactions';
 
 const INITIAL_PARTICIPANTS: Participant[] = [
   {
@@ -128,14 +130,45 @@ export const App: React.FC = () => {
   const [textScale, setTextScale] = useState<TextScale>('normal');
   const [highContrast, setHighContrast] = useState(false);
 
+  // Apply accessibility settings directly to document root for real REM scaling & effects
+  useEffect(() => {
+    const root = document.documentElement;
+    if (textScale === 'medium') {
+      root.style.fontSize = '115%';
+    } else if (textScale === 'large') {
+      root.style.fontSize = '130%';
+    } else {
+      root.style.fontSize = '100%';
+    }
+  }, [textScale]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (reduceMotion) {
+      root.classList.add('reduce-motion');
+    } else {
+      root.classList.remove('reduce-motion');
+    }
+  }, [reduceMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+  }, [highContrast]);
+
   // Gather.town Online Office States
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [characterConfig, setCharacterConfig] = useState<CharacterCustomization>(DEFAULT_CHARACTER);
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
-  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
   const {
@@ -214,7 +247,12 @@ export const App: React.FC = () => {
   // Pastikan Phaser mematikan penangkapan keyboard saat modal apa pun di React sedang terbuka
   useEffect(() => {
     const isAnyModalOpen =
-      isAuthOpen || isProposalOpen || isTodoListOpen || isOfficeChatOpen || isParticipantsOpen;
+      isAuthOpen ||
+      isProposalOpen ||
+      isTodoListOpen ||
+      isOfficeChatOpen ||
+      isParticipantsOpen ||
+      isCustomizerOpen;
     if (isAnyModalOpen) {
       EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
     } else if (!activeScenarioId) {
@@ -226,6 +264,7 @@ export const App: React.FC = () => {
     isTodoListOpen,
     isOfficeChatOpen,
     isParticipantsOpen,
+    isCustomizerOpen,
     activeScenarioId,
   ]);
 
@@ -259,11 +298,11 @@ export const App: React.FC = () => {
       isSelf: true,
     };
     setChatMessages((prev) => [...prev, newMsg]);
+    EventBus.emit(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, { text });
   };
 
   const handleSendReaction = (emoji: string) => {
-    setCurrentReaction(emoji);
-    setTimeout(() => setCurrentReaction(null), 2500);
+    EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
   };
 
   const handleLoginSuccess = (user: UserProfile, history?: any[]) => {
@@ -326,9 +365,6 @@ export const App: React.FC = () => {
             {/* Phaser Game Canvas */}
             <PhaserGame />
 
-            {/* Floating Live Reactions (Gather.town style) */}
-            <FloatingReactions reaction={currentReaction} />
-
             {/* Webcam / Video Preview Widget */}
             <WebcamWidget
               isOpen={isCamOn}
@@ -354,6 +390,7 @@ export const App: React.FC = () => {
               userName={currentUser ? currentUser.fullName.split(' ')[0] : 'Baginda'}
               userAvatar={currentUser?.avatar}
               onOpenProfile={() => setIsAuthOpen(true)}
+              onOpenCustomizer={() => setIsCustomizerOpen(true)}
             />
 
             {/* Slide-in Drawers */}
@@ -422,7 +459,6 @@ export const App: React.FC = () => {
 
       {/* 7. Proposal Dossier Modal */}
       <ProposalModal isOpen={isProposalOpen} onClose={() => setIsProposalOpen(false)} />
-
       {/* 8. Employee Auth & Profile Modal (MySQL Synced) */}
       <AuthModal
         isOpen={isAuthOpen}
@@ -431,6 +467,16 @@ export const App: React.FC = () => {
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
         userHistory={userHistory}
+      />
+
+      {/* 9. Character / Player Customizer Modal (Universal LPC Format) */}
+      <CharacterCustomizerModal
+        isOpen={isCustomizerOpen}
+        onClose={() => setIsCustomizerOpen(false)}
+        currentConfig={characterConfig}
+        onSaveConfig={(newConfig) => {
+          setCharacterConfig(newConfig);
+        }}
       />
     </div>
   );
