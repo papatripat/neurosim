@@ -20,7 +20,7 @@ function neurosimApiPlugin(): Plugin {
         if (req.method === 'POST' && url === '/api/chat') {
           try {
             const body = await parseJsonBody(req);
-            const { processChat } = await import('./api/chat');
+            const { processChat } = await server.ssrLoadModule('./api/chat.ts');
             const result = await processChat(body);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(result));
@@ -36,7 +36,7 @@ function neurosimApiPlugin(): Plugin {
         if (req.method === 'POST' && url === '/api/evaluate') {
           try {
             const body = await parseJsonBody(req);
-            const { processEvaluate } = await import('./api/evaluate');
+            const { processEvaluate } = await server.ssrLoadModule('./api/evaluate.ts');
             const result = await processEvaluate(body);
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(result));
