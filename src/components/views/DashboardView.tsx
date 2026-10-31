@@ -78,7 +78,7 @@ export const OFFICE_ROOMS: OfficeRoom[] = [
     name: 'AFK Room & Area Santai',
     zone: 'AFK Room & Area Santai',
     description: 'Ruang istirahat dan relaksasi tenang dilengkapi sofa empuk, sudut buku, dan dispenser untuk jeda istirahat.',
-    spawnCoords: { x: 600, y: 1140 },
+    spawnCoords: { x: 600, y: 1180 },
     capacity: 10,
     activeCount: 1,
     npcs: ['Area Relaksasi Karyawan'],

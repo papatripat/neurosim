@@ -90,7 +90,7 @@ const OFFICE_ZONES: OfficeZone[] = [
     badge: 'AFK & LOUNGE',
     borderColor: 0x697b8b,
     textColor: '#fff9eb',
-    check: (x, y) => x >= 100 && x <= 1166 && y > 970 && y <= 1260,
+    check: (x, y) => x >= 100 && x <= 1166 && y > 970 && y <= 1380,
   },
   {
     id: 'room-workspace',
@@ -197,8 +197,21 @@ export class OfficeScene extends Phaser.Scene {
     // 6. Refresh static obstacles so Arcade Physics indexes all bodies immediately
     this.obstacles.refresh();
 
-    // 7. Spawn Player in Workstation Utama
+    // 7. Spawn Player in Workstation Utama (or requested room coords from Dashboard)
     this.buildPlayer();
+
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const pendingSpawn = localStorage.getItem('neurosim_spawn_coords');
+        if (pendingSpawn) {
+          const coords = JSON.parse(pendingSpawn);
+          localStorage.removeItem('neurosim_spawn_coords');
+          if (coords?.x && coords?.y) {
+            this.player.setPosition(coords.x, coords.y);
+          }
+        }
+      } catch {}
+    }
 
     // 8. Spawn NPCs (Bu Rina, Dimas, Pak Hendra)
     this.buildNPCs();
@@ -633,11 +646,11 @@ export class OfficeScene extends Phaser.Scene {
     // -----------------------------------------------------------------------
     // B. BOTTOM OUTER WALL PROFILE (Seals all windows & outer grass completely)
     // -----------------------------------------------------------------------
-    // 1. Under AFK Room (x: 95..1205, floor ends at y=1230)
-    this.addStaticWall(650, 1383, 1110, 306);
+    // 1. Under AFK Room (x: 95..1166, floor ends at y=1370)
+    this.addStaticWall(631, 1453, 1072, 166);
 
-    // 2. Entrance Hallway Bottom Boundary (keeps player safely inside entrance)
-    this.addStaticWall(1320, 1433, 240, 206);
+    // 2. Entrance Hallway Bottom Boundary (x: 1166..1420, floor ends at y=1330)
+    this.addStaticWall(1293, 1433, 254, 206);
 
     // 3. Bottom wall right of entrance (Under corridor window: x: 1420..1890, floor ends at y=1324)
     this.addStaticWall(1655, 1430, 470, 212);
@@ -653,7 +666,7 @@ export class OfficeScene extends Phaser.Scene {
     //    Generous walk-through clearances for 2.0 scale:
     //    - Pantry Door: y = 290 .. 445 (OPEN gap = 155px)
     //    - Meeting Room Door: y = 700 .. 855 (OPEN gap = 155px)
-    //    - AFK Room Door: y = 1080 .. 1230 (OPEN gap = 150px)
+    //    - AFK Room Door: y = 1115 .. 1245 (OPEN gap = 130px)
     // -----------------------------------------------------------------------
     // Solid 1: Above Pantry Door (y: 105..290)
     this.addStaticWall(1166, 198, 56, 185);
@@ -661,8 +674,11 @@ export class OfficeScene extends Phaser.Scene {
     // Solid 2: Between Pantry & Meeting Room Doors (y: 445..700)
     this.addStaticWall(1166, 573, 56, 255);
 
-    // Solid 3: Between Meeting Room & AFK Room Doors (y: 855..1080)
-    this.addStaticWall(1166, 968, 56, 225);
+    // Solid 3: Between Meeting Room & AFK Room Doors (y: 855..1115)
+    this.addStaticWall(1166, 985, 56, 260);
+
+    // Solid 4: Below AFK Room Door down to bottom wall (y: 1245..1370)
+    this.addStaticWall(1166, 1308, 56, 125);
 
     // -----------------------------------------------------------------------
     // D. HORIZONTAL ROOM DIVIDERS (Left Rooms)
@@ -791,30 +807,43 @@ export class OfficeScene extends Phaser.Scene {
     // =======================================================================
     // 3. AFK ROOM & AREA SANTAI (Relaksasi, Istirahat, dan Baca Buku)
     // =======================================================================
-    // Sisi Kiri: Sudut Baca Buku & Relaksasi Tenang (x: 150..460)
+    // --- SISI ATAS (Along Top Wall y = 970..1090) ---
+    // Sudut Baca Buku & Relaksasi Tenang (x: 150..320)
     this.addSolidProp('bookcase', 210, 1025, 75, 52);
     this.addSolidProp('bookcase', 290, 1025, 75, 52);
-    this.addDecorativeProp('wall-art', 360, 975);
-    this.addDecorativeProp('rug', 420, 1090);
-    this.addSolidProp('sofa', 420, 1025, 110, 48);
-    this.addSolidProp('coffee-table', 420, 1085, 60, 34);
     this.addDecorativeProp('floor-lamp', 150, 1030);
-    this.addSolidProp('plant-large', 150, 1180, 50, 50);
+    this.addDecorativeProp('wall-art', 360, 975);
 
-    // Tengah: Area Santai & Ngobrol Tim (x: 550..850)
-    this.addDecorativeProp('wall-art', 680, 975);
-    this.addDecorativeProp('wall-clock', 840, 975);
-    this.addDecorativeProp('rug', 680, 1090);
-    this.addSolidProp('sofa', 680, 1025, 110, 48);
-    this.addSolidProp('coffee-table', 680, 1085, 64, 34);
-    this.addSolidProp('armchair', 570, 1035, 54, 46);
-    this.addSolidProp('armchair', 790, 1035, 54, 46);
+    // Lounge Set Atas (x: 450..820)
+    this.addDecorativeProp('rug', 600, 1070);
+    this.addSolidProp('sofa', 600, 1025, 110, 48);
+    this.addSolidProp('coffee-table', 600, 1075, 64, 34);
+    this.addSolidProp('armchair', 490, 1035, 54, 46);
+    this.addSolidProp('armchair', 710, 1035, 54, 46);
+    this.addDecorativeProp('wall-art', 600, 975);
+    this.addDecorativeProp('wall-clock', 780, 975);
 
-    // Sisi Kanan: Fasilitas Refreshment & Akses Pintu Masuk Plong (x: 900..1166)
-    // Terapit rapi di dinding atas (y=1025), area lorong masuk (y: 1080..1225) 100% bebas hambatan
+    // Fasilitas Refreshment Sudut Atas (x: 950..1120)
     this.addSolidProp('water-cooler', 1040, 1025, 48, 48);
     this.addDecorativeProp('plant-small', 1100, 1025);
     this.addDecorativeProp('floor-lamp', 960, 1025);
+
+    // --- SISI SEBERANG / BAWAH (Along Bottom Wall y = 1250..1370) ---
+    // Meja & Kursi-kursian Santai Seberang Kiri (x: 330..520)
+    this.addDecorativeProp('rug', 420, 1300);
+    this.addSolidProp('coffee-table', 420, 1300, 64, 36);
+    this.addSolidProp('armchair', 330, 1300, 54, 46);
+    this.addSolidProp('armchair', 510, 1300, 54, 46);
+    this.addSolidProp('plant-large', 160, 1330, 50, 50);
+
+    // Meja & Kursi-kursian Santai Seberang Kanan (x: 650..920)
+    this.addDecorativeProp('rug', 780, 1300);
+    this.addSolidProp('sofa', 780, 1320, 110, 48);
+    this.addSolidProp('coffee-table', 780, 1265, 64, 34);
+    this.addSolidProp('armchair', 660, 1300, 54, 46);
+    this.addSolidProp('armchair', 900, 1300, 54, 46);
+    this.addSolidProp('plant-large', 1100, 1280, 50, 50);
+    this.addDecorativeProp('floor-lamp', 1100, 1340);
 
     // =======================================================================
     // 4. RUANG EKSEKUTIF & MANAJEMEN (Bu Rina - Skenario 1)

@@ -407,6 +407,7 @@ export const App: React.FC = () => {
           onEnterSimulationDirect={(room) => {
             if (room) {
               setSelectedRoom(room);
+              localStorage.setItem('neurosim_spawn_coords', JSON.stringify(room.spawnCoords));
               EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
             }
             setCurrentView('simulation');
@@ -428,6 +429,7 @@ export const App: React.FC = () => {
           currentUser={currentUser}
           characterConfig={characterConfig}
           onEnterRoom={(room) => {
+            localStorage.setItem('neurosim_spawn_coords', JSON.stringify(room.spawnCoords));
             EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
             setCurrentView('simulation');
             EventBus.emit(GAME_EVENTS.RESUME_INPUT);
