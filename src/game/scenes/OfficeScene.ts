@@ -124,6 +124,9 @@ export class OfficeScene extends Phaser.Scene {
     >;
     this.keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
+    // Prevent Phaser from hijacking default browser typing behavior (Space, Arrows, Tab)
+    this.input.keyboard?.disableGlobalCapture();
+
     // 11. Interactive Prompt Box
     this.buildInteractivePrompt();
 
@@ -157,8 +160,19 @@ export class OfficeScene extends Phaser.Scene {
       item.container.setDepth(this.player.y + 1000);
     }
 
-    if (this.isPlayerLocked) {
+    // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
+    const isModalOpen = Boolean(document.querySelector('[role="dialog"]'));
+    const activeEl = document.activeElement;
+    const isUserTyping =
+      activeEl &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement).isContentEditable);
+
+    if (this.isPlayerLocked || isModalOpen || isUserTyping) {
       this.player.setVelocity(0, 0);
+      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+      this.input.keyboard?.resetKeys();
       return;
     }
 

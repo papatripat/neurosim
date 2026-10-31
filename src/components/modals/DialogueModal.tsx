@@ -216,6 +216,8 @@ export const DialogueModal: React.FC<Props> = ({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+            onKeyUp={(e) => e.stopPropagation()}
             disabled={isLoading || paused || turnCount >= maxTurns}
             placeholder={
               turnCount >= maxTurns
