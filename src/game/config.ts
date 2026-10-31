@@ -21,6 +21,10 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: '100%',
     height: '100%',
+    min: {
+      width: 320,
+      height: 240,
+    },
   },
   scene: [BootScene, OfficeScene],
 };

@@ -40,6 +40,7 @@ import {
 } from '../../config/characterOptions';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 import { EventBus, GAME_EVENTS } from '../../game/EventBus';
+import { generateFullLpcSpritesheet } from '../../lib/lpcCompositor';
 
 interface Props {
   isOpen: boolean;
@@ -121,12 +122,26 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
     setConfig(currentConfig || DEFAULT_CHARACTER);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     onSaveConfig(config);
     // Simpan ke localStorage agar awet antar sesi
     localStorage.setItem('neurosim_character_config', JSON.stringify(config));
-    // Emit ke Phaser engine agar sprite player langsung berubah saat itu juga!
-    EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, config);
+
+    try {
+      const fullCanvas = await generateFullLpcSpritesheet(config);
+      const dataUrl = fullCanvas.toDataURL('image/png');
+      localStorage.setItem('neurosim_character_spritesheet', dataUrl);
+
+      // Emit ke Phaser engine agar sprite player langsung diupdate seketika
+      EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, {
+        config,
+        spritesheetDataUrl: dataUrl,
+      });
+    } catch (err) {
+      console.warn('Could not generate full LPC spritesheet:', err);
+      EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, { config });
+    }
+
     setSaveToast(true);
     setTimeout(() => {
       setSaveToast(false);

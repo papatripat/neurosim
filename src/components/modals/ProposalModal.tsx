@@ -94,17 +94,17 @@ export const ProposalModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <h3 className="text-sm font-bold text-teal">3. Tiga Skenario Latihan di Kantor Virtual</h3>
             <div className="space-y-2 text-xs">
               <div className="p-2.5 bg-soft rounded border border-sand">
-                <strong className="text-teal block">Zona 4 (Ruang Bos): Bu Rina (Atasan Perfeksionis)</strong>
+                <strong className="text-teal block">Ruang Eksekutif & Manajemen: Bu Rina (Atasan Perfeksionis)</strong>
                 <p className="text-ink-muted">Tantangan: Instruksi ambigu ("tolong dirapikan ya, besok pagi saya lihat"). Keterampilan: Mengajukan pertanyaan klarifikasi spesifik.</p>
               </div>
 
               <div className="p-2.5 bg-soft rounded border border-sand">
-                <strong className="text-teal block">Zona 1 (Pantry): Dimas (Rekan Kerja Senior)</strong>
+                <strong className="text-teal block">Pantry & Dapur: Dimas (Rekan Kerja Senior)</strong>
                 <p className="text-ink-muted">Tantangan: Kritik tersirat bernada santai di pantry. Keterampilan: Menanyakan maksud dan meminta contoh konkret.</p>
               </div>
 
               <div className="p-2.5 bg-soft rounded border border-sand">
-                <strong className="text-teal block">Zona 2 (Meeting Room): Pak Hendra (Klien)</strong>
+                <strong className="text-teal block">Ruang Rapat & Konferensi: Pak Hendra (Klien)</strong>
                 <p className="text-ink-muted">Tantangan: Permintaan revisi mendadak di luar jam kerja karena cemas rapat direksi. Keterampilan: Menetapkan batas dan negosiasi tenggat realistis.</p>
               </div>
             </div>
