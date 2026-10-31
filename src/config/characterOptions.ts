@@ -62,6 +62,14 @@ export const ARCHETYPE_OPTIONS: ArchetypeOption[] = [
     spriteBase: 'maintenance-worker',
     previewUrl: '/assets/characters/maintenance-worker/standing/south.png',
   },
+  {
+    id: 'custom',
+    name: 'Karakter Kustom (Universal LPC)',
+    category: 'Desain Bebas & Modular',
+    description: 'Bebas kustomisasi rambut, pakaian, warna kulit, dan aksesoris secara mandiri.',
+    spriteBase: 'custom',
+    previewUrl: '/assets/characters/resident/standing/south.png',
+  },
 ];
 
 // ---------------------------------------------------------------------------

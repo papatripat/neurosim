@@ -1971,12 +1971,13 @@ export class OfficeScene extends Phaser.Scene {
     if (!this.player) return;
     const config = payload?.config || payload;
 
+    const isCustom = config?.archetype === 'custom';
     const dataUrl =
-      typeof localStorage !== 'undefined'
+      isCustom && typeof localStorage !== 'undefined'
         ? localStorage.getItem('neurosim_character_spritesheet')
         : null;
 
-    if (dataUrl) {
+    if (isCustom && dataUrl) {
       const customKey = 'char-player-custom';
       const img = new Image();
       img.src = dataUrl;
@@ -2012,7 +2013,7 @@ export class OfficeScene extends Phaser.Scene {
       return;
     }
 
-    const arch = config?.archetype || 'resident';
+    const arch = config?.archetype && config.archetype !== 'custom' ? config.archetype : 'resident';
     const newKey = `char-${arch}`;
 
     if (this.textures.exists(newKey)) {

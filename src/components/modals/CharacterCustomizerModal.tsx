@@ -82,39 +82,57 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+  // Helper to update modular custom appearance and automatically switch to custom mode
+  const updateCustomConfig = (updates: Partial<CharacterCustomization>) => {
+    setConfig((prev) => ({
+      ...prev,
+      archetype: 'custom',
+      ...updates,
+    }));
+  };
+
   // Handlers
   const handleRandomize = () => {
     const randomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
     const chosenArchetype = randomItem(ARCHETYPE_OPTIONS).id;
-    setConfig({
-      name: config.name,
-      archetype: chosenArchetype,
-      gender: Math.random() > 0.5 ? 'male' : 'female',
-      bodyType: 'standard',
-      skinTone: randomItem(SKIN_TONES).id,
-      hairStyle: randomItem(HAIR_STYLES).id,
-      hairColor: randomItem(HAIR_COLORS).id,
-      eyeColor: randomItem(EYE_COLORS).id,
-      facialHair: config.gender === 'female' ? 'none' : randomItem(FACIAL_HAIR_OPTIONS).id,
-      glasses: randomItem(GLASSES_OPTIONS).id,
-      shirtType: randomItem(SHIRT_OPTIONS).id,
-      shirtColor: randomItem(SHIRT_COLORS).id,
-      suitType: randomItem(SUIT_OPTIONS).id,
-      suitColor: randomItem(SUIT_COLORS).id,
-      tieType: randomItem(TIE_OPTIONS).id,
-      tieColor: randomItem(TIE_COLORS).id,
-      pantsType: randomItem(PANTS_OPTIONS).id,
-      pantsColor: randomItem(PANTS_COLORS).id,
-      shoesType: randomItem(SHOES_OPTIONS).id,
-      shoesColor: randomItem(SHOES_COLORS).id,
-      accessory: randomItem(ACCESSORIES_OPTIONS).id,
-    });
+
+    if (chosenArchetype !== 'custom') {
+      setConfig({
+        ...config,
+        archetype: chosenArchetype,
+        accessory: randomItem(ACCESSORIES_OPTIONS).id,
+      });
+    } else {
+      setConfig({
+        name: config.name,
+        archetype: 'custom',
+        gender: Math.random() > 0.5 ? 'male' : 'female',
+        bodyType: 'standard',
+        skinTone: randomItem(SKIN_TONES).id,
+        hairStyle: randomItem(HAIR_STYLES).id,
+        hairColor: randomItem(HAIR_COLORS).id,
+        eyeColor: randomItem(EYE_COLORS).id,
+        facialHair: config.gender === 'female' ? 'none' : randomItem(FACIAL_HAIR_OPTIONS).id,
+        glasses: randomItem(GLASSES_OPTIONS).id,
+        shirtType: randomItem(SHIRT_OPTIONS).id,
+        shirtColor: randomItem(SHIRT_COLORS).id,
+        suitType: randomItem(SUIT_OPTIONS).id,
+        suitColor: randomItem(SUIT_COLORS).id,
+        tieType: randomItem(TIE_OPTIONS).id,
+        tieColor: randomItem(TIE_COLORS).id,
+        pantsType: randomItem(PANTS_OPTIONS).id,
+        pantsColor: randomItem(PANTS_COLORS).id,
+        shoesType: randomItem(SHOES_OPTIONS).id,
+        shoesColor: randomItem(SHOES_COLORS).id,
+        accessory: randomItem(ACCESSORIES_OPTIONS).id,
+      });
+    }
   };
 
   const handleApplyPreset = (presetId: string) => {
     const found = CHARACTER_PRESETS.find((p) => p.id === presetId);
     if (found) {
-      setConfig({ ...found.config, name: config.name });
+      setConfig({ ...found.config, archetype: 'custom', name: config.name });
     }
   };
 
@@ -127,12 +145,16 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
     // Simpan ke localStorage agar awet antar sesi
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('neurosim_character_config', JSON.stringify(config));
-      try {
-        const fullSheet = await generateFullLpcSpritesheet(config);
-        const dataUrl = fullSheet.toDataURL('image/png');
-        localStorage.setItem('neurosim_character_spritesheet', dataUrl);
-      } catch (e) {
-        console.warn('Could not cache custom spritesheet:', e);
+      if (config.archetype === 'custom') {
+        try {
+          const fullSheet = await generateFullLpcSpritesheet(config);
+          const dataUrl = fullSheet.toDataURL('image/png');
+          localStorage.setItem('neurosim_character_spritesheet', dataUrl);
+        } catch (e) {
+          console.warn('Could not cache custom spritesheet:', e);
+        }
+      } else {
+        localStorage.removeItem('neurosim_character_spritesheet');
       }
     }
 
@@ -298,29 +320,10 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                           key={arch.id}
                           type="button"
                           onClick={() => {
-                            const preset = CHARACTER_PRESETS.find((p) => p.config.archetype === arch.id);
-                            if (preset) {
-                              setConfig({
-                                ...config,
-                                archetype: arch.id,
-                                hairStyle: preset.config.hairStyle,
-                                hairColor: preset.config.hairColor,
-                                shirtType: preset.config.shirtType,
-                                shirtColor: preset.config.shirtColor,
-                                suitType: preset.config.suitType,
-                                suitColor: preset.config.suitColor,
-                                tieType: preset.config.tieType,
-                                tieColor: preset.config.tieColor,
-                                pantsType: preset.config.pantsType,
-                                pantsColor: preset.config.pantsColor,
-                                shoesType: preset.config.shoesType,
-                                shoesColor: preset.config.shoesColor,
-                                glasses: preset.config.glasses,
-                                accessory: preset.config.accessory,
-                              });
-                            } else {
-                              setConfig({ ...config, archetype: arch.id });
-                            }
+                            setConfig({
+                              ...config,
+                              archetype: arch.id,
+                            });
                           }}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-all flex items-start gap-2.5 ${
                             (config.archetype || 'resident') === arch.id
@@ -395,7 +398,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={tone.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, skinTone: tone.id })}
+                          onClick={() => updateCustomConfig({ skinTone: tone.id })}
                           className={`p-2 rounded-lg border flex flex-col items-center gap-1.5 transition-all ${
                             config.skinTone === tone.id
                               ? 'border-teal bg-cream ring-2 ring-teal shadow-xs'
@@ -424,7 +427,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={col.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, eyeColor: col.id })}
+                          onClick={() => updateCustomConfig({ eyeColor: col.id })}
                           className={`px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-2 transition-all ${
                             config.eyeColor === col.id
                               ? 'border-teal bg-cream ring-1 ring-teal font-semibold text-teal'
@@ -470,6 +473,18 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
               {/* TAB 2: RAMBUT & FACIAL HAIR */}
               {activeTab === 'hair' && (
                 <div className="space-y-4">
+                  {config.archetype !== 'custom' && (
+                    <div className="p-2.5 rounded-lg bg-ochre/15 border border-ochre/40 flex items-start gap-2 text-xs">
+                      <Info className="w-4 h-4 text-ochre flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-ink block">Karakter Peran Resmi Aktif</span>
+                        <span className="text-[11px] text-ink-muted">
+                          Memilih gaya rambut atau busana di bawah akan mengalihkan tampilan ke mode Karakter Kustom.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Hair Style */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
@@ -480,7 +495,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={style.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, hairStyle: style.id })}
+                          onClick={() => updateCustomConfig({ hairStyle: style.id })}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
                             config.hairStyle === style.id
                               ? 'border-teal bg-cream ring-2 ring-teal'
@@ -506,7 +521,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={col.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, hairColor: col.id })}
+                          onClick={() => updateCustomConfig({ hairColor: col.id })}
                           className={`p-2 rounded-lg border text-xs flex items-center gap-2 transition-all ${
                             config.hairColor === col.id
                               ? 'border-teal bg-cream ring-2 ring-teal font-semibold'
@@ -534,7 +549,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                           <button
                             key={opt.id}
                             type="button"
-                            onClick={() => setConfig({ ...config, facialHair: opt.id })}
+                            onClick={() => updateCustomConfig({ facialHair: opt.id })}
                             className={`p-2 rounded-lg border text-left text-xs transition-colors ${
                               config.facialHair === opt.id
                                 ? 'border-teal bg-cream ring-1 ring-teal'
@@ -554,6 +569,18 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
               {/* TAB 3: ATASAN & JAS */}
               {activeTab === 'top' && (
                 <div className="space-y-4">
+                  {config.archetype !== 'custom' && (
+                    <div className="p-2.5 rounded-lg bg-ochre/15 border border-ochre/40 flex items-start gap-2 text-xs">
+                      <Info className="w-4 h-4 text-ochre flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-ink block">Karakter Peran Resmi Aktif</span>
+                        <span className="text-[11px] text-ink-muted">
+                          Memilih atasan atau jas di bawah akan mengalihkan tampilan ke mode Karakter Kustom.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Shirt Style */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
@@ -564,7 +591,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, shirtType: s.id })}
+                          onClick={() => updateCustomConfig({ shirtType: s.id })}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
                             config.shirtType === s.id
                               ? 'border-teal bg-cream ring-2 ring-teal'
@@ -590,7 +617,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={col.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, shirtColor: col.id })}
+                          onClick={() => updateCustomConfig({ shirtColor: col.id })}
                           className={`p-2 rounded-lg border text-xs flex items-center gap-2 transition-all ${
                             config.shirtColor === col.id
                               ? 'border-teal bg-cream ring-2 ring-teal font-semibold'
@@ -617,7 +644,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={st.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, suitType: st.id })}
+                          onClick={() => updateCustomConfig({ suitType: st.id })}
                           className={`p-2 rounded-lg border text-left text-xs transition-colors ${
                             config.suitType === st.id
                               ? 'border-teal bg-cream ring-1 ring-teal'
@@ -643,7 +670,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={t.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, tieType: t.id })}
+                          onClick={() => updateCustomConfig({ tieType: t.id })}
                           className={`p-2 rounded-lg border text-left text-xs transition-colors ${
                             config.tieType === t.id
                               ? 'border-teal bg-cream ring-1 ring-teal font-semibold text-teal'
@@ -661,6 +688,18 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
               {/* TAB 4: BAWAHAN & SEPATU */}
               {activeTab === 'bottom' && (
                 <div className="space-y-4">
+                  {config.archetype !== 'custom' && (
+                    <div className="p-2.5 rounded-lg bg-ochre/15 border border-ochre/40 flex items-start gap-2 text-xs">
+                      <Info className="w-4 h-4 text-ochre flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-ink block">Karakter Peran Resmi Aktif</span>
+                        <span className="text-[11px] text-ink-muted">
+                          Memilih bawahan atau sepatu di bawah akan mengalihkan tampilan ke mode Karakter Kustom.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Pants Style */}
                   <div>
                     <label className="text-xs font-bold text-ink block mb-1.5">
@@ -671,7 +710,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, pantsType: p.id })}
+                          onClick={() => updateCustomConfig({ pantsType: p.id })}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-colors ${
                             config.pantsType === p.id
                               ? 'border-teal bg-cream ring-2 ring-teal'
@@ -697,7 +736,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={col.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, pantsColor: col.id })}
+                          onClick={() => updateCustomConfig({ pantsColor: col.id })}
                           className={`p-2 rounded-lg border text-xs flex items-center gap-2 transition-all ${
                             config.pantsColor === col.id
                               ? 'border-teal bg-cream ring-2 ring-teal font-semibold'
@@ -724,7 +763,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={sh.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, shoesType: sh.id })}
+                          onClick={() => updateCustomConfig({ shoesType: sh.id })}
                           className={`p-2 rounded-lg border text-left text-xs transition-colors ${
                             config.shoesType === sh.id
                               ? 'border-teal bg-cream ring-1 ring-teal'
@@ -748,7 +787,7 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={col.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, shoesColor: col.id })}
+                          onClick={() => updateCustomConfig({ shoesColor: col.id })}
                           className={`px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-2 transition-all ${
                             config.shoesColor === col.id
                               ? 'border-teal bg-cream ring-1 ring-teal font-semibold text-teal'

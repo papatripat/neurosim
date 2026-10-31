@@ -51,14 +51,41 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     onChangeDirection?.(newDir);
   };
 
-  // Cached composited 576×256 canvas for current character customization
-  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Flag if current configuration is an official pre-baked character role
+  const isOfficialArchetype = Boolean(
+    config.archetype && config.archetype !== 'custom'
+  );
 
-  // Re-composite character layers whenever any customization in config changes
+  // Cached composited 576×256 canvas for custom LPC character
+  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Cached image for official role spritesheet (576×512 aligned.png)
+  const officialImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Load official archetype spritesheet OR composite LPC layers whenever config changes
   useEffect(() => {
     let active = true;
     setIsLoading(true);
 
+    if (isOfficialArchetype) {
+      const role = config.archetype || 'resident';
+      const url = `/assets/characters/${role}/aligned.png`;
+      loadImage(url)
+        .then((img) => {
+          if (active) {
+            officialImageRef.current = img;
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.warn(`Official archetype load failed for ${url}:`, err);
+          if (active) setIsLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }
+
+    // Custom Modular Character: Composite Universal LPC Layers
     const buildComposite = async () => {
       try {
         const palettes = await loadPalettes();
@@ -121,56 +148,29 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     return () => {
       active = false;
     };
-  }, [config]);
+  }, [config, isOfficialArchetype]);
 
   // Frame timing loop:
-  // LPC walk cycle has 8 walking frames (frames 1..8)
-  const maxWalkFrames = 8;
-  const frameInterval = isWalking ? 120 : 300;
+  // Walk cycle: 8 frames
+  // Official idle animation: 9 frames (Row 0..3)
+  // LPC idle: 1 static frame (col 0)
+  const maxFrames = isWalking ? 8 : isOfficialArchetype ? 9 : 1;
+  const frameInterval = isWalking ? 120 : isOfficialArchetype ? 260 : 300;
 
   useEffect(() => {
     if (!isPlaying) return;
     const timer = setInterval(() => {
-      if (isWalking) {
-        setFrameIndex((prev) => (prev + 1) % maxWalkFrames);
-      } else {
-        setFrameIndex(0);
-      }
+      setFrameIndex((prev) => (prev + 1) % maxFrames);
     }, frameInterval);
     return () => clearInterval(timer);
-  }, [isPlaying, isWalking, frameInterval]);
+  }, [isPlaying, isWalking, frameInterval, maxFrames]);
 
   // Render current frame to display canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    const comp = compositeCanvasRef.current;
-    if (!canvas || !comp) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // LPC walk.png row mapping:
-    // Row 0: North (up)
-    // Row 1: West (left)
-    // Row 2: South (down)
-    // Row 3: East (right)
-    let row = 2; // default south
-    if (currentDirection === 'north') row = 0;
-    else if (currentDirection === 'west') row = 1;
-    else if (currentDirection === 'south') row = 2;
-    else if (currentDirection === 'east') row = 3;
-
-    // Frame column in LPC walk.png:
-    // Frame 0 = idle/standing pose
-    // Frames 1..8 = walk cycle frames
-    let col = 0;
-    if (isWalking) {
-      col = 1 + (frameIndex % maxWalkFrames);
-    } else {
-      col = 0; // Standing frame
-    }
-
-    const srcX = col * 64;
-    const srcY = row * 64;
 
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -189,17 +189,77 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     const destX = (canvas.width - destW) / 2;
     const destY = (canvas.height - destH) / 2 - 4 * (zoom / 2.8);
 
-    ctx.drawImage(
-      comp,
-      srcX,
-      srcY,
-      64,
-      64,
-      Math.round(destX),
-      Math.round(destY),
-      Math.round(destW),
-      Math.round(destH)
-    );
+    if (isOfficialArchetype) {
+      const img = officialImageRef.current;
+      if (!img) return;
+
+      // In aligned.png (576×512, 9 columns × 8 rows of 64×64 cells):
+      // Rows 0..3: Idle (South, East, North, West)
+      // Rows 4..7: Walk (South, East, North, West)
+      let row = 0;
+      if (isWalking) {
+        if (currentDirection === 'south') row = 4;
+        else if (currentDirection === 'east') row = 5;
+        else if (currentDirection === 'north') row = 6;
+        else if (currentDirection === 'west') row = 7;
+      } else {
+        if (currentDirection === 'south') row = 0;
+        else if (currentDirection === 'east') row = 1;
+        else if (currentDirection === 'north') row = 2;
+        else if (currentDirection === 'west') row = 3;
+      }
+
+      const col = isWalking
+        ? frameIndex % 8
+        : isPlaying
+        ? frameIndex % 9
+        : 0;
+
+      const srcX = col * 64;
+      const srcY = row * 64;
+
+      ctx.drawImage(
+        img,
+        srcX,
+        srcY,
+        64,
+        64,
+        Math.round(destX),
+        Math.round(destY),
+        Math.round(destW),
+        Math.round(destH)
+      );
+    } else {
+      const comp = compositeCanvasRef.current;
+      if (!comp) return;
+
+      // LPC walk.png row mapping:
+      // Row 0: North, Row 1: West, Row 2: South, Row 3: East
+      let row = 2;
+      if (currentDirection === 'north') row = 0;
+      else if (currentDirection === 'west') row = 1;
+      else if (currentDirection === 'south') row = 2;
+      else if (currentDirection === 'east') row = 3;
+
+      // Frame column in LPC walk.png:
+      // Frame 0 = idle/standing pose, Frames 1..8 = walk cycle frames
+      const col = isWalking ? 1 + (frameIndex % 8) : 0;
+
+      const srcX = col * 64;
+      const srcY = row * 64;
+
+      ctx.drawImage(
+        comp,
+        srcX,
+        srcY,
+        64,
+        64,
+        Math.round(destX),
+        Math.round(destY),
+        Math.round(destW),
+        Math.round(destH)
+      );
+    }
 
     // Subtle ID Badge overlay for office immersion if selected
     if (config.accessory === 'id-badge' && (currentDirection === 'south' || currentDirection === 'east')) {
@@ -217,7 +277,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
       ctx.fillStyle = '#e0b65d';
       ctx.fillRect(badgeX - 1.5 * zoom, badgeY + 1.5 * zoom, 3 * zoom, 2 * zoom);
     }
-  }, [currentDirection, isWalking, frameIndex, zoom, isLoading, config]);
+  }, [currentDirection, isWalking, frameIndex, zoom, isLoading, isOfficialArchetype, config]);
 
   const handleRotate = () => {
     const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
