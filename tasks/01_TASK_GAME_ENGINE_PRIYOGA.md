@@ -1,6 +1,6 @@
 # PANDUAN TEKNIS: 2D GAME WORLD & PHASER ENGINE
 **Penanggung Jawab:** Priyoga Listyo Ananda (didukung Game & Phaser Companion Agent)  
-**Tujuan Utama:** Membangun viewport kantor 2D interaktif (576×384 px) menggunakan Phaser 3.85+, navigasi karakter WASD/Panah, collision meja & dinding, depth sorting otomatis berdasarkan sumbu Y, deteksi jarak interaksi NPC [E], dan jembatan event aman dengan React.
+**Tujuan Utama:** Membangun viewport kantor 2D interaktif (2752×1536 px) menggunakan Phaser 3.85+, format modern WebP (`rooms-ground.webp`), sistem *Smooth Camera Follow*, navigasi WASD/Panah, collision sekat ruangan & perabot, Y-sorting, deteksi kedekatan NPC [E], serta papan interaktif **To-Do List** di Koridor Tengah.
 
 ---
 
@@ -13,37 +13,60 @@ src/
 └── game/
     ├── EventBus.ts              --> Singleton Event Emitter penghubung Phaser & React
     ├── PhaserGame.tsx           --> Komponen React pembungkus canvas game (Anti-StrictMode bug)
-    ├── config.ts                --> Konfigurasi Phaser 3 (Arcade Physics, Scale.FIT, pixelArt: true)
+    ├── config.ts                --> Konfigurasi Phaser 3 (Arcade Physics, Scale.FIT, Camera Follow)
     └── scenes/
         ├── BootScene.ts         --> Preloader aset visual (/assets/maps, /assets/props, /assets/characters)
-        └── OfficeScene.ts       --> Logika dunia kantor, pergerakan, tabrakan, kedekatan NPC [E]
+        └── OfficeScene.ts       --> Logika kantor 2752x1536, kamera, tabrakan, kedekatan NPC, To-Do List
 ```
 
 ---
 
-## 2. Lokasi Aset Terkurasi yang Digunakan
+## 2. Denah Peta Kantor Terpadu (Revisi Sesuai Arahan)
 
-Seluruh aset visual telah dirapikan dan disimpan di folder [`public/assets/`](file:///d:/Project/neurosim/public/assets/):
+Peta menggunakan format WebP hemat bandwidth (`/assets/maps/rooms-ground.webp`) berukuran **2752 × 1536 px** (~487 KB):
 
-| Komponen Game | Jalur Aset di `public/assets/` |
-| :--- | :--- |
-| **Latar Dasar Kantor (576×384 px)** | `/assets/maps/rooms-ground.png` |
-| **Meja Kantor (Desk)** | `/assets/props/desk.png` |
-| **Kursi Kantor (Office Chair)** | `/assets/props/office-chair.png` |
-| **Komputer Kantor (Computer)** | `/assets/props/computer.png` |
-| **Dispenser Air (Water Cooler)** | `/assets/props/water-cooler.png` |
-| **Lemari Arsip (Filing Cabinet)** | `/assets/props/filing-cabinet.png` |
-| **Tanaman Hias Pot (Plant)** | `/assets/props/plant-large.png` |
-| **Pemain (Resident Aligned)** | `/assets/characters/resident/aligned.png` (Sel 64×64 px) |
-| **NPC 1: Bu Rina (Office Worker)** | `/assets/characters/office-worker/aligned.png` (Sel 64×64 px) |
-| **NPC 2: Dimas (Resident)** | `/assets/characters/resident/aligned.png` (Sel 64×64 px) |
-| **NPC 3: Klien (Courier)** | `/assets/characters/courier/aligned.png` (Sel 64×64 px) |
+```
++-----------------------------------------------------------------------------------+
+| [ZONA 1: Pantry & Dapur]       |   [KORIDOR TENGAH]   | [ZONA 4: Ruangan Bos]     |
+| Lantai Catur Hitam-Abu         |                      | Lantai Parket Kayu Formal |
+| Posisi Dimas: (630, 230)       | [PAPAN TO-DO LIST]   | Posisi Bu Rina: (2150,230)|
+| Pintu: (1166, 365)             |     (1400, 450)      | Pintu: (2153, 515)        |
++--------------------------------+                      +-------------------------------+
+| [ZONA 2: Meeting Room]         |                      |                               |
+| Lantai Oranye Terracotta       |                      | [ZONA 5: MAIN ROOM]           |
+| Posisi Klien: (630, 720)       |                      | Ruang Kerja Karyawan          |
+| Pintu: (1166, 775)             |                      | Lantai Karpet Biru Luas       |
++--------------------------------+                      | Meja Pemain: (1700, 850)      |
+| [ZONA 3: Smoking Area]         |                      |                               |
+| Lantai Grid Teal Menenangkan   |                      |                               |
+| Area Santai / Merokok          |                      |                               |
+| Pintu: (1166, 1195)            |  [SPAWN PEMAIN]      |                               |
+|                                |   (1375, 1280)       |                               |
++--------------------------------+--[PINTU DEPAN UTAMA]-+-------------------------------+
+```
+
+### Rincian Fungsi Tiap Zona:
+1. **Zona 1 (Kiri Atas): Pantry & Dapur (Dimas - Skenario 2)**
+   - Lantai catur hitam-abu. Tempat istirahat, membuat kopi, dan obrolan santai rekan kantor.
+   - Lokasi Skenario 2 (Kritik Tidak Langsung).
+2. **Zona 2 (Kiri Tengah): Meeting Room (Pak Hendra - Skenario 3)**
+   - Lantai oranye terracotta hangat dengan meja rapat formal.
+   - Lokasi Skenario 3 (Revisi Mendadak & Negosiasi Tenggat Klien).
+3. **Zona 3 (Kiri Bawah): Smoking Area**
+   - Area santai/merokok karyawan berlantai ubin teal dengan jendela sirkulasi udara luar.
+4. **Zona 4 (Kanan Atas): Ruangan Bos (Bu Rina - Skenario 1)**
+   - Ruang atasan berlantai kayu parket privat dan elegan.
+   - Lokasi Skenario 1 (Klarifikasi Instruksi Ambigu).
+5. **Zona 5 (Kanan Bawah & Tengah): Main Room (Tempat Kerja Karyawan)**
+   - Area kerja utama tim berlantai karpet biru luas, tempat workstation pemain dan meja rekan-rekan.
+6. **Area Spawn Pemain:**
+   - Di bagian pintu depan seberang pas dari Koridor Tengah bagian bawah `(1375, 1280)`.
+7. **Papan To-Do List:**
+   - Berada di dinding Koridor Tengah `(1400, 450)`. Pemain dapat menekan [E] untuk membuka daftar tugas harian/skenario latihan!
 
 ---
 
 ## 3. EventBus Singleton (`src/game/EventBus.ts`)
-
-Jembatan komunikasi aman antara Phaser dan antarmuka React:
 
 ```typescript
 import Phaser from 'phaser';
@@ -52,64 +75,15 @@ export const EventBus = new Phaser.Events.EventEmitter();
 
 export const GAME_EVENTS = {
   SCENE_READY: 'scene-ready',
-  OPEN_DIALOG: 'open-dialog',     // Phaser -> React (buka modal chat)
-  CLOSE_DIALOG: 'close-dialog',   // React -> Phaser (tutup modal chat & unfreeze)
+  OPEN_DIALOG: 'open-dialog',       // Buka modal percakapan dengan NPC
+  CLOSE_DIALOG: 'close-dialog',     // Tutup modal percakapan & unfreeze pemain
+  OPEN_TODO_LIST: 'open-todo-list', // Buka modal To-Do List dari papan koridor tengah
 };
 ```
 
 ---
 
-## 4. Komponen React Pembungkus Phaser (`src/game/PhaserGame.tsx`)
-
-> **CATATAN KRUSIAL REACT STRICTMODE:** React di mode development akan menjalankan `useEffect` dua kali. Jika tidak di-*cleanup*, akan muncul dua canvas bertumpuk.
-
-```tsx
-import React, { useEffect, useRef } from 'react';
-import Phaser from 'phaser';
-import { gameConfig } from './config';
-import { EventBus } from './EventBus';
-
-export const PhaserGame: React.FC = () => {
-  const gameContainerRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<Phaser.Game | null>(null);
-
-  useEffect(() => {
-    if (!gameContainerRef.current) return;
-
-    // Inisialisasi Game
-    const config: Phaser.Types.Core.GameConfig = {
-      ...gameConfig,
-      parent: gameContainerRef.current,
-    };
-
-    const game = new Phaser.Game(config);
-    gameRef.current = game;
-
-    // Bersihkan saat unmount
-    return () => {
-      EventBus.removeAllListeners();
-      game.destroy(true);
-      gameRef.current = null;
-    };
-  }, []);
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center bg-[#1a1c23]">
-      <div 
-        ref={gameContainerRef} 
-        className="rounded-lg overflow-hidden shadow-2xl border-4 border-[#355c5a]"
-        style={{ imageRendering: 'pixelated' }}
-      />
-    </div>
-  );
-};
-```
-
----
-
-## 5. Konfigurasi Phaser (`src/game/config.ts`)
-
-Ukuran canvas internal adalah **576 × 384 px**:
+## 4. Konfigurasi Phaser & Camera Follow (`src/game/config.ts`)
 
 ```typescript
 import Phaser from 'phaser';
@@ -118,14 +92,14 @@ import { OfficeScene } from './scenes/OfficeScene';
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 576,
-  height: 384,
-  pixelArt: true, // Wajib true agar pixel art tajam dan tidak blur
+  width: 1280,   // Viewport browser 16:9
+  height: 720,
+  pixelArt: true,
   physics: {
     default: 'arcade',
     arcade: {
       gravity: { x: 0, y: 0 },
-      debug: false // Ubah true jika ingin melihat kotak collision saat development
+      debug: false
     }
   },
   scale: {
@@ -138,7 +112,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
 
 ---
 
-## 6. Pemuat Aset (`src/game/scenes/BootScene.ts`)
+## 5. Pemuat Aset WebP (`src/game/scenes/BootScene.ts`)
 
 ```typescript
 import Phaser from 'phaser';
@@ -149,8 +123,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // 1. Background Ruangan Kantor (576x384)
-    this.load.image('office-ground', '/assets/maps/rooms-ground.png');
+    // 1. Background Peta Kantor WebP (2752x1536)
+    this.load.image('office-ground', '/assets/maps/rooms-ground.webp');
 
     // 2. Props Perabot Kantor
     this.load.image('prop-desk', '/assets/props/desk.png');
@@ -159,8 +133,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('prop-cooler', '/assets/props/water-cooler.png');
     this.load.image('prop-cabinet', '/assets/props/filing-cabinet.png');
     this.load.image('prop-plant', '/assets/props/plant-large.png');
+    this.load.image('prop-sofa', '/assets/props/sofa.png');
+    this.load.image('prop-table', '/assets/props/coffee-table.png');
 
-    // 3. Karakter Aligned Spritesheet (64x64 cell, pivot 32,54)
+    // 3. Karakter Aligned Spritesheet (64x64 cell)
     this.load.spritesheet('char-player', '/assets/characters/resident/aligned.png', {
       frameWidth: 64,
       frameHeight: 64
@@ -180,7 +156,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // Daftarkan Animasi Karakter (Aligned 64x64)
     this.createCharacterAnimations('char-player');
     this.createCharacterAnimations('char-rina');
     this.createCharacterAnimations('char-dimas');
@@ -190,7 +165,6 @@ export class BootScene extends Phaser.Scene {
   }
 
   private createCharacterAnimations(key: string) {
-    // Walk animations (8 frames per direction, index 36..67)
     this.anims.create({
       key: `${key}-walk-south`,
       frames: this.anims.generateFrameNumbers(key, { start: 36, end: 43 }),
@@ -215,8 +189,6 @@ export class BootScene extends Phaser.Scene {
       frameRate: 10,
       repeat: -1
     });
-
-    // Idle animations (9 frames per direction, index 0..35)
     this.anims.create({
       key: `${key}-idle-south`,
       frames: this.anims.generateFrameNumbers(key, { start: 0, end: 8 }),
@@ -229,11 +201,7 @@ export class BootScene extends Phaser.Scene {
 
 ---
 
-## 7. Logika Dunia Kantor (`src/game/scenes/OfficeScene.ts`)
-
-> **POIN KRUSIAL YANG SUDAH DIPERBAIKI:**
-> 1. Deteksi kedekatan NPC menggunakan jarak Euclidean (`dist < 45 px`), bukan overlap callback.
-> 2. Panggil `this.input.keyboard.disableGlobalCapture()` saat membuka dialog agar huruf WASD dan Spasi tidak terkunci saat mengetik di input chat React!
+## 6. Logika Kantor, Penempatan NPC & To-Do List (`src/game/scenes/OfficeScene.ts`)
 
 ```typescript
 import Phaser from 'phaser';
@@ -257,92 +225,142 @@ export class OfficeScene extends Phaser.Scene {
   private isPlayerLocked: boolean = false;
   private promptText!: Phaser.GameObjects.Text;
   private activeNpcNear: NPCData | null = null;
+  private isNearTodoList: boolean = false;
+  private todoListPos = { x: 1400, y: 450 };
 
   constructor() {
     super('OfficeScene');
   }
 
   create() {
-    // 1. Gambar Background Ruang Kantor (576x384)
-    this.add.image(0, 0, 'office-ground').setOrigin(0, 0).setDepth(0);
+    const MAP_W = 2752;
+    const MAP_H = 1536;
 
-    // 2. Obstacle Static Group (Batas Tembok & Meja Kerja)
+    // 1. Render Peta Kantor WebP (2752x1536)
+    this.add.image(0, 0, 'office-ground').setOrigin(0, 0).setDepth(0);
+    this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
+
+    // 2. Obstacle Static Group (Dinding & Sekat Ruangan)
     this.obstacles = this.physics.add.staticGroup();
 
-    // Batas dinding luar area Workspace (x: 288..560, y: 192..368)
-    const wallTop = this.add.rectangle(424, 200, 272, 16, 0x000000, 0);
-    this.physics.add.existing(wallTop, true);
-    this.obstacles.add(wallTop);
+    // Dinding Keliling Luar
+    this.createWallCollider(MAP_W / 2, 50, MAP_W, 60);         // Atas
+    this.createWallCollider(50, MAP_H / 2, 60, MAP_H);         // Kiri
+    this.createWallCollider(MAP_W - 50, MAP_H / 2, 60, MAP_H); // Kanan
+    this.createWallCollider(650, 1400, 1100, 80);              // Bawah Kiri
+    this.createWallCollider(2000, 1400, 1100, 80);             // Bawah Kanan
 
-    // Meja Bu Rina (361, 281) & Meja Rekan (433, 281)
-    this.createDeskWithColliders(361, 281);
-    this.createDeskWithColliders(433, 281);
+    // Dinding Pemisah Vertikal (Kamar Kiri vs Koridor) dengan Bukaan Pintu
+    this.createWallCollider(1166, 200, 60, 200);  // Atas Pintu Zona 1
+    this.createWallCollider(1166, 570, 60, 280);  // Antara Pintu Zona 1 & 2
+    this.createWallCollider(1166, 985, 60, 280);  // Antara Pintu Zona 2 & 3
+    this.createWallCollider(1166, 1310, 60, 140); // Bawah Pintu Zona 3
 
-    // Dispenser Air & Lemari Arsip
-    const cooler = this.physics.add.staticImage(493, 274, 'prop-cooler').setDepth(274);
-    this.obstacles.add(cooler);
-    const cabinet = this.physics.add.staticImage(305, 268, 'prop-cabinet').setDepth(268);
-    this.obstacles.add(cabinet);
+    // Dinding Pemisah Horizontal Ruangan Kiri
+    this.createWallCollider(600, 515, 1050, 40);  // Pemisah Zona 1 (Pantry) & 2 (Meeting)
+    this.createWallCollider(600, 960, 1050, 40);  // Pemisah Zona 2 (Meeting) & 3 (Smoking)
 
-    // 3. Karakter Pemain (Posisi awal di lorong kantor)
-    this.player = this.physics.add.sprite(361, 335, 'char-player');
-    this.player.body.setSize(24, 16); // Bounding box kaki
-    this.player.body.setOffset(20, 48);
+    // Dinding Bawah Zona 4 (Ruangan Bos) dengan bukaan pintu di x=2153
+    this.createWallCollider(1920, 515, 350, 40);
+    this.createWallCollider(2400, 515, 300, 40);
+
+    // 3. Papan To-Do List di Koridor Tengah
+    const board = this.add.rectangle(this.todoListPos.x, this.todoListPos.y, 40, 60, 0x355c5a).setDepth(this.todoListPos.y);
+    this.add.text(this.todoListPos.x, this.todoListPos.y - 10, 'TO-DO\nLIST', {
+      fontFamily: 'monospace',
+      fontSize: '10px',
+      color: '#fff9eb',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(this.todoListPos.y + 1);
+
+    // 4. Perabot Kantor Berdasarkan Zona Baru
+    // Zona 1 (Pantry / Dapur): Water cooler, coffee table
+    this.obstacles.add(this.physics.add.staticImage(630, 260, 'prop-cooler').setScale(1.75).setDepth(260));
+    this.add.image(700, 260, 'prop-table').setScale(1.75).setDepth(260);
+
+    // Zona 2 (Meeting Room): Meja Rapat Besar & Kursi
+    this.createDesk(600, 720);
+    this.createDesk(680, 720);
+
+    // Zona 3 (Smoking Area): Sofa Santai
+    this.add.image(630, 1150, 'prop-sofa').setScale(1.75).setDepth(1150);
+
+    // Zona 4 (Ruangan Bos): Meja Kerja Eksekutif Bu Rina
+    this.createDesk(2150, 260);
+
+    // Zona 5 (Main Room): Meja Kerja Pemain
+    this.createDesk(1700, 850);
+
+    // 5. Spawn Pemain (Pintu depan seberang Koridor Tengah bagian bawah)
+    this.player = this.physics.add.sprite(1375, 1280, 'char-player');
+    this.player.setScale(1.75);
+    this.player.body.setSize(20, 14).setOffset(22, 50);
     this.player.setCollideWorldBounds(true);
     this.player.play('char-player-idle-south');
 
-    // 4. Spawn NPC 1: Bu Rina (Duduk di balik meja 361, 260)
-    const rina = this.physics.add.sprite(361, 260, 'char-rina').setImmovable(true);
-    rina.body.setSize(24, 16).setOffset(20, 48);
+    // 6. Spawn NPC Sesuai Zona
+    // NPC 1: Bu Rina di Zona 4 (Ruangan Bos - Kanan Atas)
+    const rina = this.physics.add.sprite(2150, 220, 'char-rina').setScale(1.75).setImmovable(true);
+    rina.body.setSize(20, 14).setOffset(22, 50);
     rina.play('char-rina-idle-south');
     this.npcs.push({ id: 'rina', name: 'Bu Rina (Atasan)', sprite: rina, scenarioId: 'skenario-1' });
 
-    // Spawn NPC 2: Dimas (Rekan Senior di dekat water cooler)
-    const dimas = this.physics.add.sprite(460, 290, 'char-dimas').setImmovable(true);
-    dimas.body.setSize(24, 16).setOffset(20, 48);
+    // NPC 2: Dimas di Zona 1 (Pantry & Dapur - Kiri Atas)
+    const dimas = this.physics.add.sprite(580, 260, 'char-dimas').setScale(1.75).setImmovable(true);
+    dimas.body.setSize(20, 14).setOffset(22, 50);
     dimas.play('char-dimas-idle-south');
     this.npcs.push({ id: 'dimas', name: 'Dimas (Rekan Senior)', sprite: dimas, scenarioId: 'skenario-2' });
 
-    // 5. Physics Collision
+    // NPC 3: Pak Hendra di Zona 2 (Meeting Room - Kiri Tengah)
+    const klien = this.physics.add.sprite(640, 680, 'char-klien').setScale(1.75).setImmovable(true);
+    klien.body.setSize(20, 14).setOffset(22, 50);
+    klien.play('char-klien-idle-south');
+    this.npcs.push({ id: 'klien', name: 'Pak Hendra (Klien)', sprite: klien, scenarioId: 'skenario-3' });
+
+    // 7. Tabrakan Fisika & Kamera Follow
     this.physics.add.collider(this.player, this.obstacles);
     this.npcs.forEach(n => this.physics.add.collider(this.player, n.sprite));
 
-    // 6. Kontrol Input
+    this.cameras.main.setBounds(0, 0, MAP_W, MAP_H);
+    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+
+    // 8. Kontrol Input
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keyWASD = this.input.keyboard!.addKeys('W,A,S,D') as any;
     this.keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
-    // 7. Prompt Interaksi Floating Text
-    this.promptText = this.add.text(0, 0, 'Tekan [E] Bicara', {
+    this.promptText = this.add.text(0, 0, 'Tekan [E]', {
       fontFamily: 'monospace',
-      fontSize: '12px',
+      fontSize: '14px',
       color: '#ffffff',
       backgroundColor: '#242a38',
-      padding: { x: 6, y: 3 }
+      padding: { x: 8, y: 4 }
     }).setOrigin(0.5).setDepth(9999).setVisible(false);
 
-    // 8. Listener Event dari React
     EventBus.on(GAME_EVENTS.CLOSE_DIALOG, () => {
       this.isPlayerLocked = false;
-      this.input.keyboard?.enableGlobalCapture(); // Buka kembali capture keyboard untuk game
+      this.input.keyboard?.enableGlobalCapture();
     });
 
     EventBus.emit(GAME_EVENTS.SCENE_READY);
   }
 
-  private createDeskWithColliders(x: number, y: number) {
-    // Visual Meja & Komputer
-    this.add.image(x, y, 'prop-desk').setDepth(y);
-    this.add.image(x, y - 20, 'prop-computer').setDepth(y + 1);
+  private createWallCollider(x: number, y: number, w: number, h: number) {
+    const wall = this.add.rectangle(x, y, w, h, 0x000000, 0);
+    this.physics.add.existing(wall, true);
+    this.obstacles.add(wall);
+  }
+
+  private createDesk(x: number, y: number) {
+    this.add.image(x, y, 'prop-desk').setScale(1.75).setDepth(y);
+    this.add.image(x, y - 24, 'prop-computer').setScale(1.75).setDepth(y + 1);
     
-    // Collider solid untuk meja
-    const col = this.physics.add.staticImage(x, y, 'prop-desk').setVisible(false);
-    col.body.setSize(48, 28).setOffset(8, 24);
+    const col = this.physics.add.staticImage(x, y, 'prop-desk').setScale(1.75).setVisible(false);
+    col.body.setSize(70, 40).setOffset(8, 24);
     this.obstacles.add(col);
   }
 
   update() {
-    // Otomatis atur Depth pemain mengikuti posisi Y kakinya (Y-Sorting)
     this.player.setDepth(this.player.y);
 
     if (this.isPlayerLocked) {
@@ -350,8 +368,7 @@ export class OfficeScene extends Phaser.Scene {
       return;
     }
 
-    // 1. Navigasi Pemain WASD
-    const speed = 90;
+    const speed = 140;
     let vx = 0;
     let vy = 0;
 
@@ -373,26 +390,39 @@ export class OfficeScene extends Phaser.Scene {
       this.player.play('char-player-idle-south', true);
     }
 
-    // 2. Deteksi Jarak ke NPC (< 45px)
+    // 1. Deteksi Kedekatan dengan Papan To-Do List di Koridor Tengah (< 50px)
+    const distToTodo = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.todoListPos.x, this.todoListPos.y);
+    if (distToTodo < 50) {
+      this.promptText.setText('Tekan [E] Buka To-Do List').setPosition(this.todoListPos.x, this.todoListPos.y - 45).setVisible(true);
+      if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+        this.isPlayerLocked = true;
+        this.player.setVelocity(0, 0);
+        this.promptText.setVisible(false);
+        this.input.keyboard?.disableGlobalCapture();
+        EventBus.emit(GAME_EVENTS.OPEN_TODO_LIST);
+      }
+      return;
+    }
+
+    // 2. Deteksi Kedekatan ke NPC (< 60px)
     this.activeNpcNear = null;
     for (const npc of this.npcs) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, npc.sprite.x, npc.sprite.y);
-      if (dist < 45) {
+      if (dist < 60) {
         this.activeNpcNear = npc;
         break;
       }
     }
 
     if (this.activeNpcNear) {
-      this.promptText.setPosition(this.activeNpcNear.sprite.x, this.activeNpcNear.sprite.y - 36).setVisible(true);
+      this.promptText.setText(`Tekan [E] Bicara (${this.activeNpcNear.name})`)
+        .setPosition(this.activeNpcNear.sprite.x, this.activeNpcNear.sprite.y - 48)
+        .setVisible(true);
 
-      // Cek tombol [E]
       if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
         this.isPlayerLocked = true;
         this.player.setVelocity(0, 0);
         this.promptText.setVisible(false);
-
-        // KRUSIAL: Matikan keyboard capture Phaser agar input chat di React bisa diketik!
         this.input.keyboard?.disableGlobalCapture();
 
         EventBus.emit(GAME_EVENTS.OPEN_DIALOG, {
@@ -409,13 +439,10 @@ export class OfficeScene extends Phaser.Scene {
 
 ---
 
-## 8. Checklist Verifikasi Priyoga
+## 7. Checklist Verifikasi Priyoga
 
-- [ ] Seluruh aset dimuat dari folder bersih `/assets/...`.
-- [ ] Canvas 576×384 terpusat dengan gaya retro pixelated.
-- [ ] Navigasi WASD / panah keyboard berjalan lancar pada 60 FPS.
-- [ ] Y-sorting berfungsi: saat pemain di belakang meja (`y < 281`), badan tertutup meja; saat di depan (`y > 281`), pemain menutupi meja.
-- [ ] Deteksi [E] hanya aktif saat berjarak dekat (< 45 px).
-- [ ] `disableGlobalCapture()` terbukti membebaskan tombol WASD dan Spasi di modal chat React.
-- [ ] React StrictMode tidak menduplikasi canvas saat di-refresh.
-
+- [ ] Zona 1 (Pantry/Dapur), Zona 2 (Meeting Room), Zona 3 (Smoking Area), Zona 4 (Ruang Bos Bu Rina), dan Zona 5 (Main Room) terpetakan sesuai denah.
+- [ ] Titik spawn pemain berada tepat di depan pintu masuk utama selatan `(1375, 1280)`.
+- [ ] Papan To-Do List di Koridor Tengah `(1400, 450)` dapat didekati dan menampilkan prompt *"Tekan [E] Buka To-Do List"*.
+- [ ] Bu Rina berada di Zona 4 (Ruang Bos), Dimas di Zona 1 (Pantry), dan Pak Hendra di Zona 2 (Meeting Room).
+- [ ] Kamera follow berjalan mulus mengikuti pemain saat berjalan dari pintu depan, koridor tengah, hingga masuk ke masing-masing ruangan.

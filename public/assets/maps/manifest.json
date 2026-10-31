@@ -65,42 +65,100 @@
     54
   ],
   "scene_size": [
-    576,
-    384
+    2752,
+    1536
   ],
   "rooms": [
     {
-      "name": "Café",
+      "id": "pantry_kitchen",
+      "name": "Zona 1: Pantry & Dapur",
+      "description": "Dapur & pantry kantor berlantai catur hitam-abu (tempat santai/ngopi bersama Dimas - Skenario 2)",
       "rect": [
-        16,
-        16,
-        256,
-        352
+        110,
+        110,
+        1030,
+        390
       ],
-      "floor": 1,
-      "wall": 7
+      "door": [
+        1166,
+        365
+      ],
+      "npc_position": [
+        630,
+        260
+      ]
     },
     {
-      "name": "Apartment",
+      "id": "meeting_room",
+      "name": "Zona 2: Meeting Room",
+      "description": "Ruang rapat formal berlantai oranye terracotta untuk negosiasi klien (Pak Hendra - Skenario 3)",
       "rect": [
-        288,
-        16,
-        272,
-        160
+        110,
+        530,
+        1030,
+        420
       ],
-      "floor": 0,
-      "wall": 6
+      "door": [
+        1166,
+        775
+      ],
+      "npc_position": [
+        630,
+        720
+      ]
     },
     {
-      "name": "Workspace",
+      "id": "smoking_area",
+      "name": "Zona 3: Smoking Area",
+      "description": "Area santai/merokok karyawan berlantai ubin teal dengan sirkulasi jendela",
       "rect": [
-        288,
-        192,
-        272,
-        176
+        110,
+        980,
+        1030,
+        340
       ],
-      "floor": 4,
-      "wall": 6
+      "door": [
+        1166,
+        1195
+      ],
+      "npc_position": [
+        630,
+        1150
+      ]
+    },
+    {
+      "id": "boss_room",
+      "name": "Zona 4: Ruangan Bos (Bu Rina)",
+      "description": "Ruang kerja atasan formal berlantai parket kayu untuk klarifikasi tugas (Bu Rina - Skenario 1)",
+      "rect": [
+        1730,
+        110,
+        830,
+        390
+      ],
+      "door": [
+        2153,
+        515
+      ],
+      "npc_position": [
+        2150,
+        260
+      ]
+    },
+    {
+      "id": "main_workspace",
+      "name": "Zona 5: Main Room (Ruang Kerja Karyawan)",
+      "description": "Ruang kerja utama karyawan berlantai karpet biru luas lengkap dengan meja kerja pemain",
+      "rect": [
+        1180,
+        520,
+        1380,
+        810
+      ],
+      "player_desk": [
+        1700,
+        850
+      ]
     }
   ],
   "prop_placements": [
@@ -1081,5 +1139,17 @@
   ],
   "browser_demo": "examples/browser/index.html",
   "godot_project": "project.godot",
-  "license": "LICENSE.txt"
+  "license": "LICENSE.txt",
+  "ground_image": "assets/maps/rooms-ground.webp",
+  "spawn_point": {
+    "description": "Pintu depan kantor di seberang koridor tengah bagian bawah",
+    "x": 1375,
+    "y": 1280
+  },
+  "todo_list_board": {
+    "description": "Papan To-Do List tugas harian di Koridor Tengah",
+    "x": 1400,
+    "y": 450,
+    "interaction_prompt": "Tekan [E] Buka To-Do List"
+  }
 }

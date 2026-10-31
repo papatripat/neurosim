@@ -13,6 +13,7 @@ src/
 ├── components/
 │   ├── ModeSwitcher.tsx         --> Pengalih tab: Mode Kantor 2D <--> Mode Daftar Skenario
 │   ├── ScenarioList.tsx         --> Tampilan daftar skenario langsung (Jalan pintas Gerbang A)
+│   ├── TodoListModal.tsx        --> Modal To-Do List yang terbuka dari Papan Koridor Tengah
 │   ├── DialogueModal.tsx        --> Panel obrolan chat simulasi dengan NPC (React Overlay)
 │   ├── EvaluationModal.tsx      --> Layar rubrik evaluasi 4 dimensi & komparasi coba lagi
 │   ├── A11yControls.tsx         --> Pengaturan Reduce Motion, Kontras, & Ukuran Font

@@ -17,26 +17,35 @@ Dokumen ini adalah panduan pembagian kerja 3 pilar utama untuk 3 anggota tim bes
 
 ## Struktur Aset Terkurasi (`public/assets/`)
 
-Folder `public/` telah dirapikan menjadi struktur bersih dan ringan (~0.21 MB, 67 file) tanpa beban file duplikat, gif berat, atau zip tak terpakai:
+Folder `public/` telah dirapikan menjadi struktur bersih dan terkurasi dengan pembaruan peta kantor resolusi tinggi **WebP (2752×1536 px, ~487 KB)**:
 
 ```
 public/assets/
 ├── maps/
-│   ├── rooms-ground.png        --> Peta kantor utama 576x384 px
-│   ├── rooms-composed.png      --> Referensi visual komposit
-│   ├── manifest.json           --> Koordinat perabot & bounding box
+│   ├── rooms-ground.webp       --> Peta kantor utama 2752x1536 px (WebP ~487 KB)
+│   ├── manifest.json           --> Koordinat 5 zona kantor & bounding box
 │   └── environment-palette.gpl --> Palet warna resmi 24-warna
 ├── props/                      --> Sprite perabot kantor (desk, chair, computer, cooler, dll.)
 ├── characters/
 │   ├── resident/               --> Karakter Pemain (aligned.png + south.png)
 │   ├── office-worker/          --> NPC 1: Bu Rina (aligned.png + south.png)
-│   └── courier/                --> NPC 3: Klien (aligned.png + south.png)
+│   └── courier/                --> NPC 3: Klien Pak Hendra (aligned.png + south.png)
 └── ui/
     ├── spritesheet.png         --> Ikon transparan Kenney (16x16)
     ├── 9-slice/                --> Bingkai dialog tan/brown & tombol warna
     └── License.txt             --> Lisensi CC0
 ```
-*(Seluruh aset mentah dan zip master diarsipkan secara aman di `_archive/raw_assets/`).*
+
+### 5 Zona Kantor pada Peta Baru (2752×1536 px)
+1. **Zona 1 (Kiri Atas): Pantry & Dapur (Dimas - Skenario 2)** — Lantai catur hitam-abu, tempat istirahat, membuat kopi, dan kritik tidak langsung.
+2. **Zona 2 (Kiri Tengah): Meeting Room (Pak Hendra - Skenario 3)** — Ruang rapat berlantai oranye terracotta untuk negosiasi tenggat & revisi mendadak dengan klien.
+3. **Zona 3 (Kiri Bawah): Smoking Area** — Area santai/merokok karyawan berlantai ubin teal dengan jendela sirkulasi.
+4. **Zona 4 (Kanan Atas): Ruangan Bos (Bu Rina - Skenario 1)** — Ruang kerja atasan formal berlantai parket kayu untuk klarifikasi instruksi ambigu.
+5. **Zona 5 (Kanan Bawah & Tengah): Main Room (Tempat Kerja Karyawan)** — Area kerja utama karpet biru, workstation karyawan, dan meja kerja pemain.
+
+### Titik Khusus:
+- **Pintu Depan (Spawn Pemain):** Terletak tepat di seberang Koridor Tengah bagian bawah `(1375, 1280)`.
+- **Papan To-Do List Interaktif:** Terletak di dinding **Koridor Tengah** `(1400, 450)`. Pemain dapat menekan **[E]** untuk melihat daftar skenario/tugas kerja harian yang harus diselesaikan!
 
 ---
 
