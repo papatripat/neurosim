@@ -848,7 +848,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addSeat('Kursi Rapat', 470, 795, 'north', 'chair', 0, -4);
     this.addSeat('Kursi Rapat', 585, 795, 'north', 'chair', 0, -4);
     this.addSeat('Kursi Rapat', 700, 795, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Utama Rapat', 360, 720, 'east', 'chair', 4, 0);
+    this.addSeat('Kursi Utama Rapat', 360, 720, 'east', 'chair', -6, 0);
 
     // Credenza & Storage against top wall
     this.addSolidProp('bookcase', 250, 565, 75, 58);
@@ -887,8 +887,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('armchair-west', 745, 1075, 36, 32);
     this.addSeat('Sofa Santai', 595, 1015, 'south', 'sofa', 0, 4);
     this.addSeat('Sofa Santai', 665, 1015, 'south', 'sofa', 0, 4);
-    this.addSeat('Armchair Santai Kiri', 515, 1075, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Santai Kanan', 745, 1075, 'west', 'armchair', -4, 0);
+    this.addSeat('Armchair Santai Kiri', 515, 1075, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Santai Kanan', 745, 1075, 'west', 'armchair', 4, 0);
     this.addDecorativeProp('wall-art', 630, 975);
     this.addDecorativeProp('wall-clock', 790, 975);
 
@@ -915,10 +915,10 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('armchair-east', 690, 1270, 36, 32);
     this.addSolidProp('armchair-west', 910, 1270, 36, 32);
     this.addSolidProp('sofa-north', 800, 1330, 104, 48);
-    this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', -4, 0);
-    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -4);
-    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -4);
+    this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', 4, 0);
+    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -22);
+    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -22);
     this.addSolidProp('plant-large', 1090, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 1000, 1315);
 
@@ -992,8 +992,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('armchair-west', 2205, 1295, 36, 32);
     this.addSeat('Sofa Breakout Kiri', 2065, 1245, 'south', 'sofa', 0, 4);
     this.addSeat('Sofa Breakout Kanan', 2135, 1245, 'south', 'sofa', 0, 4);
-    this.addSeat('Armchair Breakout Kiri', 1995, 1295, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Breakout Kanan', 2205, 1295, 'west', 'armchair', -4, 0);
+    this.addSeat('Armchair Breakout Kiri', 1995, 1295, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Breakout Kanan', 2205, 1295, 'west', 'armchair', 4, 0);
     this.addDecorativeProp('floor-lamp', 2275, 1245);
     this.addSolidProp('plant-large', 1915, 1270, 52, 52);
 
@@ -1434,7 +1434,8 @@ export class OfficeScene extends Phaser.Scene {
       // Facing North: backrest is in front of player -> player depth is slightly below chair depth
       this.player.setDepth(seat.y + 45);
     } else {
-      this.player.setDepth(seat.y + 52);
+      // Facing East or West: player sits in the cushion between the flanks -> depth must be > chair depth (y + 52)
+      this.player.setDepth(seat.y + 55);
     }
     this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [SPASI / WASD] Berdiri');
   }
