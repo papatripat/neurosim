@@ -69,6 +69,13 @@ export class OfficeScene extends Phaser.Scene {
   private isNearTodoList = false;
 
   // Active Floating Emotes
+  // Active Chat Speech Bubble (Strictly 1 at a time, replaced on new chat)
+  private activeChatBubble: {
+    container: Phaser.GameObjects.Container;
+    offsetY: number;
+  } | null = null;
+
+  // Active Floating Emotes
   private activeEmotes: {
     container: Phaser.GameObjects.Container;
     offsetX: number;
@@ -133,6 +140,7 @@ export class OfficeScene extends Phaser.Scene {
     // 12. Listeners
     EventBus.on(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
     EventBus.on(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
+    EventBus.on(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
 
     // 13. Notify React
     EventBus.emit(GAME_EVENTS.SCENE_READY);
@@ -158,6 +166,15 @@ export class OfficeScene extends Phaser.Scene {
         this.player.y - item.offsetY
       );
       item.container.setDepth(this.player.y + 1000);
+    }
+
+    // Update active chat speech bubble so it strictly tracks the player sprite
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      this.activeChatBubble.container.setPosition(
+        this.player.x,
+        this.player.y - this.activeChatBubble.offsetY
+      );
+      this.activeChatBubble.container.setDepth(this.player.y + 1050);
     }
 
     // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
@@ -897,12 +914,124 @@ export class OfficeScene extends Phaser.Scene {
   };
 
   // =========================================================================
+  // GATHER.TOWN LIVE CHAT SPEECH BUBBLE
+  // =========================================================================
+
+  private handleTriggerChatBubble = ({ text }: { text: string }): void => {
+    if (!this.player || !this.player.active || !text.trim()) return;
+
+    // 1. Strictly 1 chat bubble at a time: immediately destroy previous one if exists
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      this.activeChatBubble.container.destroy();
+      this.activeChatBubble = null;
+    }
+
+    // 2. Format & wrap text (truncate if excessively long)
+    const maxTextWidth = 190;
+    const displayText = text.length > 80 ? text.slice(0, 77) + '...' : text;
+
+    const container = this.add.container(this.player.x, this.player.y);
+    container.setDepth(this.player.y + 1050);
+
+    const txt = this.add.text(0, -3, displayText, {
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
+      color: '#242a38',
+      align: 'center',
+      wordWrap: { width: maxTextWidth, useAdvancedWrap: true },
+    }).setOrigin(0.5, 0.5);
+
+    // 3. Compute speech bubble dimensions
+    const paddingX = 9;
+    const paddingY = 5;
+    const bw = Math.max(46, Math.min(220, txt.width + paddingX * 2));
+    const bh = txt.height + paddingY * 2;
+    const radius = 6;
+    const halfW = bw / 2;
+    const halfH = bh / 2;
+    const centerY = -3;
+
+    // Background bubble geometry
+    const bg = this.add.graphics();
+    bg.fillStyle(0xf4ead5, 0.96);
+    bg.lineStyle(1.5, 0x355c5a, 0.95);
+
+    // Rounded rectangle body
+    bg.fillRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
+    bg.strokeRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
+
+    // Downward triangle tail pointing directly towards the player's head
+    bg.fillTriangle(-4, centerY + halfH, 4, centerY + halfH, 0, centerY + halfH + 5);
+    bg.beginPath();
+    bg.moveTo(-4, centerY + halfH);
+    bg.lineTo(0, centerY + halfH + 5);
+    bg.lineTo(4, centerY + halfH);
+    bg.strokePath();
+
+    // Cover edge to merge body with tail
+    const cover = this.add.graphics();
+    cover.fillStyle(0xf4ead5, 1);
+    cover.fillRect(-3, centerY + halfH - 1, 6, 2);
+
+    container.add([bg, cover, txt]);
+
+    // Position above avatar head: avatar top is ~48px above feet, tail length 5px
+    const offsetY = 54 + halfH;
+    container.setPosition(this.player.x, this.player.y - offsetY);
+
+    // Pop-in bounce
+    container.setScale(0.5);
+    container.setAlpha(0);
+
+    const record = {
+      container,
+      offsetY,
+    };
+    this.activeChatBubble = record;
+
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      alpha: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Stay visible for 4.2 seconds, fading out during the last 600ms
+        this.tweens.addCounter({
+          from: 1,
+          to: 0,
+          duration: 4200,
+          onUpdate: (tw) => {
+            const progress = tw.progress;
+            if (progress > 0.8) {
+              container.setAlpha(1 - (progress - 0.8) / 0.2);
+            }
+          },
+          onComplete: () => {
+            if (container.active) {
+              container.destroy();
+            }
+            if (this.activeChatBubble === record) {
+              this.activeChatBubble = null;
+            }
+          },
+        });
+      },
+    });
+  };
+
+  // =========================================================================
   // CLEANUP
   // =========================================================================
 
   shutdown(): void {
     EventBus.off(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
     EventBus.off(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
+    EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      this.activeChatBubble.container.destroy();
+      this.activeChatBubble = null;
+    }
     for (const item of this.activeEmotes) {
       if (item.container.active) item.container.destroy();
     }

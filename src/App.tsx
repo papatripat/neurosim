@@ -209,6 +209,7 @@ export const App: React.FC = () => {
       isSelf: true,
     };
     setChatMessages((prev) => [...prev, newMsg]);
+    EventBus.emit(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, { text });
   };
 
   const handleSendReaction = (emoji: string) => {

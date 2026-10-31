@@ -17,4 +17,6 @@ export const GAME_EVENTS = {
   OPEN_TODO_LIST: 'open-todo-list',
   /** Player triggered quick reaction emoji from GatherDock */
   TRIGGER_REACTION: 'trigger-reaction',
+  /** Player sent an office chat message -> show 2D speech bubble above avatar */
+  TRIGGER_CHAT_BUBBLE: 'trigger-chat-bubble',
 } as const;
