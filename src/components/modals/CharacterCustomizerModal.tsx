@@ -67,7 +67,11 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (currentConfig) {
-      setConfig(currentConfig);
+      setConfig({
+        ...currentConfig,
+        accessory:
+          currentConfig.accessory === 'id-badge' ? 'none' : (currentConfig.accessory || 'none'),
+      });
     }
   }, [currentConfig]);
 
@@ -323,6 +327,10 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                             setConfig({
                               ...config,
                               archetype: arch.id,
+                              accessory:
+                                config.accessory === 'id-badge'
+                                  ? 'none'
+                                  : (config.accessory || 'none'),
                             });
                           }}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-all flex items-start gap-2.5 ${

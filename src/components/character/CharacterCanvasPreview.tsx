@@ -260,23 +260,6 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
         Math.round(destH)
       );
     }
-
-    // Subtle ID Badge overlay for office immersion if selected
-    if (config.accessory === 'id-badge' && (currentDirection === 'south' || currentDirection === 'east')) {
-      const badgeY = destY + 36 * zoom;
-      const badgeX = destX + (currentDirection === 'south' ? 31 * zoom : 33 * zoom);
-      ctx.strokeStyle = '#355c5a';
-      ctx.lineWidth = Math.max(1, Math.round(zoom * 0.7));
-      ctx.beginPath();
-      ctx.moveTo(destX + 27 * zoom, destY + 28 * zoom);
-      ctx.lineTo(badgeX, badgeY);
-      ctx.lineTo(destX + 37 * zoom, destY + 28 * zoom);
-      ctx.stroke();
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(badgeX - 2.5 * zoom, badgeY, 5 * zoom, 6 * zoom);
-      ctx.fillStyle = '#e0b65d';
-      ctx.fillRect(badgeX - 1.5 * zoom, badgeY + 1.5 * zoom, 3 * zoom, 2 * zoom);
-    }
   }, [currentDirection, isWalking, frameIndex, zoom, isLoading, isOfficialArchetype, config]);
 
   const handleRotate = () => {
