@@ -466,8 +466,8 @@ export const App: React.FC = () => {
         <main className="flex-1 w-full min-h-0 relative overflow-hidden bg-[#0f1117]">
           {mode === '2d' ? (
             <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
-              {/* Phaser Game Canvas */}
-              <PhaserGame />
+              {/* Phaser Game Canvas (Instantiated only when in simulation view with non-zero dimensions) */}
+              {currentView === 'simulation' && <PhaserGame />}
 
               {/* Webcam / Video Preview Widget */}
               <WebcamWidget

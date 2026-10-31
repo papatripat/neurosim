@@ -114,3 +114,4 @@ INSERT INTO `rooms` (`id`, `name`, `description`, `zone`, `spawn_x`, `spawn_y`, 
 ('room-pantry', 'Pantry & Coffee Breakroom', 'Area santai dengan espresso bar, meja kafe, dan rekan kerja Dimas.', 'Zona 1 · Pantry & Dapur', 480, 950, 15),
 ('room-executive', 'Ruang Eksekutif & Manajemen', 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas dan feedback berkala.', 'Zona 4 · Ruangan Bos', 1400, 360, 8)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+

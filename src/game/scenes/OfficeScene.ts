@@ -247,7 +247,13 @@ export class OfficeScene extends Phaser.Scene {
     if (typeof localStorage !== 'undefined') {
       try {
         const saved = localStorage.getItem('neurosim_character_config');
-        if (saved) {
+        const savedSheet = localStorage.getItem('neurosim_character_spritesheet');
+        if (savedSheet) {
+          this.handleUpdatePlayerCharacter({
+            config: saved ? JSON.parse(saved) : null,
+            spritesheetDataUrl: savedSheet,
+          });
+        } else if (saved) {
           const cfg = JSON.parse(saved);
           if (cfg?.archetype) {
             this.handleUpdatePlayerCharacter(cfg);
@@ -1499,8 +1505,76 @@ export class OfficeScene extends Phaser.Scene {
   destroy(): void {
     this.shutdown();
   }
-  private handleUpdatePlayerCharacter = (config: any): void => {
+  private createCustomAnimations(key: string): void {
+    const idleConfigs = [
+      { dir: 'south', start: 0 },
+      { dir: 'east', start: 9 },
+      { dir: 'north', start: 18 },
+      { dir: 'west', start: 27 },
+    ];
+    for (const { dir, start } of idleConfigs) {
+      const animKey = `${key}-idle-${dir}`;
+      if (this.anims.exists(animKey)) this.anims.remove(animKey);
+      this.anims.create({
+        key: animKey,
+        frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
+        frameRate: 3,
+        repeat: -1,
+      });
+    }
+
+    const walkConfigs = [
+      { dir: 'south', start: 36 },
+      { dir: 'east', start: 45 },
+      { dir: 'north', start: 54 },
+      { dir: 'west', start: 63 },
+    ];
+    for (const { dir, start } of walkConfigs) {
+      const animKey = `${key}-walk-${dir}`;
+      if (this.anims.exists(animKey)) this.anims.remove(animKey);
+      this.anims.create({
+        key: animKey,
+        frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
+        frameRate: 10,
+        repeat: -1,
+      });
+    }
+  }
+
+  private handleUpdatePlayerCharacter = (payload: any): void => {
     if (!this.player) return;
+    const config = payload?.config || payload;
+    const dataUrl =
+      payload?.spritesheetDataUrl ||
+      (typeof localStorage !== 'undefined'
+        ? localStorage.getItem('neurosim_character_spritesheet')
+        : null);
+
+    if (dataUrl) {
+      const customKey = 'char-player-custom';
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        if (!this.scene.isActive()) return;
+        if (this.textures.exists(customKey)) {
+          this.textures.remove(customKey);
+        }
+        this.textures.addSpriteSheet(customKey, img, {
+          frameWidth: 64,
+          frameHeight: 64,
+        });
+
+        this.createCustomAnimations(customKey);
+        this.playerArchetypeKey = customKey;
+        this.player.setTexture(customKey);
+        const idleAnim = `${customKey}-idle-${this.lastDirection}`;
+        if (this.anims.exists(idleAnim)) {
+          this.player.play(idleAnim, true);
+        }
+      };
+      return;
+    }
+
     const arch = config?.archetype || 'resident';
     const newKey = `char-${arch}`;
     if (this.textures.exists(newKey)) {
