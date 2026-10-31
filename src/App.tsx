@@ -20,12 +20,19 @@ import { OfficeTask } from './types/conversation';
 import { OfficeRoom, CreateRoomInput } from './types/room';
 import { DEFAULT_ROOMS, DEFAULT_CURRENT_ROOM } from './config/defaultRooms';
 
+// View Screens for Complete User Flow
+import { LandingView } from './components/views/LandingView';
+import { DashboardView, OfficeRoom as DashboardRoom, OFFICE_ROOMS } from './components/views/DashboardView';
+import { RoomLobbyView } from './components/views/RoomLobbyView';
+
 // Virtual office workspace components
 import { GatherDock, UserStatus } from './components/gather/GatherDock';
 import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
 import { ScreenShareWidget } from './components/gather/ScreenShareWidget';
+
+export type AppView = 'landing' | 'dashboard' | 'room-lobby' | 'simulation';
 
 const INITIAL_PARTICIPANTS: Participant[] = [
   {
@@ -118,6 +125,13 @@ const getUserDisplayName = (user: UserProfile | null, fallback = 'Baginda'): str
 };
 
 export const App: React.FC = () => {
+  // Top-Level User Flow Navigation: landing -> dashboard -> room-lobby -> simulation
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    const savedUser = localStorage.getItem('neurosim_current_user');
+    return savedUser ? 'dashboard' : 'landing';
+  });
+
+  const [selectedRoom, setSelectedRoom] = useState<DashboardRoom>(OFFICE_ROOMS[0]);
   const [mode, setMode] = useState<'2d' | 'list'>('2d');
   const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [isTodoListOpen, setIsTodoListOpen] = useState(false);
@@ -225,6 +239,7 @@ export const App: React.FC = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
+
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
@@ -354,7 +369,7 @@ export const App: React.FC = () => {
     };
   }, [handleStartScenario]);
 
-  // Pastikan Phaser mematikan penangkapan keyboard saat modal apa pun di React sedang terbuka
+  // Pause keyboard capture when any modal or background view is active
   useEffect(() => {
     const isAnyModalOpen =
       isAuthOpen ||
@@ -363,7 +378,8 @@ export const App: React.FC = () => {
       isOfficeChatOpen ||
       isParticipantsOpen ||
       isCustomizerOpen ||
-      isRoomModalOpen;
+      isRoomModalOpen ||
+      currentView !== 'simulation';
     if (isAnyModalOpen) {
       EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
     } else if (!activeScenarioId) {
@@ -377,6 +393,7 @@ export const App: React.FC = () => {
     isParticipantsOpen,
     isCustomizerOpen,
     isRoomModalOpen,
+    currentView,
     activeScenarioId,
   ]);
 
@@ -502,6 +519,9 @@ export const App: React.FC = () => {
     setUserHistory(hist);
     localStorage.setItem('neurosim_current_user', JSON.stringify(user));
     localStorage.setItem('neurosim_user_history', JSON.stringify(hist));
+    if (currentView === 'landing') {
+      setCurrentView('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -510,6 +530,7 @@ export const App: React.FC = () => {
     localStorage.removeItem('neurosim_current_user');
     localStorage.removeItem('neurosim_user_history');
     setIsAuthOpen(false);
+    setCurrentView('landing');
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
@@ -521,108 +542,190 @@ export const App: React.FC = () => {
         reduceMotion ? 'motion-reduce' : ''
       } ${highContrast ? 'contrast-125' : ''}`}
     >
-      {/* 1. Psychological Safety Banner */}
-      <SafetyBanner onLearnMore={() => setIsProposalOpen(true)} />
+      {/* ------------------------------------------------------------------- */}
+      {/* 1. SCREEN VIEW: LANDING PAGE                                         */}
+      {/* ------------------------------------------------------------------- */}
+      {currentView === 'landing' && (
+        <LandingView
+          currentUser={currentUser}
+          characterConfig={characterConfig}
+          onEnterDashboard={() => setCurrentView('dashboard')}
+          onEnterSimulation={() => {
+            setCurrentView('simulation');
+            EventBus.emit(GAME_EVENTS.RESUME_INPUT);
+          }}
+          onOpenCustomizer={() => setIsCustomizerOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenProposal={() => setIsProposalOpen(true)}
+        />
+      )}
 
-      {/* 2. Top Header & Mode Switcher */}
-      <Header
-        mode={mode}
-        onModeChange={setMode}
-        reduceMotion={reduceMotion}
-        onToggleReduceMotion={() => setReduceMotion((m) => !m)}
-        textScale={textScale}
-        onChangeTextScale={setTextScale}
-        highContrast={highContrast}
-        onToggleHighContrast={() => setHighContrast((c) => !c)}
-        onOpenProposal={() => setIsProposalOpen(true)}
-        onOpenTodoList={() => setIsTodoListOpen(true)}
-        completedCount={completedCount}
-        totalCount={tasks.length}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        currentRoom={currentRoom}
-        onOpenRoomModal={() => setIsRoomModalOpen(true)}
-      />
+      {/* ------------------------------------------------------------------- */}
+      {/* 2. SCREEN VIEW: DASHBOARD VIEW                                       */}
+      {/* ------------------------------------------------------------------- */}
+      {currentView === 'dashboard' && (
+        <DashboardView
+          currentUser={currentUser}
+          characterConfig={characterConfig}
+          tasks={tasks}
+          userHistory={userHistory}
+          onSelectRoom={(room) => {
+            setSelectedRoom(room);
+            setCurrentView('room-lobby');
+          }}
+          onEnterSimulationDirect={(room) => {
+            if (room) {
+              setSelectedRoom(room);
+              EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
+            }
+            setCurrentView('simulation');
+            EventBus.emit(GAME_EVENTS.RESUME_INPUT);
+          }}
+          onOpenCustomizer={() => setIsCustomizerOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onLogout={handleLogout}
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+      )}
 
-      {/* 3. Main Workspace Viewport (Zero Scrollbar Overflow) */}
-      <main className="flex-1 w-full min-h-0 relative overflow-hidden bg-[#0f1117]">
-        <div className={`w-full h-full relative overflow-hidden flex items-center justify-center ${mode === '2d' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            {/* Phaser Game Canvas */}
-            <PhaserGame />
+      {/* ------------------------------------------------------------------- */}
+      {/* 3. SCREEN VIEW: ROOM LOBBY VIEW                                      */}
+      {/* ------------------------------------------------------------------- */}
+      {currentView === 'room-lobby' && (
+        <RoomLobbyView
+          room={selectedRoom}
+          currentUser={currentUser}
+          characterConfig={characterConfig}
+          onEnterRoom={(room) => {
+            EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
+            setCurrentView('simulation');
+            EventBus.emit(GAME_EVENTS.RESUME_INPUT);
+          }}
+          onBackToDashboard={() => setCurrentView('dashboard')}
+        />
+      )}
 
-            {/* Webcam / Video Preview Widget */}
-            <WebcamWidget
-              isOpen={isCamOn}
-              onClose={() => setIsCamOn(false)}
-              isMicOn={isMicOn}
-              userName={getUserDisplayName(currentUser)}
-              userAvatar={currentUser?.avatar}
-            />
+      {/* ------------------------------------------------------------------- */}
+      {/* 4. SCREEN VIEW: SIMULATION / 2D OFFICE VIEW                         */}
+      {/* (Kept in DOM so Phaser does not recreate canvas on tab changes)     */}
+      {/* ------------------------------------------------------------------- */}
+      <div
+        className={`w-full h-full flex flex-col overflow-hidden ${
+          currentView === 'simulation' ? 'flex' : 'hidden'
+        }`}
+      >
+        {/* Psychological Safety Banner */}
+        <SafetyBanner onLearnMore={() => setIsProposalOpen(true)} />
 
-            {/* Screen Share Live Presentation Widget */}
-            <ScreenShareWidget
-              isOpen={isScreenSharing}
-              onClose={() => setIsScreenSharing(false)}
-              userName={getUserDisplayName(currentUser)}
-            />
+        {/* Top Header & Mode Switcher */}
+        <Header
+          mode={mode}
+          onModeChange={setMode}
+          reduceMotion={reduceMotion}
+          onToggleReduceMotion={() => setReduceMotion((m) => !m)}
+          textScale={textScale}
+          onChangeTextScale={setTextScale}
+          highContrast={highContrast}
+          onToggleHighContrast={() => setHighContrast((c) => !c)}
+          onOpenProposal={() => setIsProposalOpen(true)}
+          onOpenTodoList={() => setIsTodoListOpen(true)}
+          completedCount={completedCount}
+          totalCount={tasks.length}
+          currentUser={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          currentRoom={currentRoom}
+          onOpenRoomModal={() => setIsRoomModalOpen(true)}
+          onNavigateDashboard={() => {
+            setCurrentView('dashboard');
+            EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
+          }}
+          onOpenCustomizer={() => setIsCustomizerOpen(true)}
+        />
 
-            {/* Bottom Action Dock */}
-            <GatherDock
-              isMicOn={isMicOn}
-              onToggleMic={() => setIsMicOn((m) => !m)}
-              isCamOn={isCamOn}
-              onToggleCam={() => setIsCamOn((c) => !c)}
-              isScreenSharing={isScreenSharing}
-              onToggleScreenShare={() => setIsScreenSharing((s) => !s)}
-              onOpenParticipants={() => setIsParticipantsOpen((p) => !p)}
-              onOpenOfficeChat={() => setIsOfficeChatOpen((c) => !c)}
-              onSendReaction={handleSendReaction}
-              participantsCount={INITIAL_PARTICIPANTS.length}
-              unreadChatCount={0}
-              status={userStatus}
-              onChangeStatus={setUserStatus}
-              userName={getUserDisplayName(currentUser)}
-              userAvatar={currentUser?.avatar}
-              onOpenProfile={() => setIsAuthOpen(true)}
-              onOpenCustomizer={() => setIsCustomizerOpen(true)}
-            />
+        {/* Main Workspace Viewport */}
+        <main className="flex-1 w-full min-h-0 relative overflow-hidden bg-[#0f1117]">
+          {mode === '2d' ? (
+            <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+              {/* Phaser Game Canvas */}
+              <PhaserGame />
 
-            {/* Slide-in Drawers */}
-            <ParticipantsDrawer
-              isOpen={isParticipantsOpen}
-              onClose={() => setIsParticipantsOpen(false)}
-              participants={INITIAL_PARTICIPANTS}
-              onStartScenario={handleStartScenario}
-              currentRoom={currentRoom}
-              onOpenRoomModal={() => {
-                setIsParticipantsOpen(false);
-                setIsRoomModalOpen(true);
-              }}
-            />
+              {/* Webcam / Video Preview Widget */}
+              <WebcamWidget
+                isOpen={isCamOn}
+                onClose={() => setIsCamOn(false)}
+                isMicOn={isMicOn}
+                userName={getUserDisplayName(currentUser)}
+                userAvatar={currentUser?.avatar}
+              />
 
-            <OfficeChatDrawer
-              isOpen={isOfficeChatOpen}
-              onClose={() => setIsOfficeChatOpen(false)}
-              messages={chatMessages}
-              onSendMessage={handleSendOfficeChat}
-            />
-          </div>
+              {/* Screen Share Live Presentation Widget */}
+              <ScreenShareWidget
+                isOpen={isScreenSharing}
+                onClose={() => setIsScreenSharing(false)}
+                userName={getUserDisplayName(currentUser)}
+              />
 
-        {/* List Skenario Viewport */}
-        {mode === 'list' && (
-          <div className="absolute inset-0 z-20 overflow-y-auto py-6 bg-sand">
-            <ScenarioList
-              scenarios={SCENARIOS}
-              onStartScenario={(scId, lvl, goal) => {
-                setMode('2d');
-                handleStartScenario(scId, lvl, goal);
-              }}
-            />
-          </div>
-        )}
-      </main>
+              {/* Bottom Gather.town Action Dock */}
+              <GatherDock
+                isMicOn={isMicOn}
+                onToggleMic={() => setIsMicOn((m) => !m)}
+                isCamOn={isCamOn}
+                onToggleCam={() => setIsCamOn((c) => !c)}
+                isScreenSharing={isScreenSharing}
+                onToggleScreenShare={() => setIsScreenSharing((s) => !s)}
+                onOpenParticipants={() => setIsParticipantsOpen((p) => !p)}
+                onOpenOfficeChat={() => setIsOfficeChatOpen((c) => !c)}
+                onSendReaction={handleSendReaction}
+                participantsCount={INITIAL_PARTICIPANTS.length}
+                unreadChatCount={0}
+                status={userStatus}
+                onChangeStatus={setUserStatus}
+                userName={getUserDisplayName(currentUser)}
+                userAvatar={currentUser?.avatar}
+                onOpenProfile={() => setIsAuthOpen(true)}
+                onOpenCustomizer={() => setIsCustomizerOpen(true)}
+              />
 
-      {/* 4. Active Dialogue Modal */}
+              {/* Slide-in Drawers */}
+              <ParticipantsDrawer
+                isOpen={isParticipantsOpen}
+                onClose={() => setIsParticipantsOpen(false)}
+                participants={INITIAL_PARTICIPANTS}
+                onStartScenario={handleStartScenario}
+                currentRoom={currentRoom}
+                onOpenRoomModal={() => {
+                  setIsParticipantsOpen(false);
+                  setIsRoomModalOpen(true);
+                }}
+              />
+
+              <OfficeChatDrawer
+                isOpen={isOfficeChatOpen}
+                onClose={() => setIsOfficeChatOpen(false)}
+                messages={chatMessages}
+                onSendMessage={handleSendOfficeChat}
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full overflow-y-auto py-6 bg-sand">
+              <ScenarioList
+                scenarios={SCENARIOS}
+                onStartScenario={(scId, lvl, goal) => {
+                  setMode('2d');
+                  handleStartScenario(scId, lvl, goal);
+                }}
+              />
+            </div>
+          )}
+        </main>
+      </div>
+
+
+      {/* ------------------------------------------------------------------- */}
+      {/* 5. MODALS & OVERLAYS (Accessible from all views)                     */}
+      {/* ------------------------------------------------------------------- */}
+
+      {/* Active Dialogue Modal */}
       {activeScenario && !evaluation && (
         <DialogueModal
           isOpen={true}
@@ -642,7 +745,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* 5. Objective Evaluation Modal */}
+      {/* Objective Evaluation Modal */}
       {activeScenario && evaluation && (
         <EvaluationModal
           isOpen={true}
@@ -656,7 +759,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* 6. Central Corridor To-Do Board Modal */}
+      {/* Central Corridor To-Do Board Modal */}
       <TodoListModal
         isOpen={isTodoListOpen}
         onClose={handleCloseTodoList}
@@ -667,10 +770,10 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* 7. Proposal Dossier Modal */}
+      {/* Proposal Dossier Modal */}
       <ProposalModal isOpen={isProposalOpen} onClose={() => setIsProposalOpen(false)} />
 
-      {/* 8. Employee Auth & Profile Modal (MySQL Synced) */}
+      {/* Employee Auth & Profile Modal (MySQL Synced) */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
@@ -680,13 +783,15 @@ export const App: React.FC = () => {
         userHistory={userHistory}
       />
 
-      {/* 9. Character / Player Customizer Modal (Universal LPC Format) */}
+      {/* Character / Player Customizer Modal (Universal LPC Format) */}
       <CharacterCustomizerModal
         isOpen={isCustomizerOpen}
         onClose={() => setIsCustomizerOpen(false)}
         currentConfig={characterConfig}
         onSaveConfig={(newConfig) => {
           setCharacterConfig(newConfig);
+          localStorage.setItem('neurosim_character_config', JSON.stringify(newConfig));
+          EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, newConfig);
         }}
       />
 

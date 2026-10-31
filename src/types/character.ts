@@ -1,6 +1,13 @@
 export type Gender = 'male' | 'female';
 export type BodyType = 'standard' | 'muscular' | 'slender';
 export type CharacterDirection = 'south' | 'north' | 'west' | 'east';
+export type Archetype =
+  | 'resident'
+  | 'office-worker'
+  | 'courier'
+  | 'barista'
+  | 'cook'
+  | 'maintenance-worker';
 
 export interface ColorOption {
   id: string;
@@ -17,6 +24,7 @@ export interface SelectOption {
 
 export interface CharacterCustomization {
   name: string;
+  archetype?: Archetype;
   gender: Gender;
   bodyType: BodyType;
   skinTone: string;
@@ -44,4 +52,3 @@ export interface CharacterPreset {
   description: string;
   config: CharacterCustomization;
 }
-

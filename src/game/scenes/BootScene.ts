@@ -76,13 +76,22 @@ export class BootScene extends Phaser.Scene {
       this.load.image(`prop-${name}`, `/assets/props/${name}.png`);
     }
 
-    // 3. Character spritesheets (64×64 cell, 9 columns × 8 rows = 576×512)
+    // 3. Modular Character spritesheets (64×64 cell, 9 columns × 8 rows = 576×512)
+    // 6 Full Archetypes + Aliases for player & NPCs
     const characters = [
+      { key: 'char-resident', path: '/assets/characters/resident/aligned.png' },
+      { key: 'char-office-worker', path: '/assets/characters/office-worker/aligned.png' },
+      { key: 'char-courier', path: '/assets/characters/courier/aligned.png' },
+      { key: 'char-barista', path: '/assets/characters/barista/aligned.png' },
+      { key: 'char-cook', path: '/assets/characters/cook/aligned.png' },
+      { key: 'char-maintenance-worker', path: '/assets/characters/maintenance-worker/aligned.png' },
+      // Aliases
       { key: 'char-player', path: '/assets/characters/resident/aligned.png' },
       { key: 'char-rina', path: '/assets/characters/office-worker/aligned.png' },
       { key: 'char-dimas', path: '/assets/characters/resident/aligned.png' },
       { key: 'char-klien', path: '/assets/characters/courier/aligned.png' },
     ];
+
     for (const c of characters) {
       this.load.spritesheet(c.key, c.path, {
         frameWidth: 64,
@@ -92,7 +101,18 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    const charKeys = ['char-player', 'char-rina', 'char-dimas', 'char-klien'];
+    const charKeys = [
+      'char-resident',
+      'char-office-worker',
+      'char-courier',
+      'char-barista',
+      'char-cook',
+      'char-maintenance-worker',
+      'char-player',
+      'char-rina',
+      'char-dimas',
+      'char-klien'
+    ];
     for (const key of charKeys) {
       this.createAnimationsForCharacter(key);
     }
@@ -108,12 +128,14 @@ export class BootScene extends Phaser.Scene {
       { dir: 'west', start: 27 },  // Row 3: 27..35
     ];
     for (const { dir, start } of idleConfigs) {
-      this.anims.create({
-        key: `${key}-idle-${dir}`,
-        frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
-        frameRate: 3,
-        repeat: -1,
-      });
+      if (!this.anims.exists(`${key}-idle-${dir}`)) {
+        this.anims.create({
+          key: `${key}-idle-${dir}`,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
+          frameRate: 3,
+          repeat: -1,
+        });
+      }
     }
 
     // Walk animations: Exactly 8 active frames per row (Row 4..7)
@@ -125,17 +147,19 @@ export class BootScene extends Phaser.Scene {
     // (Bypass column 8 of each row which contains blank transparent padding)
     const walkConfigs: { dir: string; start: number }[] = [
       { dir: 'south', start: 36 }, // 36..43
-      { dir: 'east', start: 45 },  // 45..52 (FIXED: eliminates blinking!)
-      { dir: 'north', start: 54 }, // 54..61 (FIXED: eliminates blinking!)
-      { dir: 'west', start: 63 },  // 63..70 (FIXED: eliminates blinking!)
+      { dir: 'east', start: 45 },  // 45..52
+      { dir: 'north', start: 54 }, // 54..61
+      { dir: 'west', start: 63 },  // 63..70
     ];
     for (const { dir, start } of walkConfigs) {
-      this.anims.create({
-        key: `${key}-walk-${dir}`,
-        frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
-        frameRate: 10,
-        repeat: -1,
-      });
+      if (!this.anims.exists(`${key}-walk-${dir}`)) {
+        this.anims.create({
+          key: `${key}-walk-${dir}`,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
+          frameRate: 10,
+          repeat: -1,
+        });
+      }
     }
   }
 }

@@ -29,4 +29,8 @@ export const GAME_EVENTS = {
   ZONE_CHANGED: 'zone-changed',
   /** Player switched or joined an online room */
   ROOM_CHANGED: 'room-changed',
+  /** Character customization updated -> swap sprite texture/animations in real-time */
+  UPDATE_PLAYER_CHARACTER: 'update-player-character',
+  /** User selected a room from Dashboard/Lobby -> teleport player directly to room coordinates */
+  TELEPORT_TO_ROOM: 'teleport-to-room',
 } as const;

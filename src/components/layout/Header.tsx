@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, ClipboardList } from 'lucide-react';
+import { User, ClipboardList, LayoutDashboard, Shirt } from 'lucide-react';
 import { A11yControls, TextScale } from '../ui/A11yControls';
 import { UserProfile } from '../modals/AuthModal';
 import { OfficeRoom } from '../../types/room';
@@ -20,7 +20,9 @@ interface Props {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   currentRoom?: OfficeRoom;
-  onOpenRoomModal: () => void;
+  onOpenRoomModal?: () => void;
+  onNavigateDashboard?: () => void;
+  onOpenCustomizer?: () => void;
 }
 
 const getUserDisplayName = (user: UserProfile | null): string => {
@@ -49,13 +51,15 @@ export const Header: React.FC<Props> = ({
   onOpenAuth,
   currentRoom,
   onOpenRoomModal,
+  onNavigateDashboard,
+  onOpenCustomizer,
 }) => {
   const roomName = currentRoom?.name || 'Kantor Pusat NeuroSim';
   const roomCode = currentRoom?.code || 'NEURO-HQ-88';
   const displayName = getUserDisplayName(currentUser);
 
   return (
-    <header className="app-header relative flex-shrink-0 flex items-center justify-between px-3 sm:px-4 bg-cream border-b border-[#d1c7b5] text-ink z-20 select-none">
+    <header className="app-header relative flex-shrink-0 flex items-center justify-between px-3 sm:px-4 py-1.5 bg-cream border-b border-[#d1c7b5] text-ink z-20 select-none">
       {/* 1. Left Product Nameplate & Active Online Room Pill */}
       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 z-10">
         <div className="flex items-center gap-2 sm:gap-2.5">
@@ -77,25 +81,40 @@ export const Header: React.FC<Props> = ({
         </div>
 
         {/* Online Room Pill (Room indicator & invite button) */}
-        <button
-          type="button"
-          onClick={onOpenRoomModal}
-          title={`Ruangan Aktif: ${roomName} (${roomCode}). Klik untuk kelola ruang, undang rekan, atau pindah ruang.`}
-          className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 text-xs font-semibold rounded bg-sand hover:bg-[#ded5c2] border border-[#d1c7b5] text-ink transition-all shadow-2xs hover:shadow-xs cursor-pointer group"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-          <span className="hidden md:inline font-medium text-ink-muted text-[11px]">Ruang:</span>
-          <span className="truncate max-w-[85px] sm:max-w-[120px] lg:max-w-[150px] font-bold text-teal group-hover:underline">
-            {roomName}
-          </span>
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cream border border-teal/20 text-wood-dark">
-            {roomCode}
-          </span>
-        </button>
+        {onOpenRoomModal && (
+          <button
+            type="button"
+            onClick={onOpenRoomModal}
+            title={`Ruangan Aktif: ${roomName} (${roomCode}). Klik untuk kelola ruang, undang rekan, atau pindah ruang.`}
+            className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 text-xs font-semibold rounded bg-sand hover:bg-[#ded5c2] border border-[#d1c7b5] text-ink transition-all shadow-2xs hover:shadow-xs cursor-pointer group"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+            <span className="hidden md:inline font-medium text-ink-muted text-[11px]">Ruang:</span>
+            <span className="truncate max-w-[85px] sm:max-w-[120px] lg:max-w-[150px] font-bold text-teal group-hover:underline">
+              {roomName}
+            </span>
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-cream border border-teal/20 text-wood-dark">
+              {roomCode}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* 2. Center Navigation & Actions (True Horizontal Center) */}
       <div className="md:absolute md:left-1/2 md:-translate-x-1/2 flex items-center gap-1.5 sm:gap-2 z-10 pointer-events-auto">
+        {/* Return to Dashboard */}
+        {onNavigateDashboard && (
+          <button
+            type="button"
+            onClick={onNavigateDashboard}
+            title="Kembali ke Dashboard Utama"
+            className="px-2.5 py-1 text-xs font-semibold rounded border border-[#d1c7b5] bg-cream hover:bg-sand text-ink transition-colors flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-teal" />
+            <span className="hidden lg:inline">Dashboard</span>
+          </button>
+        )}
+
         {/* Dual-Mode Desk Switcher */}
         <div
           role="tablist"
@@ -128,6 +147,19 @@ export const Header: React.FC<Props> = ({
           </button>
         </div>
 
+        {/* Character Customizer Shortcut */}
+        {onOpenCustomizer && (
+          <button
+            type="button"
+            onClick={onOpenCustomizer}
+            title="Buka Generator Kustomisasi Karakter"
+            className="px-2.5 py-1 text-xs font-medium rounded border border-muted/30 bg-parchment text-ink hover:bg-sand transition-colors flex items-center gap-1.5 hidden md:inline-flex whitespace-nowrap"
+          >
+            <Shirt className="w-3.5 h-3.5 text-ochre" />
+            <span>Karakter</span>
+          </button>
+        )}
+
         {/* Agenda Button */}
         <button
           type="button"
@@ -136,7 +168,7 @@ export const Header: React.FC<Props> = ({
           className="px-2.5 py-1 text-xs font-medium rounded border border-muted/30 bg-parchment text-ink hover:bg-sand transition-colors flex items-center gap-1.5 whitespace-nowrap"
         >
           <ClipboardList className="w-3.5 h-3.5 text-wood flex-shrink-0" />
-          <span>Agenda:</span>
+          <span className="hidden sm:inline">Agenda:</span>
           <span className="font-mono font-bold text-wood-dark">{completedCount}/{totalCount}</span>
         </button>
 
@@ -145,7 +177,7 @@ export const Header: React.FC<Props> = ({
           type="button"
           onClick={onOpenProposal}
           title="Buka Ringkasan Proposal & Riset NeuroSim"
-          className="px-2 sm:px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors whitespace-nowrap"
+          className="px-2 sm:px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors whitespace-nowrap hidden sm:inline-block"
         >
           Berkas Proposal
         </button>

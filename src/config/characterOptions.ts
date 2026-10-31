@@ -1,4 +1,68 @@
-import { ColorOption, SelectOption, CharacterCustomization, CharacterPreset } from '../types/character';
+import { ColorOption, SelectOption, CharacterCustomization, CharacterPreset, Archetype } from '../types/character';
+
+// ---------------------------------------------------------------------------
+// 0. Base Archetypes (Sesuai Aset Karakter 64x64 Modern Rooms People)
+// ---------------------------------------------------------------------------
+
+export interface ArchetypeOption {
+  id: Archetype;
+  name: string;
+  category: string;
+  description: string;
+  spriteBase: string;
+  previewUrl: string;
+}
+
+export const ARCHETYPE_OPTIONS: ArchetypeOption[] = [
+  {
+    id: 'resident',
+    name: 'Karyawan Residen (Smart Casual)',
+    category: 'Umum & Kolaborasi',
+    description: 'Pakaian kasual modern kantor kontemporer yang fleksibel dan santai.',
+    spriteBase: 'resident',
+    previewUrl: '/assets/characters/resident/standing/south.png',
+  },
+  {
+    id: 'office-worker',
+    name: 'Eksekutif & Korporat (Business)',
+    category: 'Manajemen & Formal',
+    description: 'Setelan kemeja formal berdasi rapi untuk rapat penting dan pimpinan divisi.',
+    spriteBase: 'office-worker',
+    previewUrl: '/assets/characters/office-worker/standing/south.png',
+  },
+  {
+    id: 'courier',
+    name: 'Spesialis Operasional & Lapangan',
+    category: 'Logistik & Proyek',
+    description: 'Busana kerja taktis dinamis dengan jaket mobilitas tinggi untuk urusan klien luar.',
+    spriteBase: 'courier',
+    previewUrl: '/assets/characters/courier/standing/south.png',
+  },
+  {
+    id: 'barista',
+    name: 'Host Pantry & Barista Kafe',
+    category: 'Hospitality & Breakroom',
+    description: 'Seragam apron barista profesional untuk melayani minuman dan relaksasi kantor.',
+    spriteBase: 'barista',
+    previewUrl: '/assets/characters/barista/standing/south.png',
+  },
+  {
+    id: 'cook',
+    name: 'Spesialis Kuliner & Pantry Lunch',
+    category: 'Hospitality & Dapur',
+    description: 'Pakaian koki putih rapi untuk penyediaan konsumsi rapat dan area dapur.',
+    spriteBase: 'cook',
+    previewUrl: '/assets/characters/cook/standing/south.png',
+  },
+  {
+    id: 'maintenance-worker',
+    name: 'Teknisi IT Fasilitas & Hardware',
+    category: 'Teknis & Infrastruktur',
+    description: 'Wearpack teknis utilitas siap menangani perawatan perangkat komputer dan workstation.',
+    spriteBase: 'maintenance-worker',
+    previewUrl: '/assets/characters/maintenance-worker/standing/south.png',
+  },
+];
 
 // ---------------------------------------------------------------------------
 // 1. Color Palettes (Harmonized with Universal LPC + Project Palette)
@@ -115,7 +179,7 @@ export const GLASSES_OPTIONS: SelectOption[] = [
 export const SHIRT_OPTIONS: SelectOption[] = [
   { id: 'collared-formal', name: 'Kemeja Kerah Formal', description: 'Kemeja lengan panjang berkerah kaku profesional' },
   { id: 'rolled-sleeves', name: 'Kemeja Lengan Digulung', description: 'Kemeja dengan lengan digulung rapi khas pekerja aktif' },
-  { id: 'casual-polo', name: 'Polo Shirt Bordir', description: 'Polo shirt kasual rapi untuk hari Jumat' },
+  { id: 'casual-polo', name: 'Polo Shirt Bordir', description: 'Polo shirt kasual rapi untuk hari kerja' },
   { id: 'cardigan-knit', name: 'Rajut Cardigan Hangat', description: 'Cardigan rajut nyaman di ruang ber-AC' },
   { id: 'crew-tshirt', name: 'Kaos Polos Minimalis', description: 'Kaos dalaman modern gaya tech startup' },
 ];
@@ -154,6 +218,7 @@ export const ACCESSORIES_OPTIONS: SelectOption[] = [
   { id: 'id-badge', name: 'Tali Lanyard ID Card Kantor', description: 'Tanda pengenal karyawan tergantung di leher' },
   { id: 'leather-watch', name: 'Jam Tangan Kulit Mewah', description: 'Aksesoris penunjuk waktu di pergelangan tangan' },
   { id: 'briefcase', name: 'Tas Berkas / Laptop Case', description: 'Membawa map dokumen penting di tangan' },
+  { id: 'headset', name: 'Headset Peredam Bising (ANC)', description: 'Headphone over-ear untuk fokus kerja bebas distraksi' },
   { id: 'none', name: 'Tanpa Aksesoris Tambahan', description: 'Tampilan bersih tanpa hiasan ekstra' },
 ];
 
@@ -163,6 +228,7 @@ export const ACCESSORIES_OPTIONS: SelectOption[] = [
 
 export const DEFAULT_CHARACTER: CharacterCustomization = {
   name: 'Baginda Putra Krista',
+  archetype: 'resident',
   gender: 'male',
   bodyType: 'standard',
   skinTone: 'peach',
@@ -191,6 +257,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     description: 'Setelan jas navy lengkap dengan kemeja putih dan dasi merah marun berwibawa.',
     config: {
       ...DEFAULT_CHARACTER,
+      archetype: 'office-worker',
       hairStyle: 'slicked-back',
       hairColor: 'black',
       shirtType: 'collared-formal',
@@ -213,6 +280,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     description: 'Kemeja biru muda dengan lengan digulung, celana chino, dan tali lanyard ID kantor.',
     config: {
       ...DEFAULT_CHARACTER,
+      archetype: 'resident',
       hairStyle: 'short-parted',
       hairColor: 'dark-brown',
       shirtType: 'rolled-sleeves',
@@ -235,6 +303,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     description: 'Polo shirt slate teal kasual dengan celana denim gelap dan sneakers minimalis.',
     config: {
       ...DEFAULT_CHARACTER,
+      archetype: 'resident',
       hairStyle: 'messy-crop',
       hairColor: 'caramel',
       shirtType: 'casual-polo',
@@ -248,7 +317,76 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
       shoesType: 'clean-sneakers',
       shoesColor: 'white-sneaker',
       glasses: 'reading-oval',
+      accessory: 'headset',
+    },
+  },
+  {
+    id: 'barista-host',
+    name: 'Host Pantry & Coffee Barista',
+    description: 'Seragam apron barista ramah yang menyajikan kopi hangat dan suasana santai.',
+    config: {
+      ...DEFAULT_CHARACTER,
+      archetype: 'barista',
+      hairStyle: 'short-parted',
+      hairColor: 'dark-brown',
+      shirtType: 'rolled-sleeves',
+      shirtColor: 'cream',
+      suitType: 'none',
+      suitColor: 'charcoal-suit',
+      tieType: 'none',
+      tieColor: 'crimson',
+      pantsType: 'chinos-neat',
+      pantsColor: 'dark-brown',
+      shoesType: 'work-boots',
+      shoesColor: 'dark-brown',
+      glasses: 'none',
       accessory: 'id-badge',
+    },
+  },
+  {
+    id: 'field-ops',
+    name: 'Spesialis Operasional & Logistik',
+    description: 'Pakaian taktis lincah untuk pengiriman berkas dan koordinasi cepat antar lantai.',
+    config: {
+      ...DEFAULT_CHARACTER,
+      archetype: 'courier',
+      hairStyle: 'buzz-cut',
+      hairColor: 'black',
+      shirtType: 'crew-tshirt',
+      shirtColor: 'charcoal',
+      suitType: 'none',
+      suitColor: 'charcoal-suit',
+      tieType: 'none',
+      tieColor: 'black',
+      pantsType: 'dark-jeans',
+      pantsColor: 'dark-denim',
+      shoesType: 'clean-sneakers',
+      shoesColor: 'black-leather',
+      glasses: 'sunglasses',
+      accessory: 'briefcase',
+    },
+  },
+  {
+    id: 'tech-facility',
+    name: 'Teknisi Utilitas & Jaringan',
+    description: 'Wearpack teknis dilengkapi sarana perawatan server, kabel jaringan, dan perangkat kantor.',
+    config: {
+      ...DEFAULT_CHARACTER,
+      archetype: 'maintenance-worker',
+      hairStyle: 'buzz-cut',
+      hairColor: 'dark-brown',
+      shirtType: 'rolled-sleeves',
+      shirtColor: 'slate-teal',
+      suitType: 'none',
+      suitColor: 'charcoal-suit',
+      tieType: 'none',
+      tieColor: 'black',
+      pantsType: 'slacks-formal',
+      pantsColor: 'charcoal',
+      shoesType: 'work-boots',
+      shoesColor: 'dark-brown',
+      glasses: 'wire-frame',
+      accessory: 'headset',
     },
   },
   {
@@ -257,6 +395,7 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     description: 'Kemeja rapi dengan blazer santai, rok pensil kerja, dan sanggul rambut elegan.',
     config: {
       ...DEFAULT_CHARACTER,
+      archetype: 'resident',
       gender: 'female',
       skinTone: 'peach',
       hairStyle: 'office-bun',
@@ -276,4 +415,3 @@ export const CHARACTER_PRESETS: CharacterPreset[] = [
     },
   },
 ];
-
