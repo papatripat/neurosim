@@ -8,7 +8,12 @@ interface Props {
   onSelectTask: (scenarioId: string) => void;
 }
 
-export const TodoListModal: React.FC<Props> = ({ isOpen, onClose, tasks, onSelectTask }) => {
+export const TodoListModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  tasks = [],
+  onSelectTask,
+}) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,23 +28,26 @@ export const TodoListModal: React.FC<Props> = ({ isOpen, onClose, tasks, onSelec
 
   if (!isOpen) return null;
 
-  const done = tasks.filter((t) => t.completed).length;
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const done = safeTasks.filter((t) => t.completed).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 sm:p-4 animate-in fade-in duration-150">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Papan tugas kantor"
         tabIndex={-1}
-        className="w-full max-w-lg bg-cream border-2 border-wood rounded-lg shadow-xl flex flex-col max-h-[85vh] overflow-hidden"
+        className="w-full max-w-lg bg-cream border-2 border-wood rounded-lg shadow-xl flex flex-col max-h-[85vh] overflow-hidden select-none"
       >
         {/* Board Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-wood text-soft border-b border-wood-dark">
+        <div className="flex items-center justify-between px-4 py-3 bg-wood text-soft border-b border-wood-dark flex-shrink-0">
           <div>
             <h2 className="text-sm font-bold tracking-tight">Papan Agenda Kerja Kantor</h2>
-            <p className="text-[11px] text-soft/80">Lokasi: Dinding Koridor Tengah · Status: {done} dari {tasks.length} selesai</p>
+            <p className="text-[11px] text-soft/80">
+              Lokasi: Dinding Koridor Tengah · Status: {done} dari {safeTasks.length} selesai
+            </p>
           </div>
           <button
             type="button"
@@ -57,7 +65,7 @@ export const TodoListModal: React.FC<Props> = ({ isOpen, onClose, tasks, onSelec
             Pilih tugas untuk langsung berlatih, atau hampiri karakter yang bersangkutan di denah kantor:
           </p>
 
-          {tasks.map((task) => (
+          {safeTasks.map((task) => (
             <div
               key={task.id}
               className={`p-3.5 rounded border transition-colors flex items-start justify-between gap-3 ${
@@ -100,7 +108,7 @@ export const TodoListModal: React.FC<Props> = ({ isOpen, onClose, tasks, onSelec
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2.5 bg-cream border-t border-sand text-xs text-ink-muted flex justify-between items-center">
+        <div className="px-4 py-2.5 bg-cream border-t border-sand text-xs text-ink-muted flex justify-between items-center flex-shrink-0">
           <span>Di mode 2D, hampiri karakter dan tekan [E].</span>
           <button
             type="button"

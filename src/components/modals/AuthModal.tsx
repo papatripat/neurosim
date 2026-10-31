@@ -161,8 +161,8 @@ export const AuthModal: React.FC<Props> = ({
             <div className="p-4 bg-parchment border-2 border-teal/40 rounded-lg shadow-sm flex items-center gap-4">
               <div className="w-16 h-16 rounded border-2 border-teal overflow-hidden bg-sand flex-shrink-0">
                 <img
-                  src={currentUser.avatar}
-                  alt={currentUser.fullName}
+                  src={currentUser?.avatar || '/assets/characters/resident/standing/south.png'}
+                  alt={currentUser?.fullName || currentUser?.username || 'Pegawai'}
                   className="w-full h-full object-contain scale-[1.9] pixelated"
                 />
               </div>
@@ -174,7 +174,7 @@ export const AuthModal: React.FC<Props> = ({
                   <span className="text-xs text-ink-muted">@{currentUser.username}</span>
                 </div>
                 <h3 className="font-bold text-base text-ink truncate mt-0.5">
-                  {currentUser.fullName}
+                  {currentUser?.fullName || currentUser?.username || 'Pegawai'}
                 </h3>
                 <p className="text-xs text-teal font-medium truncate">{currentUser.role}</p>
                 <p className="text-[11px] text-ink-muted truncate">{currentUser.department}</p>
@@ -206,10 +206,10 @@ export const AuthModal: React.FC<Props> = ({
                     >
                       <div>
                         <span className="font-semibold text-ink block capitalize">
-                          {h.scenario_id.replace('-', ' ')}
+                          {h.scenario_id ? String(h.scenario_id).replace('-', ' ') : 'Skenario'}
                         </span>
                         <span className="text-[10px] text-ink-muted block">
-                          Level {h.level} · {new Date(h.created_at).toLocaleDateString('id-ID')}
+                          Level {h.level ?? 2} · {h.created_at ? new Date(h.created_at).toLocaleDateString('id-ID') : '-'}
                         </span>
                       </div>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-teal text-soft">

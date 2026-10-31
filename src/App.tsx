@@ -9,6 +9,7 @@ import { TodoListModal } from './components/modals/TodoListModal';
 import { DialogueModal } from './components/modals/DialogueModal';
 import { EvaluationModal } from './components/modals/EvaluationModal';
 import { AuthModal, UserProfile } from './components/modals/AuthModal';
+import { OnlineRoomModal } from './components/modals/OnlineRoomModal';
 import { ScenarioList } from './components/scenarios/ScenarioList';
 import { PhaserGame } from './game/PhaserGame';
 import { EventBus, GAME_EVENTS } from './game/EventBus';
@@ -16,17 +17,20 @@ import { useConversation } from './hooks/useConversation';
 import { SCENARIOS, INITIAL_TASKS } from './config/scenarios';
 import { TextScale } from './components/ui/A11yControls';
 import { OfficeTask } from './types/conversation';
+import { OfficeRoom, CreateRoomInput } from './types/room';
+import { DEFAULT_ROOMS, DEFAULT_CURRENT_ROOM } from './config/defaultRooms';
 
 // View Screens for Complete User Flow
 import { LandingView } from './components/views/LandingView';
-import { DashboardView, OfficeRoom, OFFICE_ROOMS } from './components/views/DashboardView';
+import { DashboardView, OfficeRoom as DashboardRoom, OFFICE_ROOMS } from './components/views/DashboardView';
 import { RoomLobbyView } from './components/views/RoomLobbyView';
 
-// Gather.town virtual office components
+// Virtual office workspace components
 import { GatherDock, UserStatus } from './components/gather/GatherDock';
 import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
+import { ScreenShareWidget } from './components/gather/ScreenShareWidget';
 
 export type AppView = 'landing' | 'dashboard' | 'room-lobby' | 'simulation';
 
@@ -111,6 +115,15 @@ const INITIAL_CHAT_MESSAGES: OfficeChatMessage[] = [
   },
 ];
 
+const getUserDisplayName = (user: UserProfile | null, fallback = 'Baginda'): string => {
+  if (!user) return fallback;
+  if (user.fullName && typeof user.fullName === 'string' && user.fullName.trim().length > 0) {
+    const first = user.fullName.trim().split(' ')[0];
+    if (first) return first;
+  }
+  return user.username || fallback;
+};
+
 export const App: React.FC = () => {
   // Top-Level User Flow Navigation: landing -> dashboard -> room-lobby -> simulation
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -118,25 +131,71 @@ export const App: React.FC = () => {
     return savedUser ? 'dashboard' : 'landing';
   });
 
-  const [selectedRoom, setSelectedRoom] = useState<OfficeRoom>(OFFICE_ROOMS[0]);
+  const [selectedRoom, setSelectedRoom] = useState<DashboardRoom>(OFFICE_ROOMS[0]);
   const [mode, setMode] = useState<'2d' | 'list'>('2d');
   const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [isTodoListOpen, setIsTodoListOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
+
+  // Online Multiplayer Room State
+  const [availableRooms, setAvailableRooms] = useState<OfficeRoom[]>(() => {
+    try {
+      const saved = localStorage.getItem('neurosim_available_rooms');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse neurosim_available_rooms:', e);
+    }
+    return DEFAULT_ROOMS;
+  });
+
+  const [currentRoom, setCurrentRoom] = useState<OfficeRoom>(() => {
+    try {
+      const savedCode = localStorage.getItem('neurosim_current_room_code');
+      const savedRooms = localStorage.getItem('neurosim_available_rooms');
+      const pool: OfficeRoom[] = savedRooms ? JSON.parse(savedRooms) : DEFAULT_ROOMS;
+      if (savedCode && Array.isArray(pool)) {
+        const found = pool.find((r) => r.code === savedCode);
+        if (found) return found;
+      }
+    } catch (e) {
+      console.warn('Failed to parse current room:', e);
+    }
+    return DEFAULT_CURRENT_ROOM;
+  });
 
   // User Account & Session (MySQL Synced)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('neurosim_current_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('neurosim_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [userHistory, setUserHistory] = useState<any[]>(() => {
-    const saved = localStorage.getItem('neurosim_user_history');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('neurosim_user_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [tasks, setTasks] = useState<OfficeTask[]>(() => {
-    const saved = localStorage.getItem('neurosim_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    try {
+      const saved = localStorage.getItem('neurosim_tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse neurosim_tasks:', e);
+    }
+    return INITIAL_TASKS;
   });
 
   // A11y States
@@ -174,23 +233,58 @@ export const App: React.FC = () => {
     }
   }, [highContrast]);
 
-  // Gather.town Online Office States
+  // Virtual office workspace states
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
-  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
-
-  // Character Customizer Configuration (LPC Style)
-  const [characterConfig, setCharacterConfig] = useState<CharacterCustomization>(() => {
-    const saved = localStorage.getItem('neurosim_character_config');
-    return saved ? JSON.parse(saved) : DEFAULT_CHARACTER;
-  });
 
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
+  // Character Customizer State (Universal LPC Format)
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [characterConfig, setCharacterConfig] = useState<CharacterCustomization>(() => {
+    try {
+      const saved = localStorage.getItem('neurosim_character_config');
+      return saved ? JSON.parse(saved) : DEFAULT_CHARACTER;
+    } catch {
+      return DEFAULT_CHARACTER;
+    }
+  });
+
+  // Simpan preferensi kustomisasi karakter ke localStorage
+  useEffect(() => {
+    localStorage.setItem('neurosim_character_config', JSON.stringify(characterConfig));
+  }, [characterConfig]);
+
+  // Check URL query param e.g. ?room=DEV-UIUX-26 on initial mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get('room');
+      if (roomParam) {
+        const upperCode = roomParam.trim().toUpperCase();
+        const found = availableRooms.find((r) => r.code.toUpperCase() === upperCode);
+        if (found) {
+          setCurrentRoom(found);
+          localStorage.setItem('neurosim_current_room_code', found.code);
+        }
+      }
+    }
+  }, [availableRooms]);
+
+  // Persistence for Rooms
+  useEffect(() => {
+    localStorage.setItem('neurosim_available_rooms', JSON.stringify(availableRooms));
+  }, [availableRooms]);
+
+  useEffect(() => {
+    localStorage.setItem('neurosim_current_room_code', currentRoom.code);
+  }, [currentRoom]);
+
+  // Conversation hook
   const {
     activeScenarioId,
     level,
@@ -207,6 +301,17 @@ export const App: React.FC = () => {
     retrySession,
     resetSession,
   } = useConversation();
+
+  useEffect(() => {
+    if (mode === '2d') {
+      const timer = setTimeout(() => {
+        const game = (window as any).__PHASER_GAME__;
+        if (game?.scale) { game.scale.refresh(); }
+        window.dispatchEvent(new Event('resize'));
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
 
   useEffect(() => {
     localStorage.setItem('neurosim_tasks', JSON.stringify(tasks));
@@ -273,8 +378,8 @@ export const App: React.FC = () => {
       isOfficeChatOpen ||
       isParticipantsOpen ||
       isCustomizerOpen ||
+      isRoomModalOpen ||
       currentView !== 'simulation';
-
     if (isAnyModalOpen) {
       EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
     } else if (!activeScenarioId) {
@@ -287,6 +392,7 @@ export const App: React.FC = () => {
     isOfficeChatOpen,
     isParticipantsOpen,
     isCustomizerOpen,
+    isRoomModalOpen,
     currentView,
     activeScenarioId,
   ]);
@@ -314,13 +420,15 @@ export const App: React.FC = () => {
       now.getMinutes()
     ).padStart(2, '0')}`;
     const newMsg: OfficeChatMessage = {
-      id: `user-${Date.now()}`,
-      sender: currentUser ? `${currentUser.fullName.split(' ')[0]} (Kamu)` : 'Baginda (Kamu)',
+      id: `chat-${Date.now()}`,
+      sender: getUserDisplayName(currentUser),
       time: timeStr,
       text,
       isSelf: true,
     };
     setChatMessages((prev) => [...prev, newMsg]);
+
+    // Munculkan gelembung obrolan 2D di atas avatar Phaser
     EventBus.emit(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, { text });
   };
 
@@ -328,13 +436,89 @@ export const App: React.FC = () => {
     EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
   };
 
+  // Online Multiplayer Room Management Handlers
+  const handleJoinRoom = useCallback(
+    (roomCode: string, passcode?: string) => {
+      const targetRoom = availableRooms.find(
+        (r) => r.code.toUpperCase() === roomCode.trim().toUpperCase()
+      );
+
+      if (!targetRoom) {
+        return {
+          success: false,
+          message: `Ruangan dengan kode "${roomCode}" tidak ditemukan.`,
+        };
+      }
+
+      if (targetRoom.isPrivate && targetRoom.passcode) {
+        if (!passcode || passcode.trim() !== targetRoom.passcode) {
+          return {
+            success: false,
+            message: 'Kode sandi (passcode) ruangan salah. Periksa kembali sandi Anda.',
+          };
+        }
+      }
+
+      if (targetRoom.activeCount >= targetRoom.capacity) {
+        return {
+          success: false,
+          message: `Ruangan "${targetRoom.name}" telah penuh (${targetRoom.capacity}/${targetRoom.capacity}).`,
+        };
+      }
+
+      // Berhasil bergabung: perbarui ruangan aktif dan broadcast ke EventBus
+      setCurrentRoom(targetRoom);
+      EventBus.emit(GAME_EVENTS.ROOM_CHANGED, { room: targetRoom });
+
+      // Tambahkan count peserta aktif untuk simulasi
+      setAvailableRooms((prev) =>
+        prev.map((r) =>
+          r.id === targetRoom.id
+            ? { ...r, activeCount: Math.min(r.capacity, r.activeCount + 1) }
+            : r
+        )
+      );
+
+      return { success: true };
+    },
+    [availableRooms]
+  );
+
+  const handleCreateRoom = useCallback(
+    (input: CreateRoomInput) => {
+      const newRoomCode =
+        input.code?.trim().toUpperCase() ||
+        `ROOM-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newRoom: OfficeRoom = {
+        id: `room-${Date.now()}`,
+        code: newRoomCode,
+        name: input.name.trim(),
+        description: input.description?.trim() || 'Ruangan kantor virtual NeuroSim',
+        hostName: getUserDisplayName(currentUser),
+        isPrivate: input.isPrivate,
+        passcode: input.isPrivate ? input.passcode : undefined,
+        capacity: input.capacity || 25,
+        activeCount: 1,
+        proximityAudio: input.proximityAudio,
+        audioRadius: input.audioRadius,
+        tags: ['Kustom', 'Online'],
+        createdAt: 'Hari ini, baru saja',
+      };
+
+      setAvailableRooms((prev) => [newRoom, ...prev]);
+      setCurrentRoom(newRoom);
+      EventBus.emit(GAME_EVENTS.ROOM_CHANGED, { room: newRoom });
+    },
+    [currentUser]
+  );
+
   const handleLoginSuccess = (user: UserProfile, history?: any[]) => {
     setCurrentUser(user);
+    const hist = history || [];
+    setUserHistory(hist);
     localStorage.setItem('neurosim_current_user', JSON.stringify(user));
-    if (history) {
-      setUserHistory(history);
-      localStorage.setItem('neurosim_user_history', JSON.stringify(history));
-    }
+    localStorage.setItem('neurosim_user_history', JSON.stringify(hist));
     if (currentView === 'landing') {
       setCurrentView('dashboard');
     }
@@ -349,12 +533,6 @@ export const App: React.FC = () => {
     setCurrentView('landing');
   };
 
-  const scaleClass = () => {
-    if (textScale === 'medium') return 'text-[110%]';
-    if (textScale === 'large') return 'text-[125%]';
-    return 'text-base';
-  };
-
   const completedCount = tasks.filter((t) => t.completed).length;
   const activeScenario = SCENARIOS.find((s) => s.id === activeScenarioId);
 
@@ -362,7 +540,7 @@ export const App: React.FC = () => {
     <div
       className={`h-screen w-screen overflow-hidden flex flex-col bg-sand text-ink select-none ${
         reduceMotion ? 'motion-reduce' : ''
-      } ${highContrast ? 'contrast-125' : ''} ${scaleClass()}`}
+      } ${highContrast ? 'contrast-125' : ''}`}
     >
       {/* ------------------------------------------------------------------- */}
       {/* 1. SCREEN VIEW: LANDING PAGE                                         */}
@@ -455,6 +633,8 @@ export const App: React.FC = () => {
           totalCount={tasks.length}
           currentUser={currentUser}
           onOpenAuth={() => setIsAuthOpen(true)}
+          currentRoom={currentRoom}
+          onOpenRoomModal={() => setIsRoomModalOpen(true)}
           onNavigateDashboard={() => {
             setCurrentView('dashboard');
             EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
@@ -474,6 +654,15 @@ export const App: React.FC = () => {
                 isOpen={isCamOn}
                 onClose={() => setIsCamOn(false)}
                 isMicOn={isMicOn}
+                userName={getUserDisplayName(currentUser)}
+                userAvatar={currentUser?.avatar}
+              />
+
+              {/* Screen Share Live Presentation Widget */}
+              <ScreenShareWidget
+                isOpen={isScreenSharing}
+                onClose={() => setIsScreenSharing(false)}
+                userName={getUserDisplayName(currentUser)}
               />
 
               {/* Bottom Gather.town Action Dock */}
@@ -491,7 +680,7 @@ export const App: React.FC = () => {
                 unreadChatCount={0}
                 status={userStatus}
                 onChangeStatus={setUserStatus}
-                userName={currentUser ? currentUser.fullName.split(' ')[0] : 'Baginda'}
+                userName={getUserDisplayName(currentUser)}
                 userAvatar={currentUser?.avatar}
                 onOpenProfile={() => setIsAuthOpen(true)}
                 onOpenCustomizer={() => setIsCustomizerOpen(true)}
@@ -503,6 +692,11 @@ export const App: React.FC = () => {
                 onClose={() => setIsParticipantsOpen(false)}
                 participants={INITIAL_PARTICIPANTS}
                 onStartScenario={handleStartScenario}
+                currentRoom={currentRoom}
+                onOpenRoomModal={() => {
+                  setIsParticipantsOpen(false);
+                  setIsRoomModalOpen(true);
+                }}
               />
 
               <OfficeChatDrawer
@@ -514,11 +708,18 @@ export const App: React.FC = () => {
             </div>
           ) : (
             <div className="w-full h-full overflow-y-auto py-6 bg-sand">
-              <ScenarioList scenarios={SCENARIOS} onStartScenario={handleStartScenario} />
+              <ScenarioList
+                scenarios={SCENARIOS}
+                onStartScenario={(scId, lvl, goal) => {
+                  setMode('2d');
+                  handleStartScenario(scId, lvl, goal);
+                }}
+              />
             </div>
           )}
         </main>
       </div>
+
 
       {/* ------------------------------------------------------------------- */}
       {/* 5. MODALS & OVERLAYS (Accessible from all views)                     */}
@@ -563,7 +764,10 @@ export const App: React.FC = () => {
         isOpen={isTodoListOpen}
         onClose={handleCloseTodoList}
         tasks={tasks}
-        onSelectTask={(scId) => handleStartScenario(scId)}
+        onSelectTask={(scId) => {
+          setMode('2d');
+          handleStartScenario(scId);
+        }}
       />
 
       {/* Proposal Dossier Modal */}
@@ -589,6 +793,17 @@ export const App: React.FC = () => {
           localStorage.setItem('neurosim_character_config', JSON.stringify(newConfig));
           EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, newConfig);
         }}
+      />
+
+      {/* 10. Online Room Management Modal */}
+      <OnlineRoomModal
+        isOpen={isRoomModalOpen}
+        onClose={() => setIsRoomModalOpen(false)}
+        currentRoom={currentRoom}
+        availableRooms={availableRooms}
+        onJoinRoom={handleJoinRoom}
+        onCreateRoom={handleCreateRoom}
+        userName={getUserDisplayName(currentUser)}
       />
     </div>
   );

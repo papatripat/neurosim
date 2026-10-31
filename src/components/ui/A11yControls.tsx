@@ -13,9 +13,9 @@ interface Props {
 
 const SCALE_CYCLE: TextScale[] = ['normal', 'medium', 'large'];
 const SCALE_LABEL: Record<TextScale, string> = {
-  normal: 'Teks: 100%',
-  medium: 'Teks: 115%',
-  large: 'Teks: 130%',
+  normal: 'Scale: 100%',
+  medium: 'Scale: 115%',
+  large: 'Scale: 130%',
 };
 
 export const A11yControls: React.FC<Props> = ({
@@ -32,16 +32,16 @@ export const A11yControls: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
       <button
         type="button"
         onClick={onToggleReduceMotion}
         aria-pressed={reduceMotion}
         aria-label="Kurangi animasi layar"
         title="Kurangi Animasi (Reduce Motion)"
-        className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
           reduceMotion
-            ? 'bg-teal text-soft border-teal'
+            ? 'bg-teal text-soft border-teal font-semibold'
             : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
         }`}
       >
@@ -51,9 +51,13 @@ export const A11yControls: React.FC<Props> = ({
       <button
         type="button"
         onClick={nextScale}
-        aria-label="Ubah ukuran teks"
-        title="Ubah Ukuran Teks"
-        className="px-2.5 py-1 text-xs font-medium rounded border bg-parchment border-muted/30 text-ink hover:bg-sand transition-colors font-mono"
+        aria-label="Ubah skala tampilan"
+        title="Skala Tampilan (Display Scale)"
+        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors font-mono whitespace-nowrap ${
+          textScale !== 'normal'
+            ? 'bg-teal text-soft border-teal font-semibold shadow-xs'
+            : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
+        }`}
       >
         {SCALE_LABEL[textScale]}
       </button>
@@ -64,9 +68,9 @@ export const A11yControls: React.FC<Props> = ({
         aria-pressed={highContrast}
         aria-label="Mode kontras tinggi"
         title="Mode Kontras Tinggi"
-        className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+        className={`px-2 sm:px-2.5 py-1 text-xs font-medium rounded border transition-colors whitespace-nowrap ${
           highContrast
-            ? 'bg-black text-yellow-300 border-black ring-2 ring-yellow-400'
+            ? 'bg-black text-yellow-300 border-black ring-2 ring-yellow-400 font-semibold'
             : 'bg-parchment border-muted/30 text-ink hover:bg-sand'
         }`}
       >

@@ -27,6 +27,8 @@ export const GAME_EVENTS = {
   TRIGGER_CHAT_BUBBLE: 'trigger-chat-bubble',
   /** Player entered a new office room/zone */
   ZONE_CHANGED: 'zone-changed',
+  /** Player switched or joined an online room */
+  ROOM_CHANGED: 'room-changed',
   /** Character customization updated -> swap sprite texture/animations in real-time */
   UPDATE_PLAYER_CHARACTER: 'update-player-character',
   /** User selected a room from Dashboard/Lobby -> teleport player directly to room coordinates */

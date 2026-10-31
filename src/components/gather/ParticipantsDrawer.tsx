@@ -1,5 +1,6 @@
-import React from 'react';
-import { X, MessageSquare, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, MessageSquare, MapPin, Building2, Copy, Check, Radio } from 'lucide-react';
+import { OfficeRoom } from '../../types/room';
 
 export interface Participant {
   id: string;
@@ -17,6 +18,8 @@ interface Props {
   onClose: () => void;
   participants: Participant[];
   onStartScenario: (scenarioId: string) => void;
+  currentRoom?: OfficeRoom;
+  onOpenRoomModal: () => void;
 }
 
 export const ParticipantsDrawer: React.FC<Props> = ({
@@ -24,8 +27,27 @@ export const ParticipantsDrawer: React.FC<Props> = ({
   onClose,
   participants,
   onStartScenario,
+  currentRoom,
+  onOpenRoomModal,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   if (!isOpen) return null;
+
+  const roomName = currentRoom?.name || 'Kantor Pusat NeuroSim';
+  const roomCode = currentRoom?.code || 'NEURO-HQ-88';
+  const activeCount = currentRoom?.activeCount ?? 6;
+  const capacity = currentRoom?.capacity ?? 30;
+
+  const roomShareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/?room=${roomCode}`
+    : `https://neurosim.app/?room=${roomCode}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(roomShareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <aside
@@ -36,16 +58,73 @@ export const ParticipantsDrawer: React.FC<Props> = ({
       <div className="flex items-center justify-between px-4 py-3 bg-teal text-soft border-b border-teal-dark">
         <div>
           <h2 className="font-bold text-sm">Rekan di Kantor</h2>
-          <p className="text-[11px] text-soft/80">{participants.length} orang aktif saat ini</p>
+          <p className="text-[11px] text-soft/80">{participants.length} orang aktif di sekitar</p>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Tutup Panel"
-          className="p-1 hover:bg-teal-dark rounded text-soft text-lg leading-none"
+          className="p-1 hover:bg-teal-dark rounded text-soft text-lg leading-none cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Online Room Info Banner */}
+      <div className="p-3 bg-sand border-b border-[#d1c7b5] flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[10.5px] font-bold text-teal uppercase tracking-wider">
+              <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Ruang Kantor Aktif</span>
+            </div>
+            <h3 className="text-xs font-bold text-ink truncate mt-0.5" title={roomName}>
+              {roomName}
+            </h3>
+            <div className="text-[10px] text-ink-muted flex items-center gap-1.5 mt-0.5 flex-wrap">
+              <span>Kode:</span>
+              <span className="font-mono font-bold text-wood-dark bg-cream px-1.5 py-0.2 rounded border border-muted/30">
+                {roomCode}
+              </span>
+              <span>•</span>
+              <span className="text-emerald-700 font-semibold">
+                {activeCount}/{capacity} Anggota
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="flex items-center gap-1.5 pt-1">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            title="Salin tautan undangan ruang ini"
+            className="flex-1 py-1 px-2 text-[11px] font-medium rounded bg-cream hover:bg-parchment border border-muted/30 text-ink transition-colors flex items-center justify-center gap-1 cursor-pointer"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span className="text-emerald-700 font-semibold">Tersalin!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3 text-ink-muted" />
+                <span>Salin Link</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenRoomModal}
+            title="Buka panel kelola ruang & daftar ruang publik"
+            className="py-1 px-2.5 text-[11px] font-semibold rounded bg-teal text-soft hover:bg-teal-dark transition-colors flex items-center gap-1 flex-shrink-0 cursor-pointer"
+          >
+            <Radio className="w-3 h-3" />
+            <span>Kelola Ruang</span>
+          </button>
+        </div>
       </div>
 
       {/* Participants List */}
@@ -95,7 +174,7 @@ export const ParticipantsDrawer: React.FC<Props> = ({
                   onClose();
                 }}
                 title={`Bicara dengan ${person.name}`}
-                className="px-2 py-1 text-[11px] font-semibold bg-teal text-soft rounded hover:bg-teal-dark transition-colors flex items-center gap-1 flex-shrink-0"
+                className="px-2 py-1 text-[11px] font-semibold bg-teal text-soft rounded hover:bg-teal-dark transition-colors flex items-center gap-1 flex-shrink-0 cursor-pointer"
               >
                 <MessageSquare className="w-3 h-3" />
                 <span>Simulasi</span>
@@ -112,4 +191,3 @@ export const ParticipantsDrawer: React.FC<Props> = ({
     </aside>
   );
 };
-
