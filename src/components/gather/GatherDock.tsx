@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Video, VideoOff, ScreenShare, Users, MessageSquare, Smile, ChevronUp } from 'lucide-react';
 
 export type UserStatus = 'available' | 'busy' | 'pantry';
@@ -19,7 +19,7 @@ interface Props {
   onChangeStatus: (s: UserStatus) => void;
 }
 
-const REACTIONS = ['✋', '👍', '👏', '❤️', '💡', '☕'];
+const REACTIONS = ['✋', '👍', '👏', '❤️', '💡', '☕', '🔥'];
 
 export const GatherDock: React.FC<Props> = ({
   isMicOn,
@@ -38,6 +38,18 @@ export const GatherDock: React.FC<Props> = ({
 }) => {
   const [showReactions, setShowReactions] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const dockRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dockRef.current && !dockRef.current.contains(e.target as Node)) {
+        setShowReactions(false);
+        setShowStatusMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getStatusColor = () => {
     switch (status) {
@@ -62,7 +74,7 @@ export const GatherDock: React.FC<Props> = ({
   };
 
   return (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-[95vw]">
+    <div ref={dockRef} className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-[95vw]">
       {/* Reactions Popup */}
       {showReactions && (
         <div className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-cream border-2 border-teal rounded-lg shadow-lg p-1.5 flex items-center gap-1.5 animate-in fade-in zoom-in-95">
@@ -70,10 +82,7 @@ export const GatherDock: React.FC<Props> = ({
             <button
               key={emoji}
               type="button"
-              onClick={() => {
-                onSendReaction(emoji);
-                setShowReactions(false);
-              }}
+              onClick={() => onSendReaction(emoji)}
               className="w-8 h-8 rounded hover:bg-sand flex items-center justify-center text-base transition-transform hover:scale-110"
             >
               {emoji}

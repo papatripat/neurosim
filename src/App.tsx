@@ -18,7 +18,6 @@ import { GatherDock, UserStatus } from './components/gather/GatherDock';
 import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
-import { FloatingReactions } from './components/gather/FloatingReactions';
 
 const INITIAL_PARTICIPANTS: Participant[] = [
   {
@@ -122,7 +121,6 @@ export const App: React.FC = () => {
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
-  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
   const {
@@ -214,8 +212,7 @@ export const App: React.FC = () => {
   };
 
   const handleSendReaction = (emoji: string) => {
-    setCurrentReaction(emoji);
-    setTimeout(() => setCurrentReaction(null), 2500);
+    EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
   };
 
   const scaleClass = () => {
@@ -257,9 +254,6 @@ export const App: React.FC = () => {
           <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
             {/* Phaser Game Canvas */}
             <PhaserGame />
-
-            {/* Floating Live Reactions (Gather.town style) */}
-            <FloatingReactions reaction={currentReaction} />
 
             {/* Webcam / Video Preview Widget */}
             <WebcamWidget

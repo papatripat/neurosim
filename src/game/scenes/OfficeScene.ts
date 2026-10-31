@@ -68,6 +68,13 @@ export class OfficeScene extends Phaser.Scene {
   private activeNpcNear: NPCData | null = null;
   private isNearTodoList = false;
 
+  // Active Floating Emotes
+  private activeEmotes: {
+    container: Phaser.GameObjects.Container;
+    offsetX: number;
+    offsetY: number;
+  }[] = [];
+
   constructor() {
     super('OfficeScene');
   }
@@ -122,6 +129,7 @@ export class OfficeScene extends Phaser.Scene {
 
     // 12. Listeners
     EventBus.on(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
+    EventBus.on(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
 
     // 13. Notify React
     EventBus.emit(GAME_EVENTS.SCENE_READY);
@@ -134,6 +142,20 @@ export class OfficeScene extends Phaser.Scene {
   update(): void {
     // Dynamic Y-depth sorting for realistic 2.5D perspective
     this.player.setDepth(this.player.y);
+
+    // Update active reaction emote positions so they strictly track the player sprite
+    for (let i = this.activeEmotes.length - 1; i >= 0; i--) {
+      const item = this.activeEmotes[i];
+      if (!item.container.active) {
+        this.activeEmotes.splice(i, 1);
+        continue;
+      }
+      item.container.setPosition(
+        this.player.x + item.offsetX,
+        this.player.y - item.offsetY
+      );
+      item.container.setDepth(this.player.y + 1000);
+    }
 
     if (this.isPlayerLocked) {
       this.player.setVelocity(0, 0);
@@ -775,12 +797,102 @@ export class OfficeScene extends Phaser.Scene {
     this.input.keyboard?.enableGlobalCapture();
   };
 
+    // =========================================================================
+  // GATHER.TOWN FLOATING REACTION EMOTES
+  // =========================================================================
+
+  private handleTriggerReaction = ({ emoji }: { emoji: string }): void => {
+    if (!this.player || !this.player.active) return;
+
+    // 1. Spam control: keep at most 3 simultaneous emotes to prevent clutter
+    if (this.activeEmotes.length >= 3) {
+      const oldest = this.activeEmotes.shift();
+      if (oldest && oldest.container.active) {
+        oldest.container.destroy();
+      }
+    }
+
+    // 2. Spawn offset directly above player head with slight horizontal jitter
+    const offsetX = Phaser.Math.Between(-8, 8);
+    const startOffsetY = 56;
+
+    const container = this.add.container(
+      this.player.x + offsetX,
+      this.player.y - startOffsetY
+    );
+    container.setDepth(this.player.y + 1000);
+
+    // Compact circular badge (diameter 28px)
+    const radius = 14;
+    const bg = this.add.graphics();
+    bg.fillStyle(0xf4ead5, 0.95);
+    bg.lineStyle(1.5, 0x355c5a, 0.9);
+    bg.fillCircle(0, 0, radius);
+    bg.strokeCircle(0, 0, radius);
+
+    const txt = this.add.text(0, 0, emoji, {
+      fontFamily: '"Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif',
+      fontSize: '15px',
+    }).setOrigin(0.5, 0.5);
+
+    container.add([bg, txt]);
+    container.setScale(0.2);
+    container.setAlpha(0);
+
+    const emoteRecord = {
+      container,
+      offsetX,
+      offsetY: startOffsetY,
+    };
+    this.activeEmotes.push(emoteRecord);
+
+    // Pop-in bounce
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      alpha: 1,
+      duration: 160,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Float up smoothly and fade out
+        this.tweens.addCounter({
+          from: startOffsetY,
+          to: startOffsetY + 40,
+          duration: 1500,
+          delay: 400,
+          ease: 'Cubic.easeOut',
+          onUpdate: (tw) => {
+            emoteRecord.offsetY = tw.getValue() ?? startOffsetY;
+            const progress = tw.progress;
+            if (progress > 0.4) {
+              container.setAlpha(1 - (progress - 0.4) / 0.6);
+            }
+          },
+          onComplete: () => {
+            if (container.active) {
+              container.destroy();
+            }
+            const idx = this.activeEmotes.indexOf(emoteRecord);
+            if (idx !== -1) {
+              this.activeEmotes.splice(idx, 1);
+            }
+          },
+        });
+      },
+    });
+  };
+
   // =========================================================================
   // CLEANUP
   // =========================================================================
 
   shutdown(): void {
     EventBus.off(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
+    EventBus.off(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
+    for (const item of this.activeEmotes) {
+      if (item.container.active) item.container.destroy();
+    }
+    this.activeEmotes = [];
   }
 
   destroy(): void {
