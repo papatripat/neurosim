@@ -65,9 +65,11 @@ export class BootScene extends Phaser.Scene {
 
     // 2. Office Props (Modular & Directional Assets)
     const propNames = [
-      'desk', 'office-chair', 'office-chair-north', 'computer', 'computer-north',
+      'desk', 'office-chair', 'office-chair-north', 'office-chair-east', 'office-chair-west',
+      'computer', 'computer-north',
       'water-cooler', 'filing-cabinet', 'plant-large', 'plant-small',
-      'sofa', 'sofa-north', 'coffee-table', 'armchair',
+      'sofa', 'sofa-north', 'sofa-east', 'sofa-west', 'coffee-table',
+      'armchair', 'armchair-north', 'armchair-east', 'armchair-west',
       'counter', 'espresso-machine', 'pastry-case', 'bar-stool', 'fridge',
       'kitchen-cabinet', 'cafe-table', 'cafe-chair', 'bookcase', 'floor-lamp',
       'printer', 'rug', 'stove', 'sink', 'wall-art', 'wall-clock', 'wall-window',

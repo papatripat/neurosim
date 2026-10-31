@@ -57,9 +57,9 @@ const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2105, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja Letter-L)
+  rina: { x: 2150, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja eksekutif)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
-  klien: { x: 585, y: 650 },   // Ruang Rapat & Konferensi (Pak Hendra di meja rapat bebas PC)
+  klien: { x: 1050, y: 740 },  // Ruang Rapat & Konferensi (Pak Hendra menyambut di dekat pintu dalam)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -829,17 +829,17 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidDesk(630, 720);
     this.addSolidDesk(720, 720);
 
-    // Centerpiece succulent only — NO COMPUTERS in meeting room as requested!
-    this.addDecorativeProp('plant-small', 585, 695);
+    // Meeting room center accent — NO COMPUTERS in meeting room as requested!
+    this.addDecorativeProp('plant-small', 630, 695);
 
     // Executive Meeting Chairs around table (Comfortable, uncrowded spacing)
     this.addDecorativeProp('office-chair', 470, 645);
-    this.addDecorativeProp('office-chair', 585, 645); // Executive chair for Pak Hendra
+    this.addDecorativeProp('office-chair', 585, 645);
     this.addDecorativeProp('office-chair', 700, 645);
     this.addDecorativeProp('office-chair-north', 470, 795);
     this.addDecorativeProp('office-chair-north', 585, 795);
     this.addDecorativeProp('office-chair-north', 700, 795);
-    this.addDecorativeProp('office-chair', 360, 720); // Head of table
+    this.addDecorativeProp('office-chair-east', 360, 720); // Head of table facing East towards table
 
     // Register interactive seats in Meeting Room
     this.addSeat('Kursi Rapat', 470, 645, 'south', 'chair', 0, 4);
@@ -878,16 +878,16 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-art', 360, 975);
 
     // Lounge Set Atas (Sofa bersandar rapi di dinding utara menghadap South ke dalam ruangan,
-    // coffee-table tepat di depannya pada y=1075, dan armchair di samping kiri & kanan)
+    // coffee-table tepat di depannya pada y=1075, dan armchair-east & armchair-west di samping)
     this.addDecorativeProp('rug', 630, 1055);
     this.addSolidProp('sofa', 630, 1015, 110, 48);
     this.addSolidProp('coffee-table', 630, 1075, 64, 34);
-    this.addSolidProp('armchair', 515, 1045, 54, 46);
-    this.addSolidProp('armchair', 745, 1045, 54, 46);
-    this.addSeat('Sofa Santai', 595, 1025, 'south', 'sofa', 0, 4);
-    this.addSeat('Sofa Santai', 665, 1025, 'south', 'sofa', 0, 4);
-    this.addSeat('Armchair Santai', 515, 1045, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Santai', 745, 1045, 'west', 'armchair', -4, 0);
+    this.addSolidProp('armchair-east', 515, 1075, 54, 46);
+    this.addSolidProp('armchair-west', 745, 1075, 54, 46);
+    this.addSeat('Sofa Santai', 595, 1015, 'south', 'sofa', 0, 4);
+    this.addSeat('Sofa Santai', 665, 1015, 'south', 'sofa', 0, 4);
+    this.addSeat('Armchair Santai Kiri', 515, 1075, 'east', 'armchair', 4, 0);
+    this.addSeat('Armchair Santai Kanan', 745, 1075, 'west', 'armchair', -4, 0);
     this.addDecorativeProp('wall-art', 630, 975);
     this.addDecorativeProp('wall-clock', 790, 975);
 
@@ -902,22 +902,22 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('cafe-table', 420, 1290, 56, 52);
     this.addDecorativeProp('cafe-chair', 345, 1290);
     this.addDecorativeProp('cafe-chair', 495, 1290);
+    this.addSeat('Kursi Kafe Santai Kiri', 345, 1290, 'east', 'chair', 4, 0);
+    this.addSeat('Kursi Kafe Santai Kanan', 495, 1290, 'west', 'chair', -4, 0);
     this.addSolidProp('plant-large', 160, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 240, 1315);
 
     // Meja & Kursi-kursian Santai Seberang Kanan: Set Meja Diskusi & Armchair (x: 710..890, y: 1290)
-    // Meja di tengah diapit armchair kiri dan kanan (menghadap ke meja, tidak ada sofa terbalik/bertabrakan)
+    // Meja di tengah diapit armchair-east (kiri) dan armchair-west (kanan) serta sofa-north
     this.addDecorativeProp('rug', 800, 1290);
-    this.addSolidProp('coffee-table', 800, 1265, 64, 34);
-    this.addSolidProp('armchair', 700, 1290, 54, 46);
-    this.addSolidProp('armchair', 900, 1290, 54, 46);
-    this.addSolidProp('sofa-north', 800, 1320, 104, 48);
-    this.addSeat('Kursi Kafe Santai', 345, 1290, 'east', 'chair', 4, 0);
-    this.addSeat('Kursi Kafe Santai', 495, 1290, 'west', 'chair', -4, 0);
-    this.addSeat('Armchair Santai', 700, 1290, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Santai', 900, 1290, 'west', 'armchair', -4, 0);
-    this.addSeat('Sofa Santai', 765, 1315, 'north', 'sofa', 0, -4);
-    this.addSeat('Sofa Santai', 835, 1315, 'north', 'sofa', 0, -4);
+    this.addSolidProp('coffee-table', 800, 1270, 64, 34);
+    this.addSolidProp('armchair-east', 690, 1270, 54, 46);
+    this.addSolidProp('armchair-west', 910, 1270, 54, 46);
+    this.addSolidProp('sofa-north', 800, 1330, 104, 48);
+    this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', 4, 0);
+    this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', -4, 0);
+    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -4);
+    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -4);
     this.addSolidProp('plant-large', 1090, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 1000, 1315);
 
@@ -927,28 +927,24 @@ export class OfficeScene extends Phaser.Scene {
     // Luxury Executive Carpet
     this.addDecorativeProp('rug', 2150, 245);
 
-    // Impenetrable Executive Desk Suite: Letter-L Desk Configuration
-    // 2 Meja di depan (2110 & 2200) + 1 Meja sayap di kiri (2025)
-    this.addSolidDesk(2110, 235); // Meja depan utama
-    this.addSolidDesk(2200, 235); // Meja depan kanan
-    this.addSolidDesk(2025, 175); // Meja sayap kiri (Letter L)
+    // Grand Executive Desk Suite (Meja utama luas tanpa meja sayap yang menghalangi)
+    this.addSolidDesk(2105, 235); // Meja eksekutif kiri
+    this.addSolidDesk(2195, 235); // Meja eksekutif kanan
 
     // PC menghadap ke arah bos (screen faces North toward Bu Rina, casing back faces visitors)
-    this.addDecorativeProp('computer-north', 2025, 165);
-    this.addDecorativeProp('plant-small', 2215, 215);
+    this.addDecorativeProp('computer-north', 2150, 225);
+    this.addDecorativeProp('plant-small', 2225, 215);
 
-    // Kursi Eksekutif Bu Rina di dalam sudut L-Desk
-    this.addDecorativeProp('office-chair', 2105, 166);
+    // Kursi Eksekutif Bu Rina di belakang meja utama menghadap South
+    this.addDecorativeProp('office-chair', 2150, 166);
 
     // Kursi Tamu di depan meja utama menghadap ke Bu Rina
-    this.addSolidProp('armchair', 2105, 335, 58, 52);  // Guest Chair 1
-    this.addSolidProp('armchair', 2215, 335, 58, 52);  // Guest Chair 2
+    this.addSolidProp('armchair-north', 2105, 335, 58, 52);  // Guest Chair 1
+    this.addSolidProp('armchair-north', 2195, 335, 58, 52);  // Guest Chair 2
 
     // Register interactive seats in Executive Suite
-    this.addSeat('Armchair Tamu', 2105, 335, 'north', 'armchair', 0, -4);
-    this.addSeat('Armchair Tamu', 2215, 335, 'north', 'armchair', 0, -4);
-    this.addSeat('Armchair Diskusi', 1845, 390, 'east', 'armchair', 4, 0);
-    this.addSeat('Armchair Diskusi', 1995, 390, 'west', 'armchair', -4, 0);
+    this.addSeat('Armchair Tamu Kiri', 2105, 335, 'north', 'armchair', 0, -4);
+    this.addSeat('Armchair Tamu Kanan', 2195, 335, 'north', 'armchair', 0, -4);
 
     // Executive Library Wall
     this.addSolidProp('bookcase', 1850, 140, 75, 58);
@@ -960,12 +956,6 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('filing-cabinet', 1780, 215, 58, 58);
     this.addSolidProp('filing-cabinet', 1780, 285, 58, 58);
     this.addDecorativeProp('floor-lamp', 2530, 145);
-
-    // Private Executive Discussion Lounge
-    this.addDecorativeProp('rug', 1920, 390);
-    this.addSolidProp('coffee-table', 1920, 390, 64, 40);
-    this.addSolidProp('armchair', 1845, 390, 58, 52);
-    this.addSolidProp('armchair', 1995, 390, 58, 52);
 
     // Greenery & Accents (tucked against corners)
     this.addSolidProp('plant-large', 1780, 440, 52, 52);
@@ -993,12 +983,16 @@ export class OfficeScene extends Phaser.Scene {
     // Pod 4 (Bottom-Right): QA & Otomasi
     this.createWorkstationPod(2210, 1040);
 
-    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan, bukan di tengah jalan!)
+    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan)
     this.addDecorativeProp('rug', 2100, 1270);
     this.addSolidProp('sofa', 2100, 1245, 108, 54);
     this.addSolidProp('coffee-table', 2100, 1295, 64, 38);
-    this.addSolidProp('armchair', 1995, 1270, 56, 50);
-    this.addSolidProp('armchair', 2205, 1270, 56, 50);
+    this.addSolidProp('armchair-east', 1995, 1295, 56, 50);
+    this.addSolidProp('armchair-west', 2205, 1295, 56, 50);
+    this.addSeat('Sofa Breakout Kiri', 2065, 1245, 'south', 'sofa', 0, 4);
+    this.addSeat('Sofa Breakout Kanan', 2135, 1245, 'south', 'sofa', 0, 4);
+    this.addSeat('Armchair Breakout Kiri', 1995, 1295, 'east', 'armchair', 4, 0);
+    this.addSeat('Armchair Breakout Kanan', 2205, 1295, 'west', 'armchair', -4, 0);
     this.addDecorativeProp('floor-lamp', 2275, 1245);
     this.addSolidProp('plant-large', 1915, 1270, 52, 52);
 
@@ -1066,8 +1060,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('computer', leftDeskX, southDeskY - 12);
     this.addDecorativeProp('computer', rightDeskX, southDeskY - 12);
 
-    // Center seam decorative succulent
-    this.addDecorativeProp('plant-small', podX, podY);
+    // Center seam succulent removed per user request
 
     // 3. Ergonomic Office Chairs
     // North chairs (sitting above desks facing south)
@@ -1286,7 +1279,11 @@ export class OfficeScene extends Phaser.Scene {
       .setSize(26, 20)
       .setOffset(19, 44);
 
-    sprite.play(`${spriteKey}-idle-south`);
+    if (id === 'klien') {
+      sprite.play(`${spriteKey}-idle-west`);
+    } else {
+      sprite.play(`${spriteKey}-idle-south`);
+    }
     sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
 
     this.npcs.push({ id, name, role, sprite, scenarioId });
