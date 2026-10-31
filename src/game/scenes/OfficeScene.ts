@@ -18,7 +18,6 @@ export interface OfficeZone {
   name: string;
   subtitle: string;
   badge: string;
-  icon: string;
   borderColor: number;
   textColor: string;
   check: (x: number, y: number) => boolean;
@@ -64,7 +63,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Zona 4 · Ruangan Bos',
     subtitle: 'Ruang Manajemen & Atasan (Bu Rina)',
     badge: 'EXECUTIVE SUITE',
-    icon: '💼',
     borderColor: 0xe0b65d,
     textColor: '#f4ead5',
     check: (x, y) => x >= 1715 && x <= 2595 && y >= 100 && y <= 518,
@@ -74,7 +72,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Zona 1 · Pantry & Dapur',
     subtitle: 'Area Istirahat & Rekan Kerja (Dimas)',
     badge: 'PANTRY & BREAKROOM',
-    icon: '☕',
     borderColor: 0xba8a5c,
     textColor: '#fff9eb',
     check: (x, y) => x >= 100 && x <= 1166 && y >= 100 && y <= 518,
@@ -84,7 +81,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Zona 2 · Meeting Room',
     subtitle: 'Ruang Rapat & Presentasi Klien (Pak Hendra)',
     badge: 'CONFERENCE ROOM',
-    icon: '📊',
     borderColor: 0x355c5a,
     textColor: '#fff9eb',
     check: (x, y) => x >= 100 && x <= 1166 && y > 518 && y <= 970,
@@ -94,7 +90,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Zona 3 · Smoking & Creative Lounge',
     subtitle: 'Area Santai & Diskusi Informal',
     badge: 'SMOKING LOUNGE',
-    icon: '🚬',
     borderColor: 0x697b8b,
     textColor: '#fff9eb',
     check: (x, y) => x >= 100 && x <= 1166 && y > 970 && y <= 1260,
@@ -104,7 +99,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Zona 5 · Workstation Utama',
     subtitle: 'Ruang Kerja Karyawan & Kolaborasi Tim',
     badge: 'MAIN WORKSPACE',
-    icon: '💻',
     borderColor: 0x2b6e4f,
     textColor: '#e0b65d',
     check: (x, y) => x >= 1420 && x <= 2595 && y >= 520 && y <= 1380,
@@ -114,7 +108,6 @@ const OFFICE_ZONES: OfficeZone[] = [
     name: 'Koridor Utama & Pintu Masuk',
     subtitle: 'Pusat Navigasi & Papan Agenda Skenario',
     badge: 'CENTRAL CORRIDOR',
-    icon: '📋',
     borderColor: 0x3d485b,
     textColor: '#fff9eb',
     check: () => true, // Fallback when in hallway / entrance
@@ -159,7 +152,6 @@ export class OfficeScene extends Phaser.Scene {
   // "juga untuk notif pindah-pindah tempatnya itu arahin ke bagian atas aja karena kalo tengah sepertinya ngalangin"
   private topBannerContainer!: Phaser.GameObjects.Container;
   private topBannerBg!: Phaser.GameObjects.Rectangle;
-  private topBannerBadgeText!: Phaser.GameObjects.Text;
   private topBannerTitleText!: Phaser.GameObjects.Text;
   private topBannerSubText!: Phaser.GameObjects.Text;
   private topBannerTween: Phaser.Tweens.Tween | null = null;
@@ -354,12 +346,12 @@ export class OfficeScene extends Phaser.Scene {
       .setDepth(9990);
 
     this.locationPillBg = this.add
-      .rectangle(0, 0, 250, 34, 0x141824, 0.9)
+      .rectangle(0, 0, 200, 32, 0x141824, 0.9)
       .setOrigin(0, 0)
       .setStrokeStyle(1.5, 0x355c5a);
 
     this.locationPillText = this.add
-      .text(14, 8, '📍 Memuat Ruangan...', {
+      .text(12, 7, 'Memuat Ruangan...', {
         fontFamily: 'system-ui, -apple-system, sans-serif',
         fontSize: '13px',
         color: '#e0b65d',
@@ -370,8 +362,6 @@ export class OfficeScene extends Phaser.Scene {
     this.locationPillContainer.add([this.locationPillBg, this.locationPillText]);
 
     // B. TOP-AREA Sleek Notification Banner
-    // "juga untuk notif pindah-pindah tempatnya itu arahin ke bagian atas aja karena kalo tengah sepertinya ngalangin"
-    // "terus untuk setiap berpindahannya itu kurang bawah lagi karena itu tabrakan jadi tolong benerin kembali dong"
     const { x: bannerX, y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
 
     this.topBannerContainer = this.add
@@ -381,37 +371,30 @@ export class OfficeScene extends Phaser.Scene {
       .setDepth(9995)
       .setAlpha(0);
 
-    // Sleek, compact top banner card (440×56 px)
+    // Clean, refined top banner card
     this.topBannerBg = this.add
-      .rectangle(0, 0, 440, 56, 0x0f172a, 0.95)
-      .setStrokeStyle(2, 0xe0b65d);
-
-    this.topBannerBadgeText = this.add
-      .text(-190, 0, '🏢', {
-        fontSize: '22px',
-      })
-      .setOrigin(0, 0.5);
+      .rectangle(0, 0, 380, 50, 0x0f172a, 0.95)
+      .setStrokeStyle(1.5, 0xe0b65d);
 
     this.topBannerTitleText = this.add
-      .text(-150, -10, 'Zona 5 · Workstation Utama', {
+      .text(0, -9, 'Zona 5 · Workstation Utama', {
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        fontSize: '16px',
+        fontSize: '15px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5);
 
     this.topBannerSubText = this.add
-      .text(-150, 11, 'Ruang Kerja Karyawan & Kolaborasi Tim', {
+      .text(0, 11, 'Ruang Kerja Karyawan & Kolaborasi Tim', {
         fontFamily: 'system-ui, -apple-system, sans-serif',
         fontSize: '11px',
         color: '#94a3b8',
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0.5);
 
     this.topBannerContainer.add([
       this.topBannerBg,
-      this.topBannerBadgeText,
       this.topBannerTitleText,
       this.topBannerSubText,
     ]);
@@ -428,11 +411,11 @@ export class OfficeScene extends Phaser.Scene {
     if (detected.id !== this.currentZoneId || forceAnnouncement) {
       this.currentZoneId = detected.id;
 
-      // Update persistent top-left mini pill
-      this.locationPillText.setText(`📍 ${detected.icon} ${detected.name}`);
+      // Update persistent top-left mini pill (clean typography, no emoji)
+      this.locationPillText.setText(detected.name);
       this.locationPillText.setColor(detected.textColor);
-      const pillWidth = Math.max(240, this.locationPillText.width + 28);
-      this.locationPillBg.setSize(pillWidth, 34);
+      const pillWidth = Math.max(180, this.locationPillText.width + 24);
+      this.locationPillBg.setSize(pillWidth, 32);
       this.locationPillBg.setStrokeStyle(1.5, detected.borderColor);
 
       // Trigger TOP-AREA announcement banner
@@ -458,21 +441,17 @@ export class OfficeScene extends Phaser.Scene {
     const { y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
 
     this.topBannerContainer.setX(bannerX).setScale(1 / zoom);
-    this.topBannerBadgeText.setText(zone.icon);
     this.topBannerTitleText.setText(zone.name);
     this.topBannerSubText.setText(zone.subtitle);
-    this.topBannerBg.setStrokeStyle(2, zone.borderColor);
+    this.topBannerBg.setStrokeStyle(1.5, zone.borderColor);
 
-    const bannerW = Math.max(420, this.topBannerTitleText.width + 120);
-    this.topBannerBg.setSize(bannerW, 56);
-    this.topBannerBadgeText.setX(-bannerW / 2 + 20);
-    this.topBannerTitleText.setX(-bannerW / 2 + 56);
-    this.topBannerSubText.setX(-bannerW / 2 + 56);
+    const bannerW = Math.max(380, this.topBannerTitleText.width + 60);
+    this.topBannerBg.setSize(bannerW, 50);
 
     // Initial state: above viewport in screen space
     this.topBannerContainer.setY(hiddenY).setAlpha(0);
 
-    // Drops down to targetY (screen Y = 125px), holds for 2.4s, then slides back up smoothly
+    // Drops down to targetY (screen Y = 85px), holds for 2.4s, then slides back up smoothly
     this.topBannerTween = this.tweens.add({
       targets: this.topBannerContainer,
       y: targetY,
@@ -742,17 +721,17 @@ export class OfficeScene extends Phaser.Scene {
     // Modern Workstation Pods (2×2 Desk Islands) — Rapi, Padat, Profesional
     // Tidak amburadul: tertata simetris dengan aisle/lorong luas & tidak menutupi pintu!
 
-    // Pod 1 (Top-Left): Tim Frontend & UI (Termasuk MEJA KAMU)
-    this.createWorkstationPod(1750, 740, '💻 TIM FRONTEND & UI', 'left');
+    // Pod 1 (Top-Left): Frontend & UI (Termasuk MEJA KAMU)
+    this.createWorkstationPod(1750, 740, 'left');
 
-    // Pod 2 (Top-Right): Tim Backend & AI
-    this.createWorkstationPod(2210, 740, '⚡ TIM BACKEND & AI');
+    // Pod 2 (Top-Right): Backend & AI
+    this.createWorkstationPod(2210, 740);
 
-    // Pod 3 (Bottom-Left): Tim Game Engine
-    this.createWorkstationPod(1750, 1040, '🎮 TIM GAME ENGINE');
+    // Pod 3 (Bottom-Left): Game Engine
+    this.createWorkstationPod(1750, 1040);
 
-    // Pod 4 (Bottom-Right): Tim QA & Otomasi
-    this.createWorkstationPod(2210, 1040, '🧪 TIM QA & OTOMASI');
+    // Pod 4 (Bottom-Right): QA & Otomasi
+    this.createWorkstationPod(2210, 1040);
 
     // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan, bukan di tengah jalan!)
     this.addDecorativeProp('rug', 2100, 1270);
@@ -807,12 +786,11 @@ export class OfficeScene extends Phaser.Scene {
 
   /**
    * Helper: Build an organized, professional 4-desk team workstation pod (2×2 island).
-   * Dense, clean, and 100% impenetrable with solid colliders and team identity.
+   * Dense, clean, and 100% impenetrable with solid colliders.
    */
   private createWorkstationPod(
     podX: number,
     podY: number,
-    teamName: string,
     playerDeskCol?: 'left' | 'right'
   ): void {
     const colSpacing = 63;
@@ -855,22 +833,7 @@ export class OfficeScene extends Phaser.Scene {
     (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(podCollider);
 
-    // 5. Team Identity Banner above the pod
-    this.add
-      .rectangle(podX, northDeskY - 95, 170, 22, 0x141824, 0.92)
-      .setStrokeStyle(1.5, 0x355c5a)
-      .setDepth(northDeskY + 2);
-    this.add
-      .text(podX, northDeskY - 95, teamName, {
-        fontFamily: 'monospace',
-        fontSize: '10px',
-        color: '#e0b65d',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5)
-      .setDepth(northDeskY + 3);
-
-    // 6. Player Desk Highlight ("MEJA KAMU")
+    // 5. Player Desk Highlight ("MEJA KAMU")
     if (playerDeskCol) {
       const pX = playerDeskCol === 'left' ? leftDeskX : rightDeskX;
       const pY = southDeskY;
@@ -878,13 +841,13 @@ export class OfficeScene extends Phaser.Scene {
       // Small personalized desk succulent
       this.addDecorativeProp('plant-small', pX - 22, pY - 12);
 
-      // "MEJA KAMU" prominent tag placed above the monitor seam so player standing below never obscures it!
+      // "MEJA KAMU" prominent tag placed above the monitor seam so player standing below never obscures it
       this.add
-        .rectangle(pX, pY - 32, 86, 18, 0x1e293b, 0.95)
+        .rectangle(pX, pY - 32, 80, 18, 0x1e293b, 0.95)
         .setStrokeStyle(1.5, 0xe0b65d)
         .setDepth(pY + 30);
       this.add
-        .text(pX, pY - 32, '★ MEJA KAMU', {
+        .text(pX, pY - 32, 'MEJA KAMU', {
           fontFamily: 'monospace',
           fontSize: '10px',
           color: '#e0b65d',
@@ -956,7 +919,7 @@ export class OfficeScene extends Phaser.Scene {
       .setDepth(TODO_POS.y + 3);
 
     this.add
-      .text(TODO_POS.x, TODO_POS.y - 19, '📋 PAPAN AGENDA KERJA', {
+      .text(TODO_POS.x, TODO_POS.y - 19, 'PAPAN AGENDA KERJA', {
         fontFamily: 'monospace',
         fontSize: '9px',
         color: '#fff9eb',
