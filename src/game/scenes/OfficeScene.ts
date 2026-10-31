@@ -399,17 +399,68 @@ export class OfficeScene extends Phaser.Scene {
 
     this.player.setVelocity(vx, vy);
 
-    // Continuous, blink-free walking animation
+    // Continuous, blink-free walking animation with full diagonal (serong) support
     if (vx !== 0 || vy !== 0) {
-      let dir: string;
-      if (Math.abs(vx) > Math.abs(vy)) {
-        dir = vx > 0 ? 'east' : 'west';
+      const isDiagonal = vx !== 0 && vy !== 0;
+      let targetAngle = 0;
+      let chosenAnim = '';
+
+      if (isDiagonal) {
+        // Logika Gerak Serong (Diagonal Movement)
+        const vDir = vy > 0 ? 'south' : 'north';
+        const hDir = vx > 0 ? 'east' : 'west';
+        const diagDir = `${vDir}-${hDir}`;
+
+        // Intent detection: periksa tombol mana yang ditekan paling baru (timeDown)
+        const vTime = vy > 0
+          ? Math.max(this.wasd?.S?.timeDown || 0, this.cursors.down?.timeDown || 0)
+          : Math.max(this.wasd?.W?.timeDown || 0, this.cursors.up?.timeDown || 0);
+        const hTime = vx > 0
+          ? Math.max(this.wasd?.D?.timeDown || 0, this.cursors.right?.timeDown || 0)
+          : Math.max(this.wasd?.A?.timeDown || 0, this.cursors.left?.timeDown || 0);
+
+        // Jika ada animasi khusus serong (misal char-player-walk-south-east), gunakan
+        const diagAnimKey = `${this.playerArchetypeKey}-walk-${diagDir}`;
+        if (this.anims.exists(diagAnimKey)) {
+          chosenAnim = diagAnimKey;
+        } else {
+          // Fallback dinamis mengikuti arah tombol yang terakhir ditekan
+          const dominantDir = hTime >= vTime ? hDir : vDir;
+          chosenAnim = `${this.playerArchetypeKey}-walk-${dominantDir}`;
+        }
+
+        // Simpan arah dasar untuk posisi idle saat berhenti
+        this.lastDirection = vDir;
+
+        // Efek Kemiringan Tubuh Dinamis (Diagonal Banking Lean):
+        // Serong Kanan (East-bound): miring ke kanan (+3.8 derajat)
+        // Serong Kiri (West-bound): miring ke kiri (-3.8 derajat)
+        targetAngle = vx > 0 ? (vy > 0 ? 3.8 : 3.0) : (vy > 0 ? -3.8 : -3.0);
       } else {
-        dir = vy > 0 ? 'south' : 'north';
+        // Gerak Lurus (Kardinal)
+        let dir: string;
+        if (vx > 0) dir = 'east';
+        else if (vx < 0) dir = 'west';
+        else if (vy > 0) dir = 'south';
+        else dir = 'north';
+
+        this.lastDirection = dir;
+        targetAngle = 0;
+        chosenAnim = `${this.playerArchetypeKey}-walk-${dir}`;
       }
-      this.lastDirection = dir;
-      this.player.play(`${this.playerArchetypeKey}-walk-${dir}`, true);
+
+      // Smooth Lerp Rotasi agar transisi dari lurus ke serong sangat luwes dan dinamis
+      const currentAngle = this.player.angle;
+      this.player.setAngle(Phaser.Math.Linear(currentAngle, targetAngle, 0.25));
+
+      if (this.anims.exists(chosenAnim)) {
+        this.player.play(chosenAnim, true);
+      } else {
+        this.player.play(`${this.playerArchetypeKey}-walk-${this.lastDirection}`, true);
+      }
     } else {
+      // Idle / Berhenti: pastikan badan tegak kembali
+      this.player.setAngle(0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
     }
 
@@ -1536,6 +1587,24 @@ export class OfficeScene extends Phaser.Scene {
         key: animKey,
         frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
         frameRate: 10,
+        repeat: -1,
+      });
+    }
+
+    // 4 Diagonal Walk Animations (Serong)
+    const diagonalWalkConfigs = [
+      { dir: 'south-east', start: 45 },
+      { dir: 'south-west', start: 63 },
+      { dir: 'north-east', start: 45 },
+      { dir: 'north-west', start: 63 },
+    ];
+    for (const { dir, start } of diagonalWalkConfigs) {
+      const animKey = `${key}-walk-${dir}`;
+      if (this.anims.exists(animKey)) this.anims.remove(animKey);
+      this.anims.create({
+        key: animKey,
+        frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
+        frameRate: 11,
         repeat: -1,
       });
     }
