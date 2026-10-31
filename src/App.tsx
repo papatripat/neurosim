@@ -679,8 +679,18 @@ export const App: React.FC = () => {
                 onToggleCam={() => setIsCamOn((c) => !c)}
                 isScreenSharing={isScreenSharing}
                 onToggleScreenShare={() => setIsScreenSharing((s) => !s)}
-                onOpenParticipants={() => setIsParticipantsOpen((p) => !p)}
-                onOpenOfficeChat={() => setIsOfficeChatOpen((c) => !c)}
+                onOpenParticipants={() => {
+                  setIsParticipantsOpen((p) => {
+                    if (!p) setIsOfficeChatOpen(false);
+                    return !p;
+                  });
+                }}
+                onOpenOfficeChat={() => {
+                  setIsOfficeChatOpen((c) => {
+                    if (!c) setIsParticipantsOpen(false);
+                    return !c;
+                  });
+                }}
                 onSendReaction={handleSendReaction}
                 participantsCount={INITIAL_PARTICIPANTS.length}
                 unreadChatCount={0}

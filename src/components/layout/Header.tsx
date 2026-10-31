@@ -100,8 +100,8 @@ export const Header: React.FC<Props> = ({
         )}
       </div>
 
-      {/* 2. Center Navigation & Actions (True Horizontal Center) */}
-      <div className="md:absolute md:left-1/2 md:-translate-x-1/2 flex items-center gap-1.5 sm:gap-2 z-10 pointer-events-auto">
+      {/* 2. Center Navigation & Actions */}
+      <div className="flex-1 max-w-2xl mx-1.5 sm:mx-3 flex items-center justify-center gap-1.5 sm:gap-2 z-10 pointer-events-auto overflow-x-auto no-scrollbar">
         {/* Return to Dashboard */}
         {onNavigateDashboard && (
           <button
