@@ -57,9 +57,9 @@ const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di kursi eksekutif rapi di balik meja)
+  rina: { x: 2105, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja Letter-L)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
-  klien: { x: 585, y: 650 },   // Ruang Rapat & Konferensi (Pak Hendra di tengah meja rapat bersih & terbuka)
+  klien: { x: 585, y: 650 },   // Ruang Rapat & Konferensi (Pak Hendra di meja rapat bebas PC)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -143,6 +143,7 @@ export class OfficeScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
   private keyE!: Phaser.Input.Keyboard.Key;
+  private keySpace!: Phaser.Input.Keyboard.Key;
 
   // Sitting & Interactive Seat System
   private seats: SeatSpot[] = [];
@@ -252,6 +253,7 @@ export class OfficeScene extends Phaser.Scene {
       Phaser.Input.Keyboard.Key
     >;
     this.keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keySpace = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Prevent Phaser from hijacking default browser typing behavior (Space, Arrows, Tab)
     this.input.keyboard?.disableGlobalCapture();
@@ -367,8 +369,9 @@ export class OfficeScene extends Phaser.Scene {
     if (this.isSitting) {
       this.player.setVelocity(0, 0);
 
-      // Check if user wants to stand up (Pressing E, W, A, S, D, Space or Arrows)
+      // Check if user wants to stand up (Pressing SPACE, E, W, A, S, D or Arrows)
       const wantsStandUp =
+        Phaser.Input.Keyboard.JustDown(this.keySpace) ||
         Phaser.Input.Keyboard.JustDown(this.keyE) ||
         this.wasd.W.isDown ||
         this.wasd.A.isDown ||
@@ -382,7 +385,7 @@ export class OfficeScene extends Phaser.Scene {
       if (wantsStandUp) {
         this.standUp();
       } else {
-        this.showPrompt(this.player.x, this.player.y - 56, 'Tekan [E / WASD] Berdiri');
+        this.showPrompt(this.player.x, this.player.y - 56, 'Tekan [SPASI / WASD] Berdiri');
       }
       return;
     }
@@ -818,7 +821,7 @@ export class OfficeScene extends Phaser.Scene {
     // 2. RUANG RAPAT & KONFERENSI (Pak Hendra / Klien - Skenario 3)
     // =======================================================================
     // Boardroom Carpet
-    this.addDecorativeProp('rug', 580, 720);
+    this.addDecorativeProp('rug', 585, 720);
 
     // Impenetrable Boardroom Table (Solid 4 Desks Cluster)
     this.addSolidDesk(450, 720);
@@ -826,26 +829,24 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidDesk(630, 720);
     this.addSolidDesk(720, 720);
 
-    // Laptops on Meeting Table (Moved strictly to attendee sides so center is clear for Pak Hendra!)
-    this.addDecorativeProp('computer', 450, 690);
-    this.addDecorativeProp('computer', 720, 690);
-    this.addDecorativeProp('plant-small', 540, 695);
+    // Centerpiece succulent only — NO COMPUTERS in meeting room as requested!
+    this.addDecorativeProp('plant-small', 585, 695);
 
     // Executive Meeting Chairs around table (Comfortable, uncrowded spacing)
-    this.addDecorativeProp('office-chair', 450, 645);
+    this.addDecorativeProp('office-chair', 470, 645);
     this.addDecorativeProp('office-chair', 585, 645); // Executive chair for Pak Hendra
-    this.addDecorativeProp('office-chair', 720, 645);
-    this.addDecorativeProp('office-chair-north', 450, 795);
+    this.addDecorativeProp('office-chair', 700, 645);
+    this.addDecorativeProp('office-chair-north', 470, 795);
     this.addDecorativeProp('office-chair-north', 585, 795);
-    this.addDecorativeProp('office-chair-north', 720, 795);
+    this.addDecorativeProp('office-chair-north', 700, 795);
     this.addDecorativeProp('office-chair', 360, 720); // Head of table
 
     // Register interactive seats in Meeting Room
-    this.addSeat('Kursi Rapat', 450, 645, 'south', 'chair', 0, 4);
-    this.addSeat('Kursi Rapat', 720, 645, 'south', 'chair', 0, 4);
-    this.addSeat('Kursi Rapat', 450, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Rapat', 470, 645, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Rapat', 700, 645, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Rapat', 470, 795, 'north', 'chair', 0, -4);
     this.addSeat('Kursi Rapat', 585, 795, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Rapat', 720, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Rapat', 700, 795, 'north', 'chair', 0, -4);
     this.addSeat('Kursi Utama Rapat', 360, 720, 'east', 'chair', 4, 0);
 
     // Credenza & Storage against top wall
@@ -926,17 +927,26 @@ export class OfficeScene extends Phaser.Scene {
     // Luxury Executive Carpet
     this.addDecorativeProp('rug', 2150, 245);
 
-    // Impenetrable Executive Desk Suite (Center clear of monitors, open sightline for Bu Rina!)
-    this.addSolidDesk(2150, 230);
-    this.addDecorativeProp('computer', 2085, 205); // Left credenza wing
-    this.addDecorativeProp('plant-small', 2215, 205); // Right credenza wing
-    this.addDecorativeProp('office-chair', 2150, 166); // Bu Rina's Chair
-    this.addSolidProp('armchair', 2070, 315, 58, 52);  // Guest Chair 1
-    this.addSolidProp('armchair', 2230, 315, 58, 52);  // Guest Chair 2
+    // Impenetrable Executive Desk Suite: Letter-L Desk Configuration
+    // 2 Meja di depan (2110 & 2200) + 1 Meja sayap di kiri (2025)
+    this.addSolidDesk(2110, 235); // Meja depan utama
+    this.addSolidDesk(2200, 235); // Meja depan kanan
+    this.addSolidDesk(2025, 175); // Meja sayap kiri (Letter L)
+
+    // PC menghadap ke arah bos (screen faces North toward Bu Rina, casing back faces visitors)
+    this.addDecorativeProp('computer-north', 2025, 165);
+    this.addDecorativeProp('plant-small', 2215, 215);
+
+    // Kursi Eksekutif Bu Rina di dalam sudut L-Desk
+    this.addDecorativeProp('office-chair', 2105, 166);
+
+    // Kursi Tamu di depan meja utama menghadap ke Bu Rina
+    this.addSolidProp('armchair', 2105, 335, 58, 52);  // Guest Chair 1
+    this.addSolidProp('armchair', 2215, 335, 58, 52);  // Guest Chair 2
 
     // Register interactive seats in Executive Suite
-    this.addSeat('Armchair Tamu', 2070, 315, 'north', 'armchair', 0, -4);
-    this.addSeat('Armchair Tamu', 2230, 315, 'north', 'armchair', 0, -4);
+    this.addSeat('Armchair Tamu', 2105, 335, 'north', 'armchair', 0, -4);
+    this.addSeat('Armchair Tamu', 2215, 335, 'north', 'armchair', 0, -4);
     this.addSeat('Armchair Diskusi', 1845, 390, 'east', 'armchair', 4, 0);
     this.addSeat('Armchair Diskusi', 1995, 390, 'west', 'armchair', -4, 0);
 
@@ -1372,8 +1382,8 @@ export class OfficeScene extends Phaser.Scene {
     }
 
     if (nearestSeat) {
-      this.showPrompt(nearestSeat.x, nearestSeat.y - 45, `Tekan [E] Duduk (${nearestSeat.name})`);
-      if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+      this.showPrompt(nearestSeat.x, nearestSeat.y - 45, `Tekan [SPASI] Duduk (${nearestSeat.name})`);
+      if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
         this.sitDown(nearestSeat);
       }
     } else {
@@ -1416,15 +1426,18 @@ export class OfficeScene extends Phaser.Scene {
     this.player.play(`${this.playerArchetypeKey}-idle-${seat.facing}`, true);
     this.lastDirection = seat.facing;
 
-    // Seated depth sorting:
+    // Depth sorting when seated:
+    // Chair/sofa decorative prop depth is (y + 50).
+    // Facing South: player sits in front of the chair backrest -> player depth must be GREATER than chair depth!
     if (seat.facing === 'south') {
-      this.player.setDepth(seat.sitY + 12);
+      this.player.setDepth(seat.y + 55);
     } else if (seat.facing === 'north') {
-      this.player.setDepth(seat.sitY - 4);
+      // Facing North: backrest is in front of player -> player depth is slightly below chair depth
+      this.player.setDepth(seat.y + 45);
     } else {
-      this.player.setDepth(seat.sitY + 6);
+      this.player.setDepth(seat.y + 52);
     }
-    this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [E / WASD] Berdiri');
+    this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [SPASI / WASD] Berdiri');
   }
 
   private standUp(): void {
@@ -1433,13 +1446,36 @@ export class OfficeScene extends Phaser.Scene {
     this.isSitting = false;
     this.currentSeat = null;
 
-    // Smooth exit nudge
-    let exitX = seat.sitX;
-    let exitY = seat.sitY;
-    if (seat.facing === 'south') exitY += 28;
-    else if (seat.facing === 'north') exitY -= 28;
-    else if (seat.facing === 'east') exitX += 26;
-    else if (seat.facing === 'west') exitX -= 26;
+    // Exit strictly BEHIND the chair / into open walkway (prevents clipping through desks/tables!)
+    let exitX = seat.x;
+    let exitY = seat.y;
+
+    if (seat.type === 'chair' || seat.type === 'stool') {
+      if (seat.facing === 'south') {
+        // Chair faces South into desk -> step NORTH into the open corridor above the chair!
+        exitY = seat.y - 36;
+      } else if (seat.facing === 'north') {
+        // Chair faces North into desk -> step SOUTH into the open corridor below the chair!
+        exitY = seat.y + 36;
+      } else if (seat.facing === 'east') {
+        // Chair faces East into table -> step WEST into open aisle on left!
+        exitX = seat.x - 36;
+      } else if (seat.facing === 'west') {
+        // Chair faces West into table -> step EAST into open aisle on right!
+        exitX = seat.x + 36;
+      }
+    } else {
+      // For sofas and lounge sets: step into open room space away from the wall
+      if (seat.facing === 'south') {
+        exitY = seat.y + 44;
+      } else if (seat.facing === 'north') {
+        exitY = seat.y - 44;
+      } else if (seat.facing === 'east') {
+        exitX = seat.x + 36;
+      } else if (seat.facing === 'west') {
+        exitX = seat.x - 36;
+      }
+    }
 
     this.player.setPosition(exitX, exitY);
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
