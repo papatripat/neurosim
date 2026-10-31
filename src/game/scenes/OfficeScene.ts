@@ -297,14 +297,10 @@ export class OfficeScene extends Phaser.Scene {
 
     if (typeof localStorage !== 'undefined') {
       try {
-        // Hapus cache legacy LPC yang membuat ukuran avatar raksasa
-        localStorage.removeItem('neurosim_character_spritesheet');
         const saved = localStorage.getItem('neurosim_character_config');
         if (saved) {
           const cfg = JSON.parse(saved);
-          if (cfg?.archetype) {
-            this.handleUpdatePlayerCharacter(cfg);
-          }
+          this.handleUpdatePlayerCharacter(cfg);
         }
       } catch (e) {}
     }
@@ -1264,7 +1260,6 @@ export class OfficeScene extends Phaser.Scene {
     let initialKey = 'char-resident';
     if (typeof localStorage !== 'undefined') {
       try {
-        localStorage.removeItem('neurosim_character_spritesheet');
         const saved = localStorage.getItem('neurosim_character_config');
         if (saved) {
           const cfg = JSON.parse(saved);
@@ -1975,6 +1970,48 @@ export class OfficeScene extends Phaser.Scene {
   private handleUpdatePlayerCharacter = (payload: any): void => {
     if (!this.player) return;
     const config = payload?.config || payload;
+
+    const dataUrl =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('neurosim_character_spritesheet')
+        : null;
+
+    if (dataUrl) {
+      const customKey = 'char-player-custom';
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        if (!this.scene.isActive()) return;
+        if (this.textures.exists(customKey)) {
+          this.textures.remove(customKey);
+        }
+        this.textures.addSpriteSheet(customKey, img, {
+          frameWidth: 64,
+          frameHeight: 64,
+        });
+
+        this.createCustomAnimations(customKey);
+        this.playerArchetypeKey = customKey;
+        this.player.setTexture(customKey);
+        // Standardize LPC character height (50px * 1.52 = 76px, matching aligned.png 38px * 2.0 = 76px)
+        this.player.setScale(1.52);
+
+        const currentDir =
+          this.lastDirection === 'north' ||
+          this.lastDirection === 'south' ||
+          this.lastDirection === 'east' ||
+          this.lastDirection === 'west'
+            ? this.lastDirection
+            : 'south';
+
+        const idleAnim = `${customKey}-idle-${currentDir}`;
+        if (this.anims.exists(idleAnim)) {
+          this.player.play(idleAnim, true);
+        }
+      };
+      return;
+    }
+
     const arch = config?.archetype || 'resident';
     const newKey = `char-${arch}`;
 

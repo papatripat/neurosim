@@ -40,6 +40,7 @@ import {
 } from '../../config/characterOptions';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 import { EventBus, GAME_EVENTS } from '../../game/EventBus';
+import { generateFullLpcSpritesheet } from '../../lib/lpcCompositor';
 
 interface Props {
   isOpen: boolean;
@@ -121,13 +122,18 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
     setConfig(currentConfig || DEFAULT_CHARACTER);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     onSaveConfig(config);
     // Simpan ke localStorage agar awet antar sesi
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('neurosim_character_config', JSON.stringify(config));
-      // Hapus cache spritesheet LPC legacy yang menyebabkan karakter menjadi raksasa
-      localStorage.removeItem('neurosim_character_spritesheet');
+      try {
+        const fullSheet = await generateFullLpcSpritesheet(config);
+        const dataUrl = fullSheet.toDataURL('image/png');
+        localStorage.setItem('neurosim_character_spritesheet', dataUrl);
+      } catch (e) {
+        console.warn('Could not cache custom spritesheet:', e);
+      }
     }
 
     // Emit ke Phaser engine agar sprite player langsung diupdate seketika
@@ -291,7 +297,31 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                         <button
                           key={arch.id}
                           type="button"
-                          onClick={() => setConfig({ ...config, archetype: arch.id })}
+                          onClick={() => {
+                            const preset = CHARACTER_PRESETS.find((p) => p.config.archetype === arch.id);
+                            if (preset) {
+                              setConfig({
+                                ...config,
+                                archetype: arch.id,
+                                hairStyle: preset.config.hairStyle,
+                                hairColor: preset.config.hairColor,
+                                shirtType: preset.config.shirtType,
+                                shirtColor: preset.config.shirtColor,
+                                suitType: preset.config.suitType,
+                                suitColor: preset.config.suitColor,
+                                tieType: preset.config.tieType,
+                                tieColor: preset.config.tieColor,
+                                pantsType: preset.config.pantsType,
+                                pantsColor: preset.config.pantsColor,
+                                shoesType: preset.config.shoesType,
+                                shoesColor: preset.config.shoesColor,
+                                glasses: preset.config.glasses,
+                                accessory: preset.config.accessory,
+                              });
+                            } else {
+                              setConfig({ ...config, archetype: arch.id });
+                            }
+                          }}
                           className={`p-2.5 rounded-lg border text-left text-xs transition-all flex items-start gap-2.5 ${
                             (config.archetype || 'resident') === arch.id
                               ? 'border-teal bg-cream ring-2 ring-teal shadow-xs'
