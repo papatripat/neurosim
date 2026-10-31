@@ -7,8 +7,6 @@ export const VIEWPORT_H = 720;
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: VIEWPORT_W,
-  height: VIEWPORT_H,
   pixelArt: true,
   roundPixels: true,
   physics: {
@@ -19,9 +17,10 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     },
   },
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: '100%',
+    height: '100%',
   },
   scene: [BootScene, OfficeScene],
 };
-

@@ -19,4 +19,6 @@ export const GAME_EVENTS = {
   TRIGGER_REACTION: 'trigger-reaction',
   /** Player sent an office chat message -> show 2D speech bubble above avatar */
   TRIGGER_CHAT_BUBBLE: 'trigger-chat-bubble',
+  /** Player entered a new office room/zone */
+  ZONE_CHANGED: 'zone-changed',
 } as const;

@@ -1,4 +1,6 @@
-# Logs
+# Playwright MCP artifacts
+.playwright-mcp/
+
 logs
 *.log
 npm-debug.log*
