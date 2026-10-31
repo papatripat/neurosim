@@ -485,7 +485,7 @@ export async function generateFullLpcSpritesheet(
 
   const outCanvas = document.createElement('canvas');
   outCanvas.width = 576;
-  outCanvas.height = 512;
+  outCanvas.height = 768;
   const outCtx = outCanvas.getContext('2d')!;
   outCtx.imageSmoothingEnabled = false;
 
@@ -514,6 +514,135 @@ export async function generateFullLpcSpritesheet(
     }
   };
 
+  const generateSitRow = (dir: 'south' | 'east' | 'north' | 'west', targetRow: number) => {
+    const srcY = lpcRowFor[dir] * 64;
+    const dstY = targetRow * 64;
+
+    const frameCanvas = document.createElement('canvas');
+    frameCanvas.width = 64;
+    frameCanvas.height = 64;
+    const fCtx = frameCanvas.getContext('2d')!;
+    fCtx.imageSmoothingEnabled = false;
+    fCtx.drawImage(lpcCanvas, 0, srcY, 64, 64, 0, 0, 64, 64);
+    const srcData = fCtx.getImageData(0, 0, 64, 64);
+
+    const sitData = fCtx.createImageData(64, 64);
+    const s = srcData.data;
+    const d = sitData.data;
+
+    const getPixel = (x: number, y: number) => {
+      if (x < 0 || x >= 64 || y < 0 || y >= 64) return [0, 0, 0, 0];
+      const idx = (y * 64 + x) * 4;
+      return [s[idx], s[idx + 1], s[idx + 2], s[idx + 3]];
+    };
+
+    const setPixel = (x: number, y: number, rgba: number[]) => {
+      if (x < 0 || x >= 64 || y < 0 || y >= 64) return;
+      const idx = (y * 64 + x) * 4;
+      d[idx] = rgba[0];
+      d[idx + 1] = rgba[1];
+      d[idx + 2] = rgba[2];
+      d[idx + 3] = rgba[3];
+    };
+
+    if (dir === 'south') {
+      // Lower upper body 6px
+      for (let y = 0; y <= 44; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y + 6, p);
+        }
+      }
+      // Foreshorten thighs
+      for (let y = 44; y <= 50; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) {
+            setPixel(x, y + 5, p);
+            setPixel(x, y + 6, p);
+          }
+        }
+      }
+      // Plant feet
+      for (let y = 52; y < 64; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y, p);
+        }
+      }
+    } else if (dir === 'east') {
+      for (let y = 0; y <= 44; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y + 6, p);
+        }
+      }
+      for (let y = 44; y <= 50; y++) {
+        for (let x = 26; x <= 38; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) {
+            setPixel(x + 2, y + 5, p);
+            setPixel(x + 4, y + 5, p);
+            setPixel(x + 6, y + 5, p);
+            setPixel(x + 2, y + 6, p);
+            setPixel(x + 4, y + 6, p);
+            setPixel(x + 6, y + 6, p);
+          }
+        }
+      }
+      for (let y = 50; y < 64; y++) {
+        for (let x = 28; x <= 38; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x + 6, y, p);
+        }
+      }
+    } else if (dir === 'north') {
+      for (let y = 0; y <= 45; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y + 6, p);
+        }
+      }
+      for (let y = 52; y < 64; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y, p);
+        }
+      }
+    } else if (dir === 'west') {
+      for (let y = 0; y <= 44; y++) {
+        for (let x = 0; x < 64; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x, y + 6, p);
+        }
+      }
+      for (let y = 44; y <= 50; y++) {
+        for (let x = 26; x <= 38; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) {
+            setPixel(x - 2, y + 5, p);
+            setPixel(x - 4, y + 5, p);
+            setPixel(x - 6, y + 5, p);
+            setPixel(x - 2, y + 6, p);
+            setPixel(x - 4, y + 6, p);
+            setPixel(x - 6, y + 6, p);
+          }
+        }
+      }
+      for (let y = 50; y < 64; y++) {
+        for (let x = 26; x <= 36; x++) {
+          const p = getPixel(x, y);
+          if (p[3] > 10) setPixel(x - 6, y, p);
+        }
+      }
+    }
+
+    fCtx.putImageData(sitData, 0, 0);
+    for (let col = 0; col < 9; col++) {
+      outCtx.drawImage(frameCanvas, col * 64, dstY);
+    }
+  };
+
   copyIdleRow('south', 0);
   copyIdleRow('east', 1);
   copyIdleRow('north', 2);
@@ -523,6 +652,11 @@ export async function generateFullLpcSpritesheet(
   copyWalkRow('east', 5);
   copyWalkRow('north', 6);
   copyWalkRow('west', 7);
+
+  generateSitRow('south', 8);
+  generateSitRow('east', 9);
+  generateSitRow('north', 10);
+  generateSitRow('west', 11);
 
   return outCanvas;
 }

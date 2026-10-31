@@ -1,3 +1,4 @@
+import { generateFullLpcSpritesheet } from '../../lib/lpcCompositor';
 import Phaser from 'phaser';
 import { EventBus, GAME_EVENTS } from '../EventBus';
 
@@ -59,7 +60,7 @@ const TODO_POS = { x: 1450, y: 140 };
 const NPC_POSITIONS = {
   rina: { x: 2150, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja eksekutif)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
-  klien: { x: 1050, y: 740 },  // Ruang Rapat & Konferensi (Pak Hendra menyambut di dekat pintu dalam)
+  klien: { x: 920, y: 640 },   // Ruang Rapat & Konferensi (Pak Hendra di sudut dalam dekat credenza/dispenser)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -882,8 +883,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('rug', 630, 1055);
     this.addSolidProp('sofa', 630, 1015, 110, 48);
     this.addSolidProp('coffee-table', 630, 1075, 64, 34);
-    this.addSolidProp('armchair-east', 515, 1075, 54, 46);
-    this.addSolidProp('armchair-west', 745, 1075, 54, 46);
+    this.addSolidProp('armchair-east', 515, 1075, 36, 32);
+    this.addSolidProp('armchair-west', 745, 1075, 36, 32);
     this.addSeat('Sofa Santai', 595, 1015, 'south', 'sofa', 0, 4);
     this.addSeat('Sofa Santai', 665, 1015, 'south', 'sofa', 0, 4);
     this.addSeat('Armchair Santai Kiri', 515, 1075, 'east', 'armchair', 4, 0);
@@ -911,8 +912,8 @@ export class OfficeScene extends Phaser.Scene {
     // Meja di tengah diapit armchair-east (kiri) dan armchair-west (kanan) serta sofa-north
     this.addDecorativeProp('rug', 800, 1290);
     this.addSolidProp('coffee-table', 800, 1270, 64, 34);
-    this.addSolidProp('armchair-east', 690, 1270, 54, 46);
-    this.addSolidProp('armchair-west', 910, 1270, 54, 46);
+    this.addSolidProp('armchair-east', 690, 1270, 36, 32);
+    this.addSolidProp('armchair-west', 910, 1270, 36, 32);
     this.addSolidProp('sofa-north', 800, 1330, 104, 48);
     this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', 4, 0);
     this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', -4, 0);
@@ -987,8 +988,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('rug', 2100, 1270);
     this.addSolidProp('sofa', 2100, 1245, 108, 54);
     this.addSolidProp('coffee-table', 2100, 1295, 64, 38);
-    this.addSolidProp('armchair-east', 1995, 1295, 56, 50);
-    this.addSolidProp('armchair-west', 2205, 1295, 56, 50);
+    this.addSolidProp('armchair-east', 1995, 1295, 36, 32);
+    this.addSolidProp('armchair-west', 2205, 1295, 36, 32);
     this.addSeat('Sofa Breakout Kiri', 2065, 1245, 'south', 'sofa', 0, 4);
     this.addSeat('Sofa Breakout Kanan', 2135, 1245, 'south', 'sofa', 0, 4);
     this.addSeat('Armchair Breakout Kiri', 1995, 1295, 'east', 'armchair', 4, 0);
@@ -1279,11 +1280,7 @@ export class OfficeScene extends Phaser.Scene {
       .setSize(26, 20)
       .setOffset(19, 44);
 
-    if (id === 'klien') {
-      sprite.play(`${spriteKey}-idle-west`);
-    } else {
-      sprite.play(`${spriteKey}-idle-south`);
-    }
+    sprite.play(`${spriteKey}-idle-south`);
     sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
 
     this.npcs.push({ id, name, role, sprite, scenarioId });
@@ -1369,7 +1366,7 @@ export class OfficeScene extends Phaser.Scene {
 
     // 3. Proximity to Sittable Seats (Chairs, Armchairs, Sofas)
     let nearestSeat: SeatSpot | null = null;
-    let minSeatDist = 44; // Proximity threshold
+    let minSeatDist = 65; // Proximity threshold
     for (const seat of this.seats) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, seat.x, seat.y);
       if (d < minSeatDist) {
@@ -1420,7 +1417,12 @@ export class OfficeScene extends Phaser.Scene {
     this.lastStandPos = { x: this.player.x, y: this.player.y };
     this.player.setVelocity(0, 0);
     this.player.setPosition(seat.sitX, seat.sitY);
-    this.player.play(`${this.playerArchetypeKey}-idle-${seat.facing}`, true);
+    const sitAnim = `${this.playerArchetypeKey}-sit-${seat.facing}`;
+    if (this.anims.exists(sitAnim)) {
+      this.player.play(sitAnim, true);
+    } else {
+      this.player.play(`${this.playerArchetypeKey}-idle-${seat.facing}`, true);
+    }
     this.lastDirection = seat.facing;
 
     // Depth sorting when seated:
@@ -1476,6 +1478,10 @@ export class OfficeScene extends Phaser.Scene {
 
     this.player.setPosition(exitX, exitY);
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
+    const idleAnim = `${this.playerArchetypeKey}-idle-${this.lastDirection}`;
+    if (this.anims.exists(idleAnim)) {
+      this.player.play(idleAnim, true);
+    }
     this.promptContainer.setVisible(false);
   }
 
@@ -1830,6 +1836,28 @@ export class OfficeScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+
+    // 4 Sitting Animations (Rows 8..11)
+    const texture = this.textures.get(key);
+    const totalFrames = texture ? texture.frameTotal : 0;
+    if (totalFrames >= 108) {
+      const sitConfigs = [
+        { dir: 'south', start: 72 }, // Row 8: duduk madep bawah
+        { dir: 'east', start: 81 },  // Row 9: duduk madep kanan
+        { dir: 'north', start: 90 }, // Row 10: duduk madep atas
+        { dir: 'west', start: 99 },  // Row 11: duduk madep kiri
+      ];
+      for (const { dir, start } of sitConfigs) {
+        const animKey = `${key}-sit-${dir}`;
+        if (this.anims.exists(animKey)) this.anims.remove(animKey);
+        this.anims.create({
+          key: animKey,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
+          frameRate: 2,
+          repeat: -1,
+        });
+      }
+    }
   }
 
   private handleUpdatePlayerCharacter = (payload: any): void => {
@@ -1845,12 +1873,33 @@ export class OfficeScene extends Phaser.Scene {
       const customKey = 'char-player-custom';
       const img = new Image();
       img.src = dataUrl;
-      img.onload = () => {
+      img.onload = async () => {
         if (!this.scene.isActive()) return;
+        let finalImg: HTMLImageElement = img;
+
+        // If cached sheet has old 512px height and we have config, re-composite to 768px!
+        if (img.height < 768 && config) {
+          try {
+            const upgradedCanvas = await generateFullLpcSpritesheet(config);
+            const upgradedDataUrl = upgradedCanvas.toDataURL('image/png');
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('neurosim_character_spritesheet', upgradedDataUrl);
+            }
+            const upgradedImg = new Image();
+            upgradedImg.src = upgradedDataUrl;
+            await new Promise((resolve) => {
+              upgradedImg.onload = resolve;
+            });
+            finalImg = upgradedImg;
+          } catch (e) {
+            console.warn('Could not upgrade custom spritesheet to 768px:', e);
+          }
+        }
+
         if (this.textures.exists(customKey)) {
           this.textures.remove(customKey);
         }
-        this.textures.addSpriteSheet(customKey, img, {
+        this.textures.addSpriteSheet(customKey, finalImg, {
           frameWidth: 64,
           frameHeight: 64,
         });

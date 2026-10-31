@@ -182,5 +182,23 @@ export class BootScene extends Phaser.Scene {
         });
       }
     }
+
+    // Sitting animations for all 4 directions (Rows 8..11)
+    const sitConfigs: { dir: string; start: number }[] = [
+      { dir: 'south', start: 72 }, // Row 8: 72..80 (duduk madep bawah)
+      { dir: 'east', start: 81 },  // Row 9: 81..89 (duduk madep kanan)
+      { dir: 'north', start: 90 }, // Row 10: 90..98 (duduk madep atas)
+      { dir: 'west', start: 99 },  // Row 11: 99..107 (duduk madep kiri)
+    ];
+    for (const { dir, start } of sitConfigs) {
+      if (!this.anims.exists(`${key}-sit-${dir}`)) {
+        this.anims.create({
+          key: `${key}-sit-${dir}`,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
+          frameRate: 2,
+          repeat: -1,
+        });
+      }
+    }
   }
 }
