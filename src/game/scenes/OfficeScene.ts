@@ -268,7 +268,10 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
-    this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+    if (!gameSize || gameSize.width <= 0 || gameSize.height <= 0) return;
+    if (this.cameras?.main) {
+      this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
+    }
     this.refreshHUDPositions();
   }
 
@@ -288,6 +291,7 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private refreshHUDPositions(): void {
+    if (!this.scale || this.scale.width <= 0 || this.scale.height <= 0) return;
     const zoom = this.cameras?.main?.zoom || 1.22;
     if (this.locationPillContainer) {
       const { x: pillX, y: pillY } = this.getScreenCoord(24, 24);
@@ -305,6 +309,7 @@ export class OfficeScene extends Phaser.Scene {
 
   update(): void {
     // Dynamic Y-depth sorting based on where feet touch the floor
+    if (!this.player || !this.player.body || !this.player.active) return;
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
 
     // Update active reaction emote positions so they strictly track the player sprite
@@ -1042,6 +1047,7 @@ export class OfficeScene extends Phaser.Scene {
 
     this.player.setCollideWorldBounds(true);
     this.player.play('char-player-idle-north');
+    if (!this.player || !this.player.body || !this.player.active) return;
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
   }
 
@@ -1262,7 +1268,7 @@ export class OfficeScene extends Phaser.Scene {
   };
 
     // =========================================================================
-  // GATHER.TOWN FLOATING REACTION EMOTES
+  // FLOATING REACTION EMOTES
   // =========================================================================
 
   private handleTriggerReaction = ({ emoji }: { emoji: string }): void => {
@@ -1347,7 +1353,7 @@ export class OfficeScene extends Phaser.Scene {
   };
 
   // =========================================================================
-  // GATHER.TOWN LIVE CHAT SPEECH BUBBLE
+  // LIVE CHAT SPEECH BUBBLE
   // =========================================================================
 
   private handleTriggerChatBubble = ({ text }: { text: string }): void => {

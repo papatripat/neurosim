@@ -27,4 +27,6 @@ export const GAME_EVENTS = {
   TRIGGER_CHAT_BUBBLE: 'trigger-chat-bubble',
   /** Player entered a new office room/zone */
   ZONE_CHANGED: 'zone-changed',
+  /** Player switched or joined an online room */
+  ROOM_CHANGED: 'room-changed',
 } as const;
