@@ -17,6 +17,9 @@ interface Props {
   unreadChatCount: number;
   status: UserStatus;
   onChangeStatus: (s: UserStatus) => void;
+  userName?: string;
+  userAvatar?: string;
+  onOpenProfile?: () => void;
   onOpenCustomizer: () => void;
 }
 
@@ -36,6 +39,9 @@ export const GatherDock: React.FC<Props> = ({
   unreadChatCount,
   status,
   onChangeStatus,
+  userName,
+  userAvatar,
+  onOpenProfile,
   onOpenCustomizer,
 }) => {
   const [showReactions, setShowReactions] = useState(false);
@@ -104,8 +110,8 @@ export const GatherDock: React.FC<Props> = ({
           >
             <div className="relative w-7 h-7 rounded border border-teal overflow-hidden bg-parchment flex-shrink-0">
               <img
-                src="/assets/characters/resident/standing/south.png"
-                alt="Avatar Baginda"
+                src={userAvatar || '/assets/characters/resident/standing/south.png'}
+                alt={userName || 'Avatar Pengguna'}
                 className="w-full h-full object-contain scale-[1.8] pixelated"
               />
               <span
@@ -113,7 +119,9 @@ export const GatherDock: React.FC<Props> = ({
               />
             </div>
             <div className="hidden md:block">
-              <span className="font-bold text-xs leading-none block text-ink">Baginda</span>
+              <span className="font-bold text-xs leading-none block text-ink truncate max-w-[90px]">
+                {userName || 'Baginda'}
+              </span>
               <span className="text-[10px] text-ink-muted leading-tight block">
                 {getStatusLabel()}
               </span>
@@ -123,7 +131,20 @@ export const GatherDock: React.FC<Props> = ({
 
           {/* Status Dropdown */}
           {showStatusMenu && (
-            <div className="absolute bottom-11 left-0 w-36 bg-cream border border-teal rounded-md shadow-lg p-1 text-xs space-y-0.5 z-40">
+            <div className="absolute bottom-11 left-0 w-40 bg-cream border border-teal rounded-md shadow-lg p-1 text-xs space-y-0.5 z-40">
+              {onOpenProfile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenProfile();
+                    setShowStatusMenu(false);
+                  }}
+                  className="w-full text-left px-2 py-1.5 rounded hover:bg-teal/20 text-teal font-bold flex items-center gap-1.5 border-b border-[#d1c7b5]/50 mb-1"
+                >
+                  <span>🪪</span>
+                  <span>ID Karyawan</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

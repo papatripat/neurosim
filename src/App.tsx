@@ -8,6 +8,7 @@ import { DEFAULT_CHARACTER } from './config/characterOptions';
 import { TodoListModal } from './components/modals/TodoListModal';
 import { DialogueModal } from './components/modals/DialogueModal';
 import { EvaluationModal } from './components/modals/EvaluationModal';
+import { AuthModal, UserProfile } from './components/modals/AuthModal';
 import { ScenarioList } from './components/scenarios/ScenarioList';
 import { PhaserGame } from './game/PhaserGame';
 import { EventBus, GAME_EVENTS } from './game/EventBus';
@@ -25,7 +26,7 @@ import { WebcamWidget } from './components/gather/WebcamWidget';
 const INITIAL_PARTICIPANTS: Participant[] = [
   {
     id: 'user-baginda',
-    name: 'Baginda Putra Krista (Kamu)',
+    name: 'Baginda Putra Krista',
     role: 'Frontend UI/UX & Aksesibilitas',
     zone: 'Zona 5 · Workstation Utama',
     status: 'online',
@@ -93,7 +94,7 @@ const INITIAL_CHAT_MESSAGES: OfficeChatMessage[] = [
     id: 'm-2',
     sender: 'Rifat',
     time: '14:32',
-    text: 'Siap, endpoint proxy Gemini dan naskah persona sudah terhubung.',
+    text: 'Siap, database MySQL dan proxy Gemini 3.5 Flash sudah terhubung.',
   },
   {
     id: 'm-3',
@@ -107,6 +108,18 @@ export const App: React.FC = () => {
   const [mode, setMode] = useState<'2d' | 'list'>('2d');
   const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [isTodoListOpen, setIsTodoListOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // User Account & Session (MySQL Synced)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const saved = localStorage.getItem('neurosim_current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [userHistory, setUserHistory] = useState<any[]>(() => {
+    const saved = localStorage.getItem('neurosim_user_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [tasks, setTasks] = useState<OfficeTask[]>(() => {
     const saved = localStorage.getItem('neurosim_tasks');
     return saved ? JSON.parse(saved) : INITIAL_TASKS;
@@ -160,6 +173,7 @@ export const App: React.FC = () => {
 
   const {
     activeScenarioId,
+    level,
     userGoal,
     transcript,
     turnCount,
@@ -183,21 +197,38 @@ export const App: React.FC = () => {
       setTasks((prev) =>
         prev.map((t) => (t.scenarioId === activeScenarioId ? { ...t, completed: true } : t))
       );
+
+      // Simpan ke riwayat lokal user jika login
+      if (currentUser) {
+        const newRecord = {
+          id: Date.now(),
+          scenario_id: activeScenarioId,
+          level,
+          rekomendasi_level: evaluation.rekomendasi_level,
+          created_at: new Date().toISOString(),
+        };
+        setUserHistory((prev) => {
+          const updated = [newRecord, ...prev];
+          localStorage.setItem('neurosim_user_history', JSON.stringify(updated));
+          return updated;
+        });
+      }
     }
-  }, [evaluation, activeScenarioId]);
+  }, [evaluation, activeScenarioId, currentUser, level]);
 
   const handleStartScenario = useCallback(
-    (scenarioId: string, level: 1 | 2 | 3 = 2, goal?: string) => {
+    (scenarioId: string, lvl: 1 | 2 | 3 = 2, goal?: string) => {
       const sc = SCENARIOS.find((s) => s.id === scenarioId);
       if (!sc) return;
-      startConversation(scenarioId, sc.initialDialogue, level, goal || sc.defaultGoal);
+      startConversation(scenarioId, sc.initialDialogue, lvl, goal || sc.defaultGoal);
     },
     [startConversation]
   );
 
+  // Listen to Phaser [E] interaction event
   useEffect(() => {
-    const handleOpenDialog = ({ scenarioId }: { scenarioId: string; npcName: string }) => {
-      handleStartScenario(scenarioId);
+    const handleOpenDialog = (data: { scenarioId: string; level?: 1 | 2 | 3; goal?: string }) => {
+      handleStartScenario(data.scenarioId, data.level ?? 2, data.goal);
     };
 
     const handleOpenTodoList = () => {
@@ -213,6 +244,30 @@ export const App: React.FC = () => {
     };
   }, [handleStartScenario]);
 
+  // Pastikan Phaser mematikan penangkapan keyboard saat modal apa pun di React sedang terbuka
+  useEffect(() => {
+    const isAnyModalOpen =
+      isAuthOpen ||
+      isProposalOpen ||
+      isTodoListOpen ||
+      isOfficeChatOpen ||
+      isParticipantsOpen ||
+      isCustomizerOpen;
+    if (isAnyModalOpen) {
+      EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
+    } else if (!activeScenarioId) {
+      EventBus.emit(GAME_EVENTS.RESUME_INPUT);
+    }
+  }, [
+    isAuthOpen,
+    isProposalOpen,
+    isTodoListOpen,
+    isOfficeChatOpen,
+    isParticipantsOpen,
+    isCustomizerOpen,
+    activeScenarioId,
+  ]);
+
   const handleCloseDialogue = () => {
     resetSession();
     EventBus.emit(GAME_EVENTS.CLOSE_DIALOG);
@@ -220,15 +275,14 @@ export const App: React.FC = () => {
 
   const handleCloseTodoList = () => {
     setIsTodoListOpen(false);
-    EventBus.emit(GAME_EVENTS.CLOSE_DIALOG);
+    EventBus.emit(GAME_EVENTS.CLOSE_TODO_LIST);
   };
 
-  const activeScenario = SCENARIOS.find((s) => s.id === activeScenarioId);
-
   const handleRetryDialogue = () => {
-    if (activeScenario) {
-      retrySession(activeScenario.initialDialogue);
-    }
+    if (!activeScenarioId) return;
+    const sc = SCENARIOS.find((s) => s.id === activeScenarioId);
+    if (!sc) return;
+    retrySession(sc.initialDialogue);
   };
 
   const handleSendOfficeChat = (text: string) => {
@@ -238,7 +292,7 @@ export const App: React.FC = () => {
     ).padStart(2, '0')}`;
     const newMsg: OfficeChatMessage = {
       id: `user-${Date.now()}`,
-      sender: 'Baginda (Kamu)',
+      sender: currentUser ? `${currentUser.fullName.split(' ')[0]} (Kamu)` : 'Baginda (Kamu)',
       time: timeStr,
       text,
       isSelf: true,
@@ -251,6 +305,23 @@ export const App: React.FC = () => {
     EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
   };
 
+  const handleLoginSuccess = (user: UserProfile, history?: any[]) => {
+    setCurrentUser(user);
+    localStorage.setItem('neurosim_current_user', JSON.stringify(user));
+    if (history) {
+      setUserHistory(history);
+      localStorage.setItem('neurosim_user_history', JSON.stringify(history));
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUserHistory([]);
+    localStorage.removeItem('neurosim_current_user');
+    localStorage.removeItem('neurosim_user_history');
+    setIsAuthOpen(false);
+  };
+
   const scaleClass = () => {
     if (textScale === 'medium') return 'text-[110%]';
     if (textScale === 'large') return 'text-[125%]';
@@ -258,6 +329,7 @@ export const App: React.FC = () => {
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
+  const activeScenario = SCENARIOS.find((s) => s.id === activeScenarioId);
 
   return (
     <div
@@ -282,6 +354,8 @@ export const App: React.FC = () => {
         onOpenTodoList={() => setIsTodoListOpen(true)}
         completedCount={completedCount}
         totalCount={tasks.length}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
       />
 
       {/* 3. Main Workspace Viewport (Zero Scrollbar Overflow) */}
@@ -313,6 +387,9 @@ export const App: React.FC = () => {
               unreadChatCount={0}
               status={userStatus}
               onChangeStatus={setUserStatus}
+              userName={currentUser ? currentUser.fullName.split(' ')[0] : 'Baginda'}
+              userAvatar={currentUser?.avatar}
+              onOpenProfile={() => setIsAuthOpen(true)}
               onOpenCustomizer={() => setIsCustomizerOpen(true)}
             />
 
@@ -354,7 +431,7 @@ export const App: React.FC = () => {
           onSendMessage={sendMessage}
           onSkipTurn={skipTurn}
           onExit={handleCloseDialogue}
-          onRequestEvaluation={evaluateSession}
+          onRequestEvaluation={() => evaluateSession(currentUser?.id)}
         />
       )}
 
@@ -382,7 +459,17 @@ export const App: React.FC = () => {
 
       {/* 7. Proposal Dossier Modal */}
       <ProposalModal isOpen={isProposalOpen} onClose={() => setIsProposalOpen(false)} />
-      {/* 8. Character / Player Customizer Modal (Universal LPC Format) */}
+      {/* 8. Employee Auth & Profile Modal (MySQL Synced) */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        currentUser={currentUser}
+        onLoginSuccess={handleLoginSuccess}
+        onLogout={handleLogout}
+        userHistory={userHistory}
+      />
+
+      {/* 9. Character / Player Customizer Modal (Universal LPC Format) */}
       <CharacterCustomizerModal
         isOpen={isCustomizerOpen}
         onClose={() => setIsCustomizerOpen(false)}

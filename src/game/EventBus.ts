@@ -15,6 +15,12 @@ export const GAME_EVENTS = {
   CLOSE_DIALOG: 'close-dialog',
   /** Player pressed [E] near To-Do List board -> open todo overlay */
   OPEN_TODO_LIST: 'open-todo-list',
+  /** React UI closed todo list -> unfreeze player */
+  CLOSE_TODO_LIST: 'close-todo-list',
+  /** React UI opened any modal/input -> lock player & disable keyboard capture */
+  PAUSE_INPUT: 'pause-input',
+  /** React UI closed modal/input -> unlock player & enable keyboard capture */
+  RESUME_INPUT: 'resume-input',
   /** Player triggered quick reaction emoji from GatherDock */
   TRIGGER_REACTION: 'trigger-reaction',
   /** Player sent an office chat message -> show 2D speech bubble above avatar */
