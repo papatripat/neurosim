@@ -1,0 +1,8 @@
+Modern Rooms & People by HappyHustle
+Character designs: PixelLab Pro.
+Character idle animations: PixelLab PixMiniMax.
+Character walks: PixelLab skeleton-guided V3; Resident is the complete Pro rebuild.
+The selected Resident, Barista, Cook, Office Worker, Courier and Maintenance
+Worker PNGs are preserved at native resolution. Environment artwork and sample
+assembly are from the existing Modern Rooms & People project.
+https://happyhustle.itch.io/

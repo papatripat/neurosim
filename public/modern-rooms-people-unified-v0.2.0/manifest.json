@@ -1,0 +1,1085 @@
+{
+  "name": "Modern Rooms & People",
+  "version": "0.2.0",
+  "creator": "HappyHustle",
+  "counts": {
+    "characters": 6,
+    "standing_directions_per_character": 8,
+    "animation_directions_per_character": 4,
+    "animation_clips": 48,
+    "animation_frames": 408,
+    "standing_frames": 48,
+    "props": 32,
+    "tiles": 16,
+    "rooms": 3
+  },
+  "environment_palette": {
+    "K": "#242a38",
+    "D": "#3d485b",
+    "S": "#697b8b",
+    "U": "#a7b7bb",
+    "V": "#d1d5c6",
+    "W": "#f4ead5",
+    "B": "#533e3b",
+    "M": "#856044",
+    "L": "#ba8a5c",
+    "H": "#dec29b",
+    "F": "#e2a778",
+    "f": "#ad7457",
+    "J": "#794e40",
+    "T": "#355c5a",
+    "C": "#658979",
+    "G": "#9db49b",
+    "R": "#934d55",
+    "A": "#cb7367",
+    "Q": "#e99c7b",
+    "N": "#385676",
+    "I": "#6286a3",
+    "E": "#9ab3bd",
+    "Y": "#b78a44",
+    "O": "#e0b65d"
+  },
+  "character_palette_note": "PixelLab Pro character palettes are preserved; the 24-color environment palette does not constrain them.",
+  "tile_cell": [
+    32,
+    32
+  ],
+  "prop_cell": [
+    64,
+    64
+  ],
+  "prop_pivot": [
+    32,
+    58
+  ],
+  "standing_cell": [
+    48,
+    48
+  ],
+  "aligned_character_cell": [
+    64,
+    64
+  ],
+  "aligned_character_pivot": [
+    32,
+    54
+  ],
+  "scene_size": [
+    576,
+    384
+  ],
+  "rooms": [
+    {
+      "name": "Café",
+      "rect": [
+        16,
+        16,
+        256,
+        352
+      ],
+      "floor": 1,
+      "wall": 7
+    },
+    {
+      "name": "Apartment",
+      "rect": [
+        288,
+        16,
+        272,
+        160
+      ],
+      "floor": 0,
+      "wall": 6
+    },
+    {
+      "name": "Workspace",
+      "rect": [
+        288,
+        192,
+        272,
+        176
+      ],
+      "floor": 4,
+      "wall": 6
+    }
+  ],
+  "prop_placements": [
+    {
+      "name": "wall-window",
+      "x": 64,
+      "y": 55
+    },
+    {
+      "name": "wall-clock",
+      "x": 186,
+      "y": 48
+    },
+    {
+      "name": "wall-art",
+      "x": 236,
+      "y": 58
+    },
+    {
+      "name": "counter",
+      "x": 72,
+      "y": 118
+    },
+    {
+      "name": "counter",
+      "x": 120,
+      "y": 118
+    },
+    {
+      "name": "espresso-machine",
+      "x": 65,
+      "y": 98
+    },
+    {
+      "name": "pastry-case",
+      "x": 122,
+      "y": 98
+    },
+    {
+      "name": "kitchen-cabinet",
+      "x": 207,
+      "y": 87
+    },
+    {
+      "name": "fridge",
+      "x": 243,
+      "y": 93
+    },
+    {
+      "name": "plant-large",
+      "x": 34,
+      "y": 126
+    },
+    {
+      "name": "bar-stool",
+      "x": 74,
+      "y": 147
+    },
+    {
+      "name": "bar-stool",
+      "x": 120,
+      "y": 147
+    },
+    {
+      "name": "cafe-table",
+      "x": 69,
+      "y": 222
+    },
+    {
+      "name": "cafe-chair",
+      "x": 43,
+      "y": 214
+    },
+    {
+      "name": "cafe-chair",
+      "x": 98,
+      "y": 214
+    },
+    {
+      "name": "cafe-table",
+      "x": 192,
+      "y": 223
+    },
+    {
+      "name": "cafe-chair",
+      "x": 166,
+      "y": 215
+    },
+    {
+      "name": "cafe-chair",
+      "x": 221,
+      "y": 215
+    },
+    {
+      "name": "sofa",
+      "x": 77,
+      "y": 326
+    },
+    {
+      "name": "coffee-table",
+      "x": 78,
+      "y": 346
+    },
+    {
+      "name": "armchair",
+      "x": 200,
+      "y": 327
+    },
+    {
+      "name": "plant-large",
+      "x": 241,
+      "y": 346
+    },
+    {
+      "name": "bed",
+      "x": 329,
+      "y": 103
+    },
+    {
+      "name": "nightstand",
+      "x": 364,
+      "y": 91
+    },
+    {
+      "name": "floor-lamp",
+      "x": 371,
+      "y": 81
+    },
+    {
+      "name": "wardrobe",
+      "x": 412,
+      "y": 91
+    },
+    {
+      "name": "sink",
+      "x": 459,
+      "y": 83
+    },
+    {
+      "name": "stove",
+      "x": 492,
+      "y": 83
+    },
+    {
+      "name": "fridge",
+      "x": 534,
+      "y": 88
+    },
+    {
+      "name": "rug",
+      "x": 467,
+      "y": 143
+    },
+    {
+      "name": "plant-small",
+      "x": 427,
+      "y": 113
+    },
+    {
+      "name": "wall-window",
+      "x": 476,
+      "y": 49
+    },
+    {
+      "name": "wall-art",
+      "x": 395,
+      "y": 48
+    },
+    {
+      "name": "bookcase",
+      "x": 529,
+      "y": 260
+    },
+    {
+      "name": "desk",
+      "x": 361,
+      "y": 281
+    },
+    {
+      "name": "desk",
+      "x": 433,
+      "y": 281
+    },
+    {
+      "name": "computer",
+      "x": 360,
+      "y": 260
+    },
+    {
+      "name": "computer",
+      "x": 430,
+      "y": 260
+    },
+    {
+      "name": "office-chair",
+      "x": 361,
+      "y": 305
+    },
+    {
+      "name": "office-chair",
+      "x": 430,
+      "y": 305
+    },
+    {
+      "name": "filing-cabinet",
+      "x": 305,
+      "y": 268
+    },
+    {
+      "name": "printer",
+      "x": 305,
+      "y": 239
+    },
+    {
+      "name": "water-cooler",
+      "x": 493,
+      "y": 274
+    },
+    {
+      "name": "parcel-stack",
+      "x": 510,
+      "y": 350
+    },
+    {
+      "name": "toolbox",
+      "x": 303,
+      "y": 354
+    },
+    {
+      "name": "plant-large",
+      "x": 547,
+      "y": 344
+    },
+    {
+      "name": "wall-window",
+      "x": 355,
+      "y": 225
+    },
+    {
+      "name": "wall-art",
+      "x": 462,
+      "y": 224
+    }
+  ],
+  "props": [
+    {
+      "name": "sofa",
+      "file": "art/props/sofa.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "armchair",
+      "file": "art/props/armchair.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        64,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "coffee-table",
+      "file": "art/props/coffee-table.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        128,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "bed",
+      "file": "art/props/bed.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        192,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "nightstand",
+      "file": "art/props/nightstand.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        256,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "wardrobe",
+      "file": "art/props/wardrobe.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        320,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "bookcase",
+      "file": "art/props/bookcase.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        384,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "floor-lamp",
+      "file": "art/props/floor-lamp.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        448,
+        0,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "plant-large",
+      "file": "art/props/plant-large.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "plant-small",
+      "file": "art/props/plant-small.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        64,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "cafe-table",
+      "file": "art/props/cafe-table.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        128,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "cafe-chair",
+      "file": "art/props/cafe-chair.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        192,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "counter",
+      "file": "art/props/counter.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        256,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "espresso-machine",
+      "file": "art/props/espresso-machine.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        320,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "pastry-case",
+      "file": "art/props/pastry-case.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        384,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "bar-stool",
+      "file": "art/props/bar-stool.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        448,
+        64,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "fridge",
+      "file": "art/props/fridge.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        0,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "stove",
+      "file": "art/props/stove.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        64,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "sink",
+      "file": "art/props/sink.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        128,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "kitchen-cabinet",
+      "file": "art/props/kitchen-cabinet.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        192,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "desk",
+      "file": "art/props/desk.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        256,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "office-chair",
+      "file": "art/props/office-chair.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        320,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "computer",
+      "file": "art/props/computer.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        384,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "printer",
+      "file": "art/props/printer.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        448,
+        128,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "filing-cabinet",
+      "file": "art/props/filing-cabinet.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        0,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "water-cooler",
+      "file": "art/props/water-cooler.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        64,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "parcel-stack",
+      "file": "art/props/parcel-stack.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        128,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "toolbox",
+      "file": "art/props/toolbox.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        192,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "wall-window",
+      "file": "art/props/wall-window.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        256,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "wall-art",
+      "file": "art/props/wall-art.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        320,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "wall-clock",
+      "file": "art/props/wall-clock.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        384,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    },
+    {
+      "name": "rug",
+      "file": "art/props/rug.png",
+      "atlas": "art/props/props.png",
+      "rect": [
+        448,
+        192,
+        64,
+        64
+      ],
+      "pivot": [
+        32,
+        58
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "name": "oak-floor",
+      "file": "art/tiles/oak-floor.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        0,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "cream-tile",
+      "file": "art/tiles/cream-tile.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        32,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "sage-tile",
+      "file": "art/tiles/sage-tile.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        64,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "slate-tile",
+      "file": "art/tiles/slate-tile.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        96,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "carpet",
+      "file": "art/tiles/carpet.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        128,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "paving",
+      "file": "art/tiles/paving.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        160,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-cream",
+      "file": "art/tiles/wall-cream.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        192,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-sage",
+      "file": "art/tiles/wall-sage.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        224,
+        0,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-coral",
+      "file": "art/tiles/wall-coral.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        0,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-end-left",
+      "file": "art/tiles/wall-end-left.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        32,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-end-right",
+      "file": "art/tiles/wall-end-right.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        64,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "wall-doorway",
+      "file": "art/tiles/wall-doorway.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        96,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "baseboard-cream",
+      "file": "art/tiles/baseboard-cream.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        128,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "baseboard-sage",
+      "file": "art/tiles/baseboard-sage.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        160,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "threshold",
+      "file": "art/tiles/threshold.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        192,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "name": "solid-slate",
+      "file": "art/tiles/solid-slate.png",
+      "atlas": "art/tiles/tiles.png",
+      "rect": [
+        224,
+        32,
+        32,
+        32
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "slug": "resident",
+      "name": "Resident",
+      "pixellab_character_id": "4633c85b-8214-4c72-876f-d434de12e12e",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/resident/native.json",
+      "aligned_metadata": "art/characters/resident/aligned.json",
+      "standing_metadata": "art/characters/resident/standing/turnaround.json",
+      "south_standing_height": 38,
+      "godot_spriteframes": "godot-resources/resident.tres",
+      "godot_scene": "godot-resources/resident.tscn"
+    },
+    {
+      "slug": "barista",
+      "name": "Barista",
+      "pixellab_character_id": "9a260a6d-86b7-4848-b5fb-6569eedb7af4",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/barista/native.json",
+      "aligned_metadata": "art/characters/barista/aligned.json",
+      "standing_metadata": "art/characters/barista/standing/turnaround.json",
+      "south_standing_height": 37,
+      "godot_spriteframes": "godot-resources/barista.tres",
+      "godot_scene": "godot-resources/barista.tscn"
+    },
+    {
+      "slug": "cook",
+      "name": "Cook",
+      "pixellab_character_id": "bcf4be2f-d853-48c2-a2ea-74d69e7af276",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/cook/native.json",
+      "aligned_metadata": "art/characters/cook/aligned.json",
+      "standing_metadata": "art/characters/cook/standing/turnaround.json",
+      "south_standing_height": 37,
+      "godot_spriteframes": "godot-resources/cook.tres",
+      "godot_scene": "godot-resources/cook.tscn"
+    },
+    {
+      "slug": "office-worker",
+      "name": "Office Worker",
+      "pixellab_character_id": "ce7b2239-c92e-465c-ae82-043be2697d0a",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/office-worker/native.json",
+      "aligned_metadata": "art/characters/office-worker/aligned.json",
+      "standing_metadata": "art/characters/office-worker/standing/turnaround.json",
+      "south_standing_height": 38,
+      "godot_spriteframes": "godot-resources/office-worker.tres",
+      "godot_scene": "godot-resources/office-worker.tscn"
+    },
+    {
+      "slug": "courier",
+      "name": "Courier",
+      "pixellab_character_id": "145f522b-ef7f-4072-bd4a-9a1f6afb7149",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/courier/native.json",
+      "aligned_metadata": "art/characters/courier/aligned.json",
+      "standing_metadata": "art/characters/courier/standing/turnaround.json",
+      "south_standing_height": 37,
+      "godot_spriteframes": "godot-resources/courier.tres",
+      "godot_scene": "godot-resources/courier.tscn"
+    },
+    {
+      "slug": "maintenance-worker",
+      "name": "Maintenance Worker",
+      "pixellab_character_id": "1ffaf25b-5793-455b-bca5-8643aad323ac",
+      "design_model": "PixelLab Pro",
+      "native_metadata": "art/characters/maintenance-worker/native.json",
+      "aligned_metadata": "art/characters/maintenance-worker/aligned.json",
+      "standing_metadata": "art/characters/maintenance-worker/standing/turnaround.json",
+      "south_standing_height": 36,
+      "godot_spriteframes": "godot-resources/maintenance-worker.tres",
+      "godot_scene": "godot-resources/maintenance-worker.tscn"
+    }
+  ],
+  "browser_demo": "examples/browser/index.html",
+  "godot_project": "project.godot",
+  "license": "LICENSE.txt"
+}

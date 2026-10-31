@@ -1,0 +1,895 @@
+[
+  {
+    "index": 0,
+    "file": "tile_00.png",
+    "name": "isolated",
+    "edges": {
+      "N": 0,
+      "E": 0,
+      "S": 0,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 170,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 1,
+    "file": "tile_01.png",
+    "name": "edge_n",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 0,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 171,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 2,
+    "file": "tile_02.png",
+    "name": "edge_e",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 0,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 174,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 3,
+    "file": "tile_03.png",
+    "name": "edge_s",
+    "edges": {
+      "N": 0,
+      "E": 0,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 186,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 4,
+    "file": "tile_04.png",
+    "name": "edge_w",
+    "edges": {
+      "N": 0,
+      "E": 0,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 234,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 5,
+    "file": "tile_05.png",
+    "name": "tube_ns",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 187,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 6,
+    "file": "tile_06.png",
+    "name": "tube_ew",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 238,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 7,
+    "file": "tile_07.png",
+    "name": "corner_ne",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 0
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 175,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 8,
+    "file": "tile_08.png",
+    "name": "corner_ne_notch",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 0
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "x",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 173,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 9,
+    "file": "tile_09.png",
+    "name": "corner_se",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "1",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 190,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 10,
+    "file": "tile_10.png",
+    "name": "corner_se_notch",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "0",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 182,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 11,
+    "file": "tile_11.png",
+    "name": "corner_sw",
+    "edges": {
+      "N": 0,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "1",
+      "NW": "x"
+    },
+    "bitmask": 250,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 12,
+    "file": "tile_12.png",
+    "name": "corner_sw_notch",
+    "edges": {
+      "N": 0,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "0",
+      "NW": "x"
+    },
+    "bitmask": 218,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 13,
+    "file": "tile_13.png",
+    "name": "corner_nw",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "1"
+    },
+    "bitmask": 235,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 14,
+    "file": "tile_14.png",
+    "name": "corner_nw_notch",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "x",
+      "NW": "0"
+    },
+    "bitmask": 107,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 15,
+    "file": "tile_15.png",
+    "name": "edge3_n_11",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "1",
+      "SW": "1",
+      "NW": "x"
+    },
+    "bitmask": 254,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 16,
+    "file": "tile_16.png",
+    "name": "edge3_n_10",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "1",
+      "SW": "0",
+      "NW": "x"
+    },
+    "bitmask": 222,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 17,
+    "file": "tile_17.png",
+    "name": "edge3_n_01",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "0",
+      "SW": "1",
+      "NW": "x"
+    },
+    "bitmask": 246,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 18,
+    "file": "tile_18.png",
+    "name": "edge3_n_00",
+    "edges": {
+      "N": 0,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "0",
+      "SW": "0",
+      "NW": "x"
+    },
+    "bitmask": 214,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 19,
+    "file": "tile_19.png",
+    "name": "edge3_e_11",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "1",
+      "NW": "1"
+    },
+    "bitmask": 251,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 20,
+    "file": "tile_20.png",
+    "name": "edge3_e_10",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "1",
+      "NW": "0"
+    },
+    "bitmask": 123,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 21,
+    "file": "tile_21.png",
+    "name": "edge3_e_01",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "0",
+      "NW": "1"
+    },
+    "bitmask": 219,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 22,
+    "file": "tile_22.png",
+    "name": "edge3_e_00",
+    "edges": {
+      "N": 1,
+      "E": 0,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "x",
+      "SE": "x",
+      "SW": "0",
+      "NW": "0"
+    },
+    "bitmask": 91,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 23,
+    "file": "tile_23.png",
+    "name": "edge3_s_11",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "x",
+      "SW": "x",
+      "NW": "1"
+    },
+    "bitmask": 239,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 24,
+    "file": "tile_24.png",
+    "name": "edge3_s_10",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "x",
+      "SW": "x",
+      "NW": "1"
+    },
+    "bitmask": 237,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 25,
+    "file": "tile_25.png",
+    "name": "edge3_s_01",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "x",
+      "SW": "x",
+      "NW": "0"
+    },
+    "bitmask": 111,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 26,
+    "file": "tile_26.png",
+    "name": "edge3_s_00",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 0,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "x",
+      "SW": "x",
+      "NW": "0"
+    },
+    "bitmask": 109,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 27,
+    "file": "tile_27.png",
+    "name": "edge3_w_11",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "1",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 191,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 28,
+    "file": "tile_28.png",
+    "name": "edge3_w_10",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "0",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 183,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 29,
+    "file": "tile_29.png",
+    "name": "edge3_w_01",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "1",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 189,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 30,
+    "file": "tile_30.png",
+    "name": "edge3_w_00",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 0
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "0",
+      "SW": "x",
+      "NW": "x"
+    },
+    "bitmask": 181,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 31,
+    "file": "tile_31.png",
+    "name": "full_1111",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "1",
+      "SW": "1",
+      "NW": "1"
+    },
+    "bitmask": 255,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 32,
+    "file": "tile_32.png",
+    "name": "full_1110",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "1",
+      "SW": "1",
+      "NW": "0"
+    },
+    "bitmask": 127,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 33,
+    "file": "tile_33.png",
+    "name": "full_1101",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "1",
+      "SW": "0",
+      "NW": "1"
+    },
+    "bitmask": 223,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 34,
+    "file": "tile_34.png",
+    "name": "full_1100",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "1",
+      "SW": "0",
+      "NW": "0"
+    },
+    "bitmask": 95,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 35,
+    "file": "tile_35.png",
+    "name": "full_1011",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "0",
+      "SW": "1",
+      "NW": "1"
+    },
+    "bitmask": 247,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 36,
+    "file": "tile_36.png",
+    "name": "full_1010",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "0",
+      "SW": "1",
+      "NW": "0"
+    },
+    "bitmask": 119,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 37,
+    "file": "tile_37.png",
+    "name": "full_1001",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "0",
+      "SW": "0",
+      "NW": "1"
+    },
+    "bitmask": 215,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 38,
+    "file": "tile_38.png",
+    "name": "full_1000",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "1",
+      "SE": "0",
+      "SW": "0",
+      "NW": "0"
+    },
+    "bitmask": 87,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 39,
+    "file": "tile_39.png",
+    "name": "full_0111",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "1",
+      "SW": "1",
+      "NW": "1"
+    },
+    "bitmask": 253,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 40,
+    "file": "tile_40.png",
+    "name": "full_0110",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "1",
+      "SW": "1",
+      "NW": "0"
+    },
+    "bitmask": 125,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 41,
+    "file": "tile_41.png",
+    "name": "full_0101",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "1",
+      "SW": "0",
+      "NW": "1"
+    },
+    "bitmask": 221,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 42,
+    "file": "tile_42.png",
+    "name": "full_0100",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "1",
+      "SW": "0",
+      "NW": "0"
+    },
+    "bitmask": 93,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 43,
+    "file": "tile_43.png",
+    "name": "full_0011",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "0",
+      "SW": "1",
+      "NW": "1"
+    },
+    "bitmask": 245,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 44,
+    "file": "tile_44.png",
+    "name": "full_0010",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "0",
+      "SW": "1",
+      "NW": "0"
+    },
+    "bitmask": 117,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 45,
+    "file": "tile_45.png",
+    "name": "full_0001",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "0",
+      "SW": "0",
+      "NW": "1"
+    },
+    "bitmask": 213,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  },
+  {
+    "index": 46,
+    "file": "tile_46.png",
+    "name": "full_0000",
+    "edges": {
+      "N": 1,
+      "E": 1,
+      "S": 1,
+      "W": 1
+    },
+    "corners": {
+      "NE": "0",
+      "SE": "0",
+      "SW": "0",
+      "NW": "0"
+    },
+    "bitmask": 85,
+    "bitmask_note": "bit0=N,bit1=NE,bit2=E,bit3=SE,bit4=S,bit5=SW,bit6=W,bit7=NW; don't-care diagonals stored as 1"
+  }
+]

@@ -1,0 +1,31 @@
+MODERN ROOMS & PEOPLE — IMPORT GUIDE
+
+Choose one character representation:
+1. Native: native.json stores exact frame paths, dimensions, foot pivots,
+timings and source sheets. Draw at ground position minus the clip pivot.
+2. Aligned: aligned.png and aligned.json use 64x64 cells and pivot (32,54).
+Every cell preserves native sprite pixels; only transparent padding changes.
+Use the frame rectangles in JSON. Blank end-of-row cells are not extra frames.
+3. Godot: godot-resources has SpriteFrames and reusable Node2D scenes.
+The child AnimatedSprite2D uses position (-32,-54) and centered=false.
+Match the chosen direction to idle_south/east/north/west or walk equivalents.
+Use native.json transitions.walk_entry_frame for a close idle-to-walk handoff.
+
+Character standing PNGs: 48x48. Body heights are 36–38px in the south view.
+Native idle canvases vary by character; walk canvases are 64x64.
+There are nine idle timeline frames and eight walk frames per direction.
+Idle frames last 300ms each; walk frames last 100ms each.
+Eight standing directions do not imply eight-direction animated motion.
+
+Tiles: 32x32, zero margin/spacing, eight columns in tiles.png.
+Props: 64x64 cells, pivot (32,58), eight columns in props.png.
+Do not stretch each prop to fill its cell. Sort actors/props by ground Y;
+wall decorations and rugs draw behind actors. manifest.json lists placements.
+Rooms-ground.png contains walls and floors. Rooms-composed.png is a static
+example using the new Resident and current cast; use individual assets in games.
+Use nearest-neighbor filtering, whole-pixel positions and integer display zoom.
+
+Environment art uses the included 24-color palette. Character palettes remain
+as generated and are not restricted to the environment palette.
+The environment Aseprite files keep their original layers. Character artwork
+is supplied as editable RGBA PNGs and frame sheets, without separate body layers.

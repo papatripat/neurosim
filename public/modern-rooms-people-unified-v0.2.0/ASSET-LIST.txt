@@ -1,0 +1,66 @@
+MODERN ROOMS & PEOPLE — ASSET LIST
+
+CHARACTERS (each: 8 standing views, 4 idle clips and 4 walk clips)
+Resident
+Barista
+Cook
+Office Worker
+Courier
+Maintenance Worker
+
+PROPS (32)
+sofa
+armchair
+coffee-table
+bed
+nightstand
+wardrobe
+bookcase
+floor-lamp
+plant-large
+plant-small
+cafe-table
+cafe-chair
+counter
+espresso-machine
+pastry-case
+bar-stool
+fridge
+stove
+sink
+kitchen-cabinet
+desk
+office-chair
+computer
+printer
+filing-cabinet
+water-cooler
+parcel-stack
+toolbox
+wall-window
+wall-art
+wall-clock
+rug
+
+TILES (16)
+oak-floor
+cream-tile
+sage-tile
+slate-tile
+carpet
+paving
+wall-cream
+wall-sage
+wall-coral
+wall-end-left
+wall-end-right
+wall-doorway
+baseboard-cream
+baseboard-sage
+threshold
+solid-slate
+
+ROOMS
+Café
+Apartment
+Workspace
