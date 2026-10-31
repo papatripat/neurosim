@@ -1,7 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CharacterCustomization, CharacterDirection } from '../../types/character';
-import { ARCHETYPE_OPTIONS, SKIN_TONES, SHIRT_COLORS, PANTS_COLORS, HAIR_COLORS } from '../../config/characterOptions';
 import { Play, Pause, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import {
+  getLpcLayers,
+  loadPalettes,
+  loadImage,
+  recolorImageData,
+} from '../../lib/lpcCompositor';
 
 interface Props {
   config: CharacterCustomization;
@@ -16,105 +21,155 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
   direction,
   onChangeDirection,
   className = '',
-  zoom: initialZoom = 3,
+  zoom: initialZoom = 3.2,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isWalking, setIsWalking] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [zoom, setZoom] = useState(initialZoom);
   const [frameIndex, setFrameIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Spritesheet Image Cache
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  // Cached composited 576×256 canvas for the current config
+  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const archetype = config.archetype || 'resident';
-  const spriteSheetUrl = `/assets/characters/${archetype}/aligned.png`;
-
-  // Preload and cache spritesheet when archetype changes
+  // Re-composite character layers whenever config changes
   useEffect(() => {
-    setImageLoaded(false);
-    const img = new Image();
-    img.src = spriteSheetUrl;
-    img.onload = () => {
-      imageRef.current = img;
-      setImageLoaded(true);
-    };
-    img.onerror = () => {
-      // Fallback to resident if archetype image fails
-      const fallback = new Image();
-      fallback.src = '/assets/characters/resident/aligned.png';
-      fallback.onload = () => {
-        imageRef.current = fallback;
-        setImageLoaded(true);
-      };
-    };
-  }, [archetype, spriteSheetUrl]);
+    let active = true;
+    setIsLoading(true);
 
-  // Frame timing calculation:
-  // Row 0..3: Idle (South, East, North, West) -> 9 frames
-  // Row 4..7: Walk (South, East, North, West) -> 8 frames
-  const maxFrames = isWalking ? 8 : 9;
-  const frameInterval = isWalking ? 110 : 260; // ms per frame
+    const buildComposite = async () => {
+      try {
+        const palettes = await loadPalettes();
+        const layers = getLpcLayers(config);
+
+        const offscreen = document.createElement('canvas');
+        offscreen.width = 576;
+        offscreen.height = 256;
+        const offCtx = offscreen.getContext('2d')!;
+        offCtx.imageSmoothingEnabled = false;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 576;
+        tempCanvas.height = 256;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
+        tempCtx.imageSmoothingEnabled = false;
+
+        for (const layer of layers) {
+          try {
+            const img = await loadImage(layer.url);
+            tempCtx.clearRect(0, 0, 576, 256);
+            tempCtx.drawImage(img, 0, 0, 576, 256);
+
+            // Palette recolor swap
+            if (layer.paletteType && layer.sourceVariant && layer.targetVariant) {
+              let palGroup: Record<string, string[]> | null = null;
+              if (layer.paletteType === 'body') palGroup = palettes.body;
+              else if (layer.paletteType === 'hair') palGroup = palettes.hair;
+              else if (layer.paletteType === 'cloth') palGroup = palettes.cloth;
+
+              if (palGroup) {
+                const srcPal = palGroup[layer.sourceVariant];
+                const tgtPal = palGroup[layer.targetVariant];
+                if (srcPal && tgtPal) {
+                  const imgData = tempCtx.getImageData(0, 0, 576, 256);
+                  recolorImageData(imgData, srcPal, tgtPal);
+                  tempCtx.putImageData(imgData, 0, 0);
+                }
+              }
+            }
+
+            offCtx.drawImage(tempCanvas, 0, 0);
+          } catch (err) {
+            console.warn(`Layer render failed: ${layer.id}`, err);
+          }
+        }
+
+        if (active) {
+          compositeCanvasRef.current = offscreen;
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to composite LPC preview:', err);
+        if (active) setIsLoading(false);
+      }
+    };
+
+    buildComposite();
+
+    return () => {
+      active = false;
+    };
+  }, [config]);
+
+  // Frame timing loop:
+  // LPC walk cycle: 8 walking frames (frames 1..8)
+  const maxWalkFrames = 8;
+  const frameInterval = isWalking ? 120 : 300;
 
   useEffect(() => {
     if (!isPlaying) return;
     const timer = setInterval(() => {
-      setFrameIndex((prev) => (prev + 1) % maxFrames);
+      if (isWalking) {
+        setFrameIndex((prev) => (prev + 1) % maxWalkFrames);
+      } else {
+        setFrameIndex(0);
+      }
     }, frameInterval);
     return () => clearInterval(timer);
-  }, [isPlaying, isWalking, maxFrames, frameInterval]);
+  }, [isPlaying, isWalking, frameInterval]);
 
-  // Render to canvas
+  // Render current frame to display canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !imageLoaded || !imageRef.current) return;
+    const comp = compositeCanvasRef.current;
+    if (!canvas || !comp) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Determine row based on walk state and direction
-    // Direction rows in spritesheet:
-    // South: idle = row 0, walk = row 4
-    // East:  idle = row 1, walk = row 5
-    // North: idle = row 2, walk = row 6
-    // West:  idle = row 3, walk = row 7
-    let row = 0;
-    if (!isWalking) {
-      if (direction === 'south') row = 0;
-      else if (direction === 'east') row = 1;
-      else if (direction === 'north') row = 2;
-      else if (direction === 'west') row = 3;
+    // LPC walk.png row mapping:
+    // Row 0: North (up)
+    // Row 1: West (left)
+    // Row 2: South (down)
+    // Row 3: East (right)
+    let row = 2; // default south
+    if (direction === 'north') row = 0;
+    else if (direction === 'west') row = 1;
+    else if (direction === 'south') row = 2;
+    else if (direction === 'east') row = 3;
+
+    // Frame column in LPC walk.png:
+    // Frame 0 = idle/standing pose
+    // Frames 1..8 = walk cycle frames
+    let col = 0;
+    if (isWalking) {
+      col = 1 + (frameIndex % maxWalkFrames);
     } else {
-      if (direction === 'south') row = 4;
-      else if (direction === 'east') row = 5;
-      else if (direction === 'north') row = 6;
-      else if (direction === 'west') row = 7;
+      col = 0; // Standing frame
     }
 
-    const frame = frameIndex % maxFrames;
-    const srcX = frame * 64;
+    const srcX = col * 64;
     const srcY = row * 64;
 
-    // Reset canvas and enable crisp pixel-art nearest neighbor interpolation
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw soft ground shadow ellipse
+    // Draw floor pedestal shadow
     const centerX = canvas.width / 2;
-    const groundY = canvas.height - 18 * (zoom / 2.5);
+    const groundY = canvas.height - 20 * (zoom / 3);
     ctx.beginPath();
-    ctx.ellipse(centerX, groundY, 18 * (zoom / 2), 6 * (zoom / 2), 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.ellipse(centerX, groundY, 18 * (zoom / 2.2), 6 * (zoom / 2.2), 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
     ctx.fill();
 
-    // Draw base character sprite (64x64 scaled by zoom)
+    // Draw 64x64 sprite scaled by zoom
     const destW = 64 * zoom;
     const destH = 64 * zoom;
     const destX = (canvas.width - destW) / 2;
-    const destY = (canvas.height - destH) / 2 - 4 * zoom;
+    const destY = (canvas.height - destH) / 2 - 6 * (zoom / 3);
 
     ctx.drawImage(
-      imageRef.current,
+      comp,
       srcX,
       srcY,
       64,
@@ -125,202 +180,143 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
       Math.round(destH)
     );
 
-    // Draw subtle accessory overlays if enabled (e.g. Glasses, ID Badge, Headset)
-    if (direction === 'south' || direction === 'east' || direction === 'west') {
-      // 1. ID Badge Lanyard
-      if (config.accessory === 'id-badge' && direction === 'south') {
-        const badgeY = destY + 36 * zoom;
-        const badgeX = destX + 31 * zoom;
-        // Ribbon
-        ctx.strokeStyle = '#355c5a';
-        ctx.lineWidth = Math.max(1, Math.round(zoom * 0.7));
-        ctx.beginPath();
-        ctx.moveTo(destX + 27 * zoom, destY + 28 * zoom);
-        ctx.lineTo(badgeX, badgeY);
-        ctx.lineTo(destX + 37 * zoom, destY + 28 * zoom);
-        ctx.stroke();
-        // Badge card
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(badgeX - 2.5 * zoom, badgeY, 5 * zoom, 6 * zoom);
-        ctx.fillStyle = '#e0b65d';
-        ctx.fillRect(badgeX - 1.5 * zoom, badgeY + 1.5 * zoom, 3 * zoom, 2 * zoom);
-      }
-
-      // 2. Glasses / Eyewear
-      if (config.glasses && config.glasses !== 'none') {
-        const eyeY = destY + 23 * zoom;
-        const eyeLeftX = destX + 28 * zoom;
-        const eyeRightX = destX + 34 * zoom;
-        const frameColor = config.glasses === 'wire-frame' ? '#c99632' : '#1e1e24';
-        ctx.strokeStyle = frameColor;
-        ctx.lineWidth = Math.max(1, Math.round(zoom * 0.5));
-
-        if (direction === 'south') {
-          // Left rim
-          ctx.strokeRect(eyeLeftX - 2 * zoom, eyeY - 2 * zoom, 4 * zoom, 3 * zoom);
-          // Right rim
-          ctx.strokeRect(eyeRightX - 2 * zoom, eyeY - 2 * zoom, 4 * zoom, 3 * zoom);
-          // Bridge
-          ctx.beginPath();
-          ctx.moveTo(eyeLeftX + 2 * zoom, eyeY);
-          ctx.lineTo(eyeRightX - 2 * zoom, eyeY);
-          ctx.stroke();
-        } else if (direction === 'west') {
-          ctx.strokeRect(destX + 26 * zoom, eyeY - 2 * zoom, 4 * zoom, 3 * zoom);
-        } else if (direction === 'east') {
-          ctx.strokeRect(destX + 34 * zoom, eyeY - 2 * zoom, 4 * zoom, 3 * zoom);
-        }
-      }
-
-      // 3. Headset / Earphones
-      if (config.accessory === 'headset') {
-        const headTopY = destY + 12 * zoom;
-        ctx.strokeStyle = '#2b2f38';
-        ctx.lineWidth = Math.max(2, Math.round(zoom * 0.8));
-        // Band across head
-        ctx.beginPath();
-        ctx.arc(centerX, headTopY + 10 * zoom, 12 * zoom, Math.PI, 0, false);
-        ctx.stroke();
-        // Ear cups
-        ctx.fillStyle = '#355c5a';
-        ctx.fillRect(centerX - 13 * zoom, headTopY + 7 * zoom, 3 * zoom, 6 * zoom);
-        ctx.fillRect(centerX + 10 * zoom, headTopY + 7 * zoom, 3 * zoom, 6 * zoom);
-      }
+    // Subtle ID Badge overlay for office immersion if selected
+    if (config.accessory === 'id-badge' && (direction === 'south' || direction === 'east')) {
+      const badgeY = destY + 36 * zoom;
+      const badgeX = destX + (direction === 'south' ? 31 * zoom : 33 * zoom);
+      ctx.strokeStyle = '#355c5a';
+      ctx.lineWidth = Math.max(1, Math.round(zoom * 0.7));
+      ctx.beginPath();
+      ctx.moveTo(destX + 27 * zoom, destY + 28 * zoom);
+      ctx.lineTo(badgeX, badgeY);
+      ctx.lineTo(destX + 37 * zoom, destY + 28 * zoom);
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(badgeX - 2.5 * zoom, badgeY, 5 * zoom, 6 * zoom);
+      ctx.fillStyle = '#e0b65d';
+      ctx.fillRect(badgeX - 1.5 * zoom, badgeY + 1.5 * zoom, 3 * zoom, 2 * zoom);
     }
-  }, [config, direction, frameIndex, isWalking, zoom, imageLoaded, maxFrames]);
+  }, [direction, isWalking, frameIndex, zoom, isLoading]);
 
-  const skinToneObj = SKIN_TONES.find((s) => s.id === config.skinTone);
-  const hairColorObj = HAIR_COLORS.find((h) => h.id === config.hairColor);
-  const shirtColorObj = SHIRT_COLORS.find((c) => c.id === config.shirtColor);
-  const pantsColorObj = PANTS_COLORS.find((p) => p.id === config.pantsColor);
-  const archetypeObj = ARCHETYPE_OPTIONS.find((a) => a.id === archetype);
+  const handleRotate = () => {
+    const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
+    const nextIdx = (dirs.indexOf(direction) + 1) % dirs.length;
+    onChangeDirection?.(dirs[nextIdx]);
+  };
 
   return (
     <div className={`flex flex-col items-center select-none ${className}`}>
       {/* Canvas Viewport */}
-      <div className="relative rounded-xl border-2 border-[#b5aa94] bg-[#242a38] shadow-inner overflow-hidden flex items-center justify-center p-2">
-        {/* Archetype & Resolution Watermark */}
-        <div className="absolute top-2 left-2 text-[10px] font-mono font-bold text-soft/80 bg-black/40 px-2 py-0.5 rounded backdrop-blur-xs flex items-center gap-1.5 border border-white/10 z-10">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>{archetypeObj?.name.split(' ')[0] || 'Residen'} · 64×64 LPC</span>
-        </div>
-
-        {/* Zoom & Playback Controls Top Right */}
-        <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.min(4.5, z + 0.5))}
-            className="p-1 rounded bg-black/40 text-soft/80 hover:text-soft hover:bg-black/60 transition-colors"
-            title="Perbesar Preview"
-            aria-label="Perbesar"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.max(1.8, z - 0.5))}
-            className="p-1 rounded bg-black/40 text-soft/80 hover:text-soft hover:bg-black/60 transition-colors"
-            title="Perkecil Preview"
-            aria-label="Perkecil"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsPlaying((p) => !p)}
-            className="p-1 rounded bg-black/40 text-soft/80 hover:text-soft hover:bg-black/60 transition-colors"
-            title={isPlaying ? 'Jeda Animasi' : 'Jalankan Animasi'}
-            aria-label={isPlaying ? 'Jeda' : 'Jalankan'}
-          >
-            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {/* HTML5 Canvas */}
-        <canvas
-          ref={canvasRef}
-          width={180}
-          height={180}
-          className="w-44 h-44 sm:w-48 sm:h-48 cursor-pointer pixelated"
-          onClick={() => {
-            // Click canvas to cycle directions: south -> west -> north -> east
-            const order: CharacterDirection[] = ['south', 'west', 'north', 'east'];
-            const nextIdx = (order.indexOf(direction) + 1) % order.length;
-            onChangeDirection?.(order[nextIdx]);
+      <div className="relative w-48 h-48 sm:w-56 sm:h-56 bg-[#161a23] rounded-lg border-2 border-[#384152] shadow-inner overflow-hidden flex items-center justify-center">
+        {/* Subtle grid pattern background like Universal LPC Generator */}
+        <div
+          className="absolute inset-0 opacity-15 pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(#4a5568 1px, transparent 1px), linear-gradient(90deg, #4a5568 1px, transparent 1px)',
+            backgroundSize: '16px 16px',
           }}
-          title="Klik kanvas untuk memutar sudut pandang"
         />
 
-        {/* Palette Swatches Bar Bottom */}
-        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between px-2 py-1 rounded bg-black/60 backdrop-blur-xs text-[10px] text-soft/80 border border-white/10 z-10">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-white/60 shadow-xs"
-              style={{ backgroundColor: skinToneObj?.hex }}
-              title={`Kulit: ${skinToneObj?.name}`}
-            />
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-white/60 shadow-xs"
-              style={{ backgroundColor: hairColorObj?.hex }}
-              title={`Rambut: ${hairColorObj?.name}`}
-            />
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-white/60 shadow-xs"
-              style={{ backgroundColor: shirtColorObj?.hex }}
-              title={`Atasan: ${shirtColorObj?.name}`}
-            />
-            <span
-              className="w-2.5 h-2.5 rounded-full border border-white/60 shadow-xs"
-              style={{ backgroundColor: pantsColorObj?.hex }}
-              title={`Bawahan: ${pantsColorObj?.name}`}
-            />
+        <canvas
+          ref={canvasRef}
+          width={224}
+          height={224}
+          className="relative z-10 pixelated"
+        />
+
+        {isLoading && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-20">
+            <span className="text-[10px] font-mono text-soft animate-pulse">
+              Memproses Layer LPC...
+            </span>
           </div>
-          <span className="font-mono text-[9px] text-soft/60">
-            {isWalking ? 'Walk Cycle (8f)' : 'Idle Stance (9f)'}
-          </span>
+        )}
+
+        {/* Direction Indicator Pill */}
+        <div className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono text-[#a7b7bb] uppercase">
+          {direction === 'south'
+            ? 'Menghadap Depan'
+            : direction === 'north'
+            ? 'Menghadap Belakang'
+            : direction === 'west'
+            ? 'Menghadap Kiri'
+            : 'Menghadap Kanan'}
         </div>
       </div>
 
-      {/* Direction & Animation Toggles */}
-      <div className="flex items-center justify-between w-full mt-2.5 gap-2">
-        {/* 4 Directions */}
-        <div className="flex items-center gap-1 bg-cream/90 p-1 rounded-lg border border-[#c4b8a1] shadow-2xs">
-          {(['south', 'west', 'east', 'north'] as CharacterDirection[]).map((dir) => (
+      {/* Interactive Controls Bar */}
+      <div className="flex items-center justify-between w-full mt-2.5 px-1 gap-1.5">
+        {/* Direction Quick Switcher */}
+        <div className="flex items-center gap-1 bg-cream/90 border border-[#b5aa94] rounded p-0.5 shadow-2xs">
+          {(['south', 'east', 'north', 'west'] as CharacterDirection[]).map((d) => (
             <button
-              key={dir}
+              key={d}
               type="button"
-              onClick={() => onChangeDirection?.(dir)}
-              className={`px-2 py-0.5 text-[11px] font-bold rounded uppercase transition-colors ${
-                direction === dir
+              onClick={() => onChangeDirection?.(d)}
+              title={`Arah ${d}`}
+              className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors uppercase ${
+                direction === d
                   ? 'bg-teal text-soft shadow-xs'
-                  : 'text-ink-muted hover:text-ink hover:bg-sand/60'
+                  : 'text-ink-muted hover:text-ink hover:bg-sand'
               }`}
             >
-              {dir === 'south'
-                ? 'Depan'
-                : dir === 'north'
-                ? 'Belakang'
-                : dir === 'west'
-                ? 'Kiri'
-                : 'Kanan'}
+              {d === 'south' ? 'S' : d === 'east' ? 'E' : d === 'north' ? 'N' : 'W'}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={handleRotate}
+            title="Putar Arah Karakter (Rotate)"
+            className="p-1 hover:bg-sand rounded text-ink-muted hover:text-ink transition-colors"
+          >
+            <RotateCw className="w-3 h-3" />
+          </button>
         </div>
 
-        {/* Walk vs Idle */}
-        <button
-          type="button"
-          onClick={() => setIsWalking((w) => !w)}
-          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors shadow-2xs ${
-            isWalking
-              ? 'bg-sand text-ink border-[#b5aa94]'
-              : 'bg-cream text-ink-muted border-[#c4b8a1] hover:text-ink'
-          }`}
-          title="Ganti antara animasi berjalan dan diam"
-        >
-          <RotateCw className="w-3 h-3" />
-          <span>{isWalking ? 'Berjalan' : 'Diam'}</span>
-        </button>
+        {/* Animation & Zoom Controls */}
+        <div className="flex items-center gap-1">
+          {/* Walk / Idle toggle */}
+          <button
+            type="button"
+            onClick={() => setIsWalking((w) => !w)}
+            className={`px-2 py-0.5 text-[10px] font-semibold rounded border transition-colors ${
+              isWalking
+                ? 'bg-ochre/20 text-[#855700] border-ochre/50'
+                : 'bg-cream text-ink-muted border-[#b5aa94] hover:bg-sand'
+            }`}
+          >
+            {isWalking ? 'Jalan' : 'Diam'}
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            type="button"
+            onClick={() => setIsPlaying((p) => !p)}
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            title={isPlaying ? 'Jeda Animasi' : 'Putar Animasi'}
+          >
+            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          </button>
+
+          {/* Zoom controls */}
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.max(2, z - 0.4))}
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            title="Perkecil"
+          >
+            <ZoomOut className="w-3 h-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom((z) => Math.min(4.5, z + 0.4))}
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            title="Perbesar"
+          >
+            <ZoomIn className="w-3 h-3" />
+          </button>
+        </div>
       </div>
     </div>
   );

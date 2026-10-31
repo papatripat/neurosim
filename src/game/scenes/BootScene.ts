@@ -144,7 +144,6 @@ export class BootScene extends Phaser.Scene {
     // Row 5 (east):  5 * 9 = 45..52 (8 frames)
     // Row 6 (north): 6 * 9 = 54..61 (8 frames)
     // Row 7 (west):  7 * 9 = 63..70 (8 frames)
-    // (Bypass column 8 of each row which contains blank transparent padding)
     const walkConfigs: { dir: string; start: number }[] = [
       { dir: 'south', start: 36 }, // 36..43
       { dir: 'east', start: 45 },  // 45..52
@@ -157,6 +156,25 @@ export class BootScene extends Phaser.Scene {
           key: `${key}-walk-${dir}`,
           frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
           frameRate: 10,
+          repeat: -1,
+        });
+      }
+    }
+
+    // 4 Diagonal Walk Animations (Animasi Jalan Serong):
+    // Memungkinkan langkah diagonal berirama dinamis
+    const diagonalWalkConfigs: { dir: string; start: number }[] = [
+      { dir: 'south-east', start: 45 }, // East frames (45..52)
+      { dir: 'south-west', start: 63 }, // West frames (63..70)
+      { dir: 'north-east', start: 45 }, // East frames (45..52)
+      { dir: 'north-west', start: 63 }, // West frames (63..70)
+    ];
+    for (const { dir, start } of diagonalWalkConfigs) {
+      if (!this.anims.exists(`${key}-walk-${dir}`)) {
+        this.anims.create({
+          key: `${key}-walk-${dir}`,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 7 }),
+          frameRate: 11,
           repeat: -1,
         });
       }

@@ -36,7 +36,7 @@ export const OFFICE_ROOMS: OfficeRoom[] = [
   {
     id: 'room-main',
     name: 'Kantor Utama & Open Workspace',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     description: 'Pusat workstation tim dengan 16 meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.',
     spawnCoords: { x: 1810, y: 790 },
     capacity: 25,
@@ -46,7 +46,7 @@ export const OFFICE_ROOMS: OfficeRoom[] = [
   {
     id: 'room-meeting',
     name: 'Ruang Rapat Strategis',
-    zone: 'Zona 2 · Meeting Room',
+    zone: 'Ruang Rapat & Konferensi',
     description: 'Ruang konferensi formal berlantai kayu untuk presentasi proposal dan negosiasi proyek bersama Pak Hendra.',
     spawnCoords: { x: 600, y: 480 },
     capacity: 12,
@@ -56,7 +56,7 @@ export const OFFICE_ROOMS: OfficeRoom[] = [
   {
     id: 'room-pantry',
     name: 'Pantry & Coffee Breakroom',
-    zone: 'Zona 1 · Pantry & Dapur',
+    zone: 'Pantry & Dapur',
     description: 'Area santai dengan espresso machine, meja kafe, dan rekan kerja senior Dimas untuk obrolan santai.',
     spawnCoords: { x: 480, y: 950 },
     capacity: 15,
@@ -66,12 +66,22 @@ export const OFFICE_ROOMS: OfficeRoom[] = [
   {
     id: 'room-executive',
     name: 'Ruang Eksekutif & Manajemen',
-    zone: 'Zona 4 · Ruangan Bos',
+    zone: 'Ruang Eksekutif & Manajemen',
     description: 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas, arahan prioritas, dan feedback kerja berkala.',
-    spawnCoords: { x: 1400, y: 360 },
+    spawnCoords: { x: 2150, y: 360 },
     capacity: 8,
     activeCount: 1,
     npcs: ['Bu Rina (Atasan)'],
+  },
+  {
+    id: 'room-afk',
+    name: 'AFK Room & Area Santai',
+    zone: 'AFK Room & Area Santai',
+    description: 'Ruang istirahat dan relaksasi tenang dilengkapi sofa empuk, sudut buku, dan dispenser untuk jeda istirahat.',
+    spawnCoords: { x: 600, y: 1180 },
+    capacity: 10,
+    activeCount: 1,
+    npcs: ['Area Relaksasi Karyawan'],
   },
 ];
 
@@ -338,7 +348,7 @@ export const DashboardView: React.FC<Props> = ({
               </div>
 
               <span className="text-[11px] font-mono font-bold text-teal bg-teal/10 px-2.5 py-1 rounded-lg border border-teal/20 self-start sm:self-auto">
-                4 RUANGAN TERSEDIA
+                {OFFICE_ROOMS.length} RUANGAN TERSEDIA
               </span>
             </div>
 

@@ -19,19 +19,38 @@ export const PhaserGame: React.FC<PhaserGameProps> = ({ onSceneReady, className 
   const gameRef = useRef<Phaser.Game | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    // Safety guard against duplicate initialization
-    if (gameRef.current) return;
+    let isDestroyed = false;
+    let checkTimer: number | null = null;
 
-    const config: Phaser.Types.Core.GameConfig = {
-      ...gameConfig,
-      parent: containerRef.current,
+    const tryInitPhaser = () => {
+      if (isDestroyed || gameRef.current) return;
+
+      const rect = container.getBoundingClientRect();
+      // Ensure container has real, visible layout dimensions before initializing Phaser WebGL
+      if (rect.width < 100 || rect.height < 100) {
+        checkTimer = window.setTimeout(tryInitPhaser, 50);
+        return;
+      }
+
+      const config: Phaser.Types.Core.GameConfig = {
+        ...gameConfig,
+        parent: container,
+      };
+
+      try {
+        const game = new Phaser.Game(config);
+        gameRef.current = game;
+        (window as any).__PHASER_GAME__ = game;
+      } catch (err) {
+        console.error('Failed to initialize Phaser game engine:', err);
+      }
     };
 
-    const game = new Phaser.Game(config);
-    gameRef.current = game;
-    (window as any).__PHASER_GAME__ = game;
+    // Check on next frame / tick
+    checkTimer = window.setTimeout(tryInitPhaser, 20);
 
     const handleSceneReady = () => {
       onSceneReady?.();
@@ -40,6 +59,10 @@ export const PhaserGame: React.FC<PhaserGameProps> = ({ onSceneReady, className 
     EventBus.on(GAME_EVENTS.SCENE_READY, handleSceneReady);
 
     return () => {
+      isDestroyed = true;
+      if (checkTimer) {
+        clearTimeout(checkTimer);
+      }
       EventBus.off(GAME_EVENTS.SCENE_READY, handleSceneReady);
       if (gameRef.current) {
         delete (window as any).__PHASER_GAME__;

@@ -39,7 +39,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'user-baginda',
     name: 'Baginda Putra Krista',
     role: 'Frontend UI/UX & Aksesibilitas',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -48,7 +48,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'member-priyoga',
     name: 'Priyoga Listyo Ananda',
     role: 'Game Engine & Phaser Lead',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -57,7 +57,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'member-rifat',
     name: 'Rifat Abhista',
     role: 'Backend & AI Architecture Lead',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -66,7 +66,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-rina',
     name: 'Bu Rina',
     role: 'Atasan Tim Antarmuka',
-    zone: 'Zona 4 · Ruangan Bos',
+    zone: 'Ruang Eksekutif & Manajemen',
     status: 'busy',
     isNPC: true,
     scenarioId: 'skenario-1',
@@ -76,7 +76,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-dimas',
     name: 'Dimas',
     role: 'Rekan Kerja Senior',
-    zone: 'Zona 1 · Pantry & Dapur',
+    zone: 'Pantry & Dapur',
     status: 'pantry',
     isNPC: true,
     scenarioId: 'skenario-2',
@@ -86,7 +86,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-hendra',
     name: 'Pak Hendra',
     role: 'Klien Pemilik Proyek',
-    zone: 'Zona 2 · Meeting Room',
+    zone: 'Ruang Rapat & Konferensi',
     status: 'online',
     isNPC: true,
     scenarioId: 'skenario-3',
@@ -186,16 +186,20 @@ export const App: React.FC = () => {
   });
 
   const [tasks, setTasks] = useState<OfficeTask[]>(() => {
+    const saved = localStorage.getItem('neurosim_tasks');
+    if (!saved) return INITIAL_TASKS;
     try {
-      const saved = localStorage.getItem('neurosim_tasks');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const parsed: OfficeTask[] = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((t) => {
+          const found = INITIAL_TASKS.find((it) => it.id === t.id);
+          return found ? { ...t, zone: found.zone, title: found.title, npc: found.npc } : t;
+        });
       }
-    } catch (e) {
-      console.warn('Failed to parse neurosim_tasks:', e);
+      return INITIAL_TASKS;
+    } catch {
+      return INITIAL_TASKS;
     }
-    return INITIAL_TASKS;
   });
 
   // A11y States
@@ -576,6 +580,7 @@ export const App: React.FC = () => {
           onEnterSimulationDirect={(room) => {
             if (room) {
               setSelectedRoom(room);
+              localStorage.setItem('neurosim_spawn_coords', JSON.stringify(room.spawnCoords));
               EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
             }
             setCurrentView('simulation');
@@ -597,6 +602,7 @@ export const App: React.FC = () => {
           currentUser={currentUser}
           characterConfig={characterConfig}
           onEnterRoom={(room) => {
+            localStorage.setItem('neurosim_spawn_coords', JSON.stringify(room.spawnCoords));
             EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
             setCurrentView('simulation');
             EventBus.emit(GAME_EVENTS.RESUME_INPUT);
@@ -646,8 +652,8 @@ export const App: React.FC = () => {
         <main className="flex-1 w-full min-h-0 relative overflow-hidden bg-[#0f1117]">
           {mode === '2d' ? (
             <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
-              {/* Phaser Game Canvas */}
-              <PhaserGame />
+              {/* Phaser Game Canvas (Instantiated only when in simulation view with non-zero dimensions) */}
+              {currentView === 'simulation' && <PhaserGame />}
 
               {/* Webcam / Video Preview Widget */}
               <WebcamWidget
