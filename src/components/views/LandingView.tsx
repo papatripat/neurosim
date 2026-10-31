@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Play,
   Shirt,
@@ -14,7 +14,7 @@ import {
   LogIn,
 } from 'lucide-react';
 import { UserProfile } from '../modals/AuthModal';
-import { CharacterCustomization } from '../../types/character';
+import { CharacterCustomization, CharacterDirection } from '../../types/character';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 
 interface Props {
@@ -36,6 +36,8 @@ export const LandingView: React.FC<Props> = ({
   onOpenAuth,
   onOpenProposal,
 }) => {
+  const [previewDirection, setPreviewDirection] = useState<CharacterDirection>('south');
+
   return (
     <div className="w-full h-full overflow-y-auto bg-sand/30 text-ink select-none flex flex-col">
       {/* Top Navigation Bar */}
@@ -194,7 +196,8 @@ export const LandingView: React.FC<Props> = ({
 
             <CharacterCanvasPreview
               config={characterConfig}
-              direction="south"
+              direction={previewDirection}
+              onChangeDirection={setPreviewDirection}
               className="my-3"
             />
 

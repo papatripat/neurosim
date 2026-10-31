@@ -4,7 +4,7 @@ import { Play, Pause, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 interface Props {
   config: CharacterCustomization;
-  direction: CharacterDirection;
+  direction?: CharacterDirection;
   onChangeDirection?: (dir: CharacterDirection) => void;
   className?: string;
   zoom?: number;
@@ -12,17 +12,38 @@ interface Props {
 
 export const CharacterCanvasPreview: React.FC<Props> = ({
   config,
-  direction,
+  direction: propDirection,
   onChangeDirection,
   className = '',
   zoom: initialZoom = 2.8,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [internalDirection, setInternalDirection] = useState<CharacterDirection>(
+    propDirection || 'south'
+  );
   const [isWalking, setIsWalking] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [zoom, setZoom] = useState(initialZoom);
   const [frameIndex, setFrameIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync internal state if propDirection changes externally
+  useEffect(() => {
+    if (propDirection) {
+      setInternalDirection(propDirection);
+    }
+  }, [propDirection]);
+
+  // Current active direction (controlled if onChangeDirection provided, else uncontrolled fallback)
+  const currentDirection =
+    propDirection !== undefined && onChangeDirection !== undefined
+      ? propDirection
+      : internalDirection;
+
+  const handleDirectionChange = (newDir: CharacterDirection) => {
+    setInternalDirection(newDir);
+    onChangeDirection?.(newDir);
+  };
 
   // Cached Image element for the selected archetype aligned.png
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -91,15 +112,15 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     // Row 7: Walk West
     let row = 0;
     if (isWalking) {
-      if (direction === 'south') row = 4;
-      else if (direction === 'east') row = 5;
-      else if (direction === 'north') row = 6;
-      else if (direction === 'west') row = 7;
+      if (currentDirection === 'south') row = 4;
+      else if (currentDirection === 'east') row = 5;
+      else if (currentDirection === 'north') row = 6;
+      else if (currentDirection === 'west') row = 7;
     } else {
-      if (direction === 'south') row = 0;
-      else if (direction === 'east') row = 1;
-      else if (direction === 'north') row = 2;
-      else if (direction === 'west') row = 3;
+      if (currentDirection === 'south') row = 0;
+      else if (currentDirection === 'east') row = 1;
+      else if (currentDirection === 'north') row = 2;
+      else if (currentDirection === 'west') row = 3;
     }
 
     const col = isWalking ? (frameIndex % 8) : (isPlaying ? (frameIndex % 9) : 0);
@@ -134,12 +155,12 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
       Math.round(destW),
       Math.round(destH)
     );
-  }, [direction, isWalking, frameIndex, zoom, isLoading]);
+  }, [currentDirection, isWalking, frameIndex, zoom, isLoading]);
 
   const handleRotate = () => {
     const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
-    const nextIdx = (dirs.indexOf(direction) + 1) % dirs.length;
-    onChangeDirection?.(dirs[nextIdx]);
+    const nextIdx = (dirs.indexOf(currentDirection) + 1) % dirs.length;
+    handleDirectionChange(dirs[nextIdx]);
   };
 
   return (
@@ -173,11 +194,11 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
         {/* Direction Indicator Pill */}
         <div className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono text-[#a7b7bb] uppercase">
-          {direction === 'south'
+          {currentDirection === 'south'
             ? 'Menghadap Depan'
-            : direction === 'north'
+            : currentDirection === 'north'
             ? 'Menghadap Belakang'
-            : direction === 'west'
+            : currentDirection === 'west'
             ? 'Menghadap Kiri'
             : 'Menghadap Kanan'}
         </div>
@@ -191,10 +212,10 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
             <button
               key={d}
               type="button"
-              onClick={() => onChangeDirection?.(d)}
+              onClick={() => handleDirectionChange(d)}
               title={`Arah ${d}`}
               className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors uppercase ${
-                direction === d
+                currentDirection === d
                   ? 'bg-teal text-soft shadow-xs'
                   : 'text-ink-muted hover:text-ink hover:bg-sand'
               }`}
