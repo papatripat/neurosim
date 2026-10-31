@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SafetyBanner } from './components/layout/SafetyBanner';
 import { Header } from './components/layout/Header';
 import { ProposalModal } from './components/modals/ProposalModal';
+import { CharacterCustomizerModal } from './components/modals/CharacterCustomizerModal';
+import { CharacterCustomization } from './types/character';
+import { DEFAULT_CHARACTER } from './config/characterOptions';
 import { TodoListModal } from './components/modals/TodoListModal';
 import { DialogueModal } from './components/modals/DialogueModal';
 import { EvaluationModal } from './components/modals/EvaluationModal';
@@ -120,6 +123,8 @@ export const App: React.FC = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
+  const [characterConfig, setCharacterConfig] = useState<CharacterCustomization>(DEFAULT_CHARACTER);
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
@@ -278,6 +283,7 @@ export const App: React.FC = () => {
               unreadChatCount={0}
               status={userStatus}
               onChangeStatus={setUserStatus}
+              onOpenCustomizer={() => setIsCustomizerOpen(true)}
             />
 
             {/* Slide-in Drawers */}
@@ -346,6 +352,15 @@ export const App: React.FC = () => {
 
       {/* 7. Proposal Dossier Modal */}
       <ProposalModal isOpen={isProposalOpen} onClose={() => setIsProposalOpen(false)} />
+      {/* 8. Character / Player Customizer Modal (Universal LPC Format) */}
+      <CharacterCustomizerModal
+        isOpen={isCustomizerOpen}
+        onClose={() => setIsCustomizerOpen(false)}
+        currentConfig={characterConfig}
+        onSaveConfig={(newConfig) => {
+          setCharacterConfig(newConfig);
+        }}
+      />
     </div>
   );
 };
