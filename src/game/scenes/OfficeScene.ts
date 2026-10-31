@@ -58,7 +58,7 @@ const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja eksekutif)
+  rina: { x: 2150, y: 172 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja eksekutif)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
   klien: { x: 920, y: 640 },   // Ruang Rapat & Konferensi (Pak Hendra di sudut dalam dekat credenza/dispenser)
 } as const;
@@ -797,15 +797,15 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('cafe-table', 340, 320, 56, 52);
     this.addDecorativeProp('cafe-chair', 280, 320);
     this.addDecorativeProp('cafe-chair', 400, 320);
-    this.addSeat('Kursi Kafe', 280, 320, 'east', 'chair', 4, 0);
-    this.addSeat('Kursi Kafe', 400, 320, 'west', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 280, 320, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 400, 320, 'west', 'chair', 4, 0);
 
     this.addDecorativeProp('rug', 650, 330);
     this.addSolidProp('cafe-table', 650, 320, 56, 52);
     this.addDecorativeProp('cafe-chair', 590, 320);
     this.addDecorativeProp('cafe-chair', 710, 320);
-    this.addSeat('Kursi Kafe', 590, 320, 'east', 'chair', 4, 0);
-    this.addSeat('Kursi Kafe', 710, 320, 'west', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 590, 320, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 710, 320, 'west', 'chair', 4, 0);
 
     // Refreshment & Greenery (tucked against perimeter)
     this.addSolidProp('water-cooler', 960, 200, 52, 52);
@@ -903,8 +903,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('cafe-table', 420, 1290, 56, 52);
     this.addDecorativeProp('cafe-chair', 345, 1290);
     this.addDecorativeProp('cafe-chair', 495, 1290);
-    this.addSeat('Kursi Kafe Santai Kiri', 345, 1290, 'east', 'chair', 4, 0);
-    this.addSeat('Kursi Kafe Santai Kanan', 495, 1290, 'west', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe Santai Kiri', 345, 1290, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe Santai Kanan', 495, 1290, 'west', 'chair', 4, 0);
     this.addSolidProp('plant-large', 160, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 240, 1315);
 
@@ -937,7 +937,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('plant-small', 2225, 215);
 
     // Kursi Eksekutif Bu Rina di belakang meja utama menghadap South
-    this.addDecorativeProp('office-chair', 2150, 166);
+    this.addDecorativeProp('office-chair', 2150, 155).setDepth(150);
 
     // Kursi Tamu di depan meja utama menghadap ke Bu Rina
     this.addSolidProp('armchair-north', 2105, 335, 58, 52);  // Guest Chair 1
@@ -1280,8 +1280,13 @@ export class OfficeScene extends Phaser.Scene {
       .setSize(26, 20)
       .setOffset(19, 44);
 
-    sprite.play(`${spriteKey}-idle-south`);
-    sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
+    if (id === 'rina') {
+      sprite.play(`${spriteKey}-sit-south`);
+      sprite.setDepth(210);
+    } else {
+      sprite.play(`${spriteKey}-idle-south`);
+      sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
+    }
 
     this.npcs.push({ id, name, role, sprite, scenarioId });
   }
@@ -1341,7 +1346,8 @@ export class OfficeScene extends Phaser.Scene {
         npc.sprite.y
       );
 
-      if (dist < NPC_INTERACT_DIST) {
+      const maxDist = npc.id === 'rina' ? 175 : NPC_INTERACT_DIST;
+      if (dist < maxDist) {
         this.activeNpcNear = npc;
         break;
       }

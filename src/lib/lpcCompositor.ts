@@ -571,31 +571,102 @@ export async function generateFullLpcSpritesheet(
         }
       }
     } else if (dir === 'east') {
-      for (let y = 0; y <= 44; y++) {
+      // Sitting profile facing EAST
+      // 1. Lower Head, Hair, Neck & Torso by 5px (standing torso up to y=42)
+      for (let y = 0; y <= 42; y++) {
         for (let x = 0; x < 64; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) setPixel(x, y + 6, p);
+          if (p[3] > 10) setPixel(x, y + 5, p);
         }
       }
-      for (let y = 44; y <= 50; y++) {
-        for (let x = 26; x <= 38; x++) {
+
+      // Sample pants and shoe tones from the standing sprite
+      let pantsOutline = [20, 20, 25, 255];
+      let pantsBase = [45, 60, 95, 255];
+      let pantsLight = [60, 80, 125, 255];
+      let shoeOutline = [20, 20, 20, 255];
+      let shoeBase = [200, 200, 200, 255];
+
+      for (let y = 47; y <= 52; y++) {
+        for (let x = 28; x <= 34; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) {
-            setPixel(x + 2, y + 5, p);
-            setPixel(x + 4, y + 5, p);
-            setPixel(x + 6, y + 5, p);
-            setPixel(x + 2, y + 6, p);
-            setPixel(x + 4, y + 6, p);
-            setPixel(x + 6, y + 6, p);
+          if (p[3] > 150) {
+            const br = (p[0] + p[1] + p[2]) / 3;
+            if (br < 50) pantsOutline = p;
+            else if (br < 110) pantsBase = p;
+            else pantsLight = p;
           }
         }
       }
-      for (let y = 50; y < 64; y++) {
-        for (let x = 28; x <= 38; x++) {
+      for (let y = 58; y <= 62; y++) {
+        for (let x = 30; x <= 36; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) setPixel(x + 6, y, p);
+          if (p[3] > 150) {
+            const br = (p[0] + p[1] + p[2]) / 3;
+            if (br < 40) shoeOutline = p;
+            else shoeBase = p;
+          }
         }
       }
+
+      // Waist connection
+      for (let x = 27; x <= 36; x++) {
+        const p = getPixel(x, 42);
+        if (p[3] > 10) setPixel(x, 47, p);
+      }
+
+      // 2. Horizontal Thigh extending to the right (x: 27..39, y: 47..52)
+      for (let x = 27; x <= 39; x++) {
+        setPixel(x, 47, pantsOutline);
+        setPixel(x, 48, pantsLight);
+        setPixel(x, 49, pantsBase);
+        setPixel(x, 50, pantsBase);
+        setPixel(x, 51, pantsBase);
+        setPixel(x, 52, pantsOutline);
+      }
+      setPixel(40, 48, pantsOutline);
+      setPixel(40, 49, pantsLight);
+      setPixel(40, 50, pantsBase);
+      setPixel(40, 51, pantsOutline);
+
+      // 3. Vertical Calf descending from knee (x: 36..40, y: 52..57)
+      for (let y = 52; y <= 57; y++) {
+        setPixel(36, y, pantsOutline);
+        setPixel(37, y, pantsBase);
+        setPixel(38, y, pantsLight);
+        setPixel(39, y, pantsLight);
+        setPixel(40, y, pantsOutline);
+      }
+
+      // 4. Shoe planted flat on floor (x: 36..43, y: 58..62)
+      for (let x = 36; x <= 42; x++) {
+        setPixel(x, 58, shoeOutline);
+        setPixel(x, 59, shoeBase);
+        setPixel(x, 60, shoeBase);
+        setPixel(x, 61, shoeOutline);
+        setPixel(x, 62, shoeOutline);
+      }
+      setPixel(43, 60, shoeOutline);
+      setPixel(43, 61, shoeOutline);
+
+      // 5. Hand resting on lap (x: 33..36, y: 46..47)
+      let skinTone = [210, 160, 130, 255];
+      let skinOutline = [120, 80, 60, 255];
+      for (let y = 43; y <= 46; y++) {
+        for (let x = 30; x <= 34; x++) {
+          const p = getPixel(x, y);
+          if (p[0] > 140 && p[1] > 90 && p[2] < 120 && p[3] > 150) {
+            skinTone = p;
+          }
+        }
+      }
+      setPixel(33, 46, skinOutline);
+      setPixel(34, 46, skinTone);
+      setPixel(35, 46, skinTone);
+      setPixel(36, 46, skinOutline);
+      setPixel(33, 47, skinOutline);
+      setPixel(34, 47, skinTone);
+      setPixel(35, 47, skinOutline);
     } else if (dir === 'north') {
       for (let y = 0; y <= 45; y++) {
         for (let x = 0; x < 64; x++) {
@@ -610,31 +681,100 @@ export async function generateFullLpcSpritesheet(
         }
       }
     } else if (dir === 'west') {
-      for (let y = 0; y <= 44; y++) {
+      // Sitting profile facing WEST
+      // 1. Lower Head, Hair, Neck & Torso by 5px
+      for (let y = 0; y <= 42; y++) {
         for (let x = 0; x < 64; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) setPixel(x, y + 6, p);
+          if (p[3] > 10) setPixel(x, y + 5, p);
         }
       }
-      for (let y = 44; y <= 50; y++) {
-        for (let x = 26; x <= 38; x++) {
+
+      let pantsOutline = [20, 20, 25, 255];
+      let pantsBase = [45, 60, 95, 255];
+      let pantsLight = [60, 80, 125, 255];
+      let shoeOutline = [20, 20, 20, 255];
+      let shoeBase = [200, 200, 200, 255];
+
+      for (let y = 47; y <= 52; y++) {
+        for (let x = 30; x <= 36; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) {
-            setPixel(x - 2, y + 5, p);
-            setPixel(x - 4, y + 5, p);
-            setPixel(x - 6, y + 5, p);
-            setPixel(x - 2, y + 6, p);
-            setPixel(x - 4, y + 6, p);
-            setPixel(x - 6, y + 6, p);
+          if (p[3] > 150) {
+            const br = (p[0] + p[1] + p[2]) / 3;
+            if (br < 50) pantsOutline = p;
+            else if (br < 110) pantsBase = p;
+            else pantsLight = p;
           }
         }
       }
-      for (let y = 50; y < 64; y++) {
-        for (let x = 26; x <= 36; x++) {
+      for (let y = 58; y <= 62; y++) {
+        for (let x = 28; x <= 34; x++) {
           const p = getPixel(x, y);
-          if (p[3] > 10) setPixel(x - 6, y, p);
+          if (p[3] > 150) {
+            const br = (p[0] + p[1] + p[2]) / 3;
+            if (br < 40) shoeOutline = p;
+            else shoeBase = p;
+          }
         }
       }
+
+      for (let x = 28; x <= 37; x++) {
+        const p = getPixel(x, 42);
+        if (p[3] > 10) setPixel(x, 47, p);
+      }
+
+      // 2. Horizontal Thigh extending to the left (x: 25..37, y: 47..52)
+      for (let x = 25; x <= 37; x++) {
+        setPixel(x, 47, pantsOutline);
+        setPixel(x, 48, pantsLight);
+        setPixel(x, 49, pantsBase);
+        setPixel(x, 50, pantsBase);
+        setPixel(x, 51, pantsBase);
+        setPixel(x, 52, pantsOutline);
+      }
+      setPixel(23, 48, pantsOutline);
+      setPixel(23, 49, pantsLight);
+      setPixel(23, 50, pantsBase);
+      setPixel(23, 51, pantsOutline);
+
+      // 3. Vertical Calf descending (x: 23..27, y: 52..57)
+      for (let y = 52; y <= 57; y++) {
+        setPixel(23, y, pantsOutline);
+        setPixel(24, y, pantsLight);
+        setPixel(25, y, pantsLight);
+        setPixel(26, y, pantsBase);
+        setPixel(27, y, pantsOutline);
+      }
+
+      // 4. Shoe planted flat on floor (x: 21..28, y: 58..62)
+      for (let x = 21; x <= 27; x++) {
+        setPixel(x, 58, shoeOutline);
+        setPixel(x, 59, shoeBase);
+        setPixel(x, 60, shoeBase);
+        setPixel(x, 61, shoeOutline);
+        setPixel(x, 62, shoeOutline);
+      }
+      setPixel(20, 60, shoeOutline);
+      setPixel(20, 61, shoeOutline);
+
+      // 5. Hand resting on lap (x: 27..30, y: 46..47)
+      let skinTone = [210, 160, 130, 255];
+      let skinOutline = [120, 80, 60, 255];
+      for (let y = 43; y <= 46; y++) {
+        for (let x = 30; x <= 34; x++) {
+          const p = getPixel(x, y);
+          if (p[0] > 140 && p[1] > 90 && p[2] < 120 && p[3] > 150) {
+            skinTone = p;
+          }
+        }
+      }
+      setPixel(27, 46, skinOutline);
+      setPixel(28, 46, skinTone);
+      setPixel(29, 46, skinTone);
+      setPixel(30, 46, skinOutline);
+      setPixel(28, 47, skinOutline);
+      setPixel(29, 47, skinTone);
+      setPixel(30, 47, skinOutline);
     }
 
     fCtx.putImageData(sitData, 0, 0);
