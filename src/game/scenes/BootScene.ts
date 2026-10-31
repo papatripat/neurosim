@@ -81,16 +81,16 @@ export class BootScene extends Phaser.Scene {
     // 6 Full Archetypes + Aliases for player & NPCs
     const characters = [
       { key: 'char-resident', path: '/assets/characters/resident/aligned.png' },
-      { key: 'char-office-worker', path: '/assets/characters/office-worker/aligned.png' },
-      { key: 'char-courier', path: '/assets/characters/courier/aligned.png' },
+      { key: 'char-office-worker', path: '/assets/characters/npc-rina.png' },
+      { key: 'char-courier', path: '/assets/characters/npc-klien.png' },
       { key: 'char-barista', path: '/assets/characters/barista/aligned.png' },
       { key: 'char-cook', path: '/assets/characters/cook/aligned.png' },
       { key: 'char-maintenance-worker', path: '/assets/characters/maintenance-worker/aligned.png' },
       // Aliases
       { key: 'char-player', path: '/assets/characters/resident/aligned.png' },
-      { key: 'char-rina', path: '/assets/characters/office-worker/aligned.png' },
-      { key: 'char-dimas', path: '/assets/characters/resident/aligned.png' },
-      { key: 'char-klien', path: '/assets/characters/courier/aligned.png' },
+      { key: 'char-rina', path: '/assets/characters/npc-rina.png' },
+      { key: 'char-dimas', path: '/assets/characters/npc-dimas.png' },
+      { key: 'char-klien', path: '/assets/characters/npc-klien.png' },
     ];
 
     for (const c of characters) {
