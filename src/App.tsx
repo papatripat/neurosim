@@ -35,7 +35,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'user-baginda',
     name: 'Baginda Putra Krista',
     role: 'Frontend UI/UX & Aksesibilitas',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -44,7 +44,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'member-priyoga',
     name: 'Priyoga Listyo Ananda',
     role: 'Game Engine & Phaser Lead',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -53,7 +53,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'member-rifat',
     name: 'Rifat Abhista',
     role: 'Backend & AI Architecture Lead',
-    zone: 'Zona 5 · Workstation Utama',
+    zone: 'Workstation Utama',
     status: 'online',
     isNPC: false,
     portrait: '/assets/characters/resident/standing/south.png',
@@ -62,7 +62,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-rina',
     name: 'Bu Rina',
     role: 'Atasan Tim Antarmuka',
-    zone: 'Zona 4 · Ruangan Bos',
+    zone: 'Ruang Eksekutif & Manajemen',
     status: 'busy',
     isNPC: true,
     scenarioId: 'skenario-1',
@@ -72,7 +72,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-dimas',
     name: 'Dimas',
     role: 'Rekan Kerja Senior',
-    zone: 'Zona 1 · Pantry & Dapur',
+    zone: 'Pantry & Dapur',
     status: 'pantry',
     isNPC: true,
     scenarioId: 'skenario-2',
@@ -82,7 +82,7 @@ const INITIAL_PARTICIPANTS: Participant[] = [
     id: 'npc-hendra',
     name: 'Pak Hendra',
     role: 'Klien Pemilik Proyek',
-    zone: 'Zona 2 · Meeting Room',
+    zone: 'Ruang Rapat & Konferensi',
     status: 'online',
     isNPC: true,
     scenarioId: 'skenario-3',
@@ -136,7 +136,16 @@ export const App: React.FC = () => {
 
   const [tasks, setTasks] = useState<OfficeTask[]>(() => {
     const saved = localStorage.getItem('neurosim_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    if (!saved) return INITIAL_TASKS;
+    try {
+      const parsed: OfficeTask[] = JSON.parse(saved);
+      return parsed.map((t) => {
+        const found = INITIAL_TASKS.find((it) => it.id === t.id);
+        return found ? { ...t, zone: found.zone, title: found.title, npc: found.npc } : t;
+      });
+    } catch {
+      return INITIAL_TASKS;
+    }
   });
 
   // A11y States

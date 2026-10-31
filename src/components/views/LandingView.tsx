@@ -241,8 +241,8 @@ export const LandingView: React.FC<Props> = ({
               </div>
               <h3 className="font-bold text-sm text-ink">Kantor 2D Pixel-Art Lengkap</h3>
               <p className="text-xs text-ink-muted leading-relaxed">
-                6 Zona kantor virtual (Workstation, Meeting Room, Pantry, Creative Lounge, Ruang Bos, Koridor)
-                dengan barrier fisik padat, bebas tembus, dan perpindahan kamera mulus.
+                Ruangan kantor virtual interaktif (Workstation, Ruang Rapat, Pantry, AFK Room & Lounge, Ruang Eksekutif, Koridor)
+                dengan barrier fisik presisi, bebas tembus, dan navigasi leluasa.
               </p>
             </div>
 

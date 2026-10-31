@@ -109,9 +109,10 @@ CREATE TABLE IF NOT EXISTS `rooms` (
 -- Seed Initial Rooms
 -- -----------------------------------------------------------------------------
 INSERT INTO `rooms` (`id`, `name`, `description`, `zone`, `spawn_x`, `spawn_y`, `capacity`) VALUES
-('room-main', 'Kantor Utama & Open Workspace', 'Zona kerja utama dengan meja tim, area kolaborasi, dan koridor sentral.', 'Zona 5 · Workstation Utama', 1810, 790, 25),
-('room-meeting', 'Ruang Rapat Strategis', 'Ruang meeting formal berkarpet kayu untuk negosiasi proyek bersama Pak Hendra.', 'Zona 2 · Meeting Room', 600, 480, 12),
-('room-pantry', 'Pantry & Coffee Breakroom', 'Area santai dengan espresso bar, meja kafe, dan rekan kerja Dimas.', 'Zona 1 · Pantry & Dapur', 480, 950, 15),
-('room-executive', 'Ruang Eksekutif & Manajemen', 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas dan feedback berkala.', 'Zona 4 · Ruangan Bos', 1400, 360, 8)
+('room-main', 'Kantor Utama & Open Workspace', 'Pusat workstation tim dengan meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.', 'Workstation Utama', 1810, 790, 25),
+('room-meeting', 'Ruang Rapat Strategis', 'Ruang meeting formal berkarpet kayu untuk negosiasi proyek bersama Pak Hendra.', 'Ruang Rapat & Konferensi', 600, 480, 12),
+('room-pantry', 'Pantry & Coffee Breakroom', 'Area santai dengan espresso bar, meja kafe, dan rekan kerja Dimas.', 'Pantry & Dapur', 480, 950, 15),
+('room-executive', 'Ruang Eksekutif & Manajemen', 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas dan feedback berkala.', 'Ruang Eksekutif & Manajemen', 2150, 360, 8),
+('room-afk', 'AFK Room & Area Santai', 'Ruang istirahat dan relaksasi tenang dilengkapi sofa empuk, sudut buku, dan dispenser.', 'AFK Room & Area Santai', 600, 1140, 10)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 

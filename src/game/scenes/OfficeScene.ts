@@ -38,19 +38,17 @@ const TODO_INTERACT_DIST = 80;
 const CHAR_SCALE = 2.0;
 const PROP_SCALE = 2.0;
 
-// Default Spawn: In Main Room (Zona 5) at employee workstation facing desk!
-// "semisal awal spawn dia tuh fokusnya ke main room"
+// Default Spawn: In Main Workstation at employee desk
 const SPAWN = { x: 1687, y: 840 };
 
 // To-Do List board mounted ON THE TOP WALL of the central corridor
-// "untuk bagian todolist itu tolong jangan di taroh di tengah-tengah gitu jadi tolong benerin agar to do list nya itu lebih keatas dan buat semacam papan gituann dan itu ada barriernya"
 const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 250 },   // Zona 4 — Ruangan Bos (Skenario 1)
-  dimas: { x: 580, y: 270 },   // Zona 1 — Pantry & Dapur (Skenario 2)
-  klien: { x: 640, y: 700 },   // Zona 2 — Meeting Room (Skenario 3)
+  rina: { x: 2150, y: 250 },   // Ruang Eksekutif & Manajemen (Skenario 1)
+  dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
+  klien: { x: 640, y: 700 },   // Ruang Rapat & Konferensi (Skenario 3)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -59,8 +57,8 @@ const NPC_POSITIONS = {
 
 const OFFICE_ZONES: OfficeZone[] = [
   {
-    id: 'zona-4',
-    name: 'Zona 4 · Ruangan Bos',
+    id: 'room-executive',
+    name: 'Ruang Eksekutif & Manajemen',
     subtitle: 'Ruang Manajemen & Atasan (Bu Rina)',
     badge: 'EXECUTIVE SUITE',
     borderColor: 0xe0b65d,
@@ -68,8 +66,8 @@ const OFFICE_ZONES: OfficeZone[] = [
     check: (x, y) => x >= 1715 && x <= 2595 && y >= 100 && y <= 518,
   },
   {
-    id: 'zona-1',
-    name: 'Zona 1 · Pantry & Dapur',
+    id: 'room-pantry',
+    name: 'Pantry & Dapur',
     subtitle: 'Area Istirahat & Rekan Kerja (Dimas)',
     badge: 'PANTRY & BREAKROOM',
     borderColor: 0xba8a5c,
@@ -77,8 +75,8 @@ const OFFICE_ZONES: OfficeZone[] = [
     check: (x, y) => x >= 100 && x <= 1166 && y >= 100 && y <= 518,
   },
   {
-    id: 'zona-2',
-    name: 'Zona 2 · Meeting Room',
+    id: 'room-meeting',
+    name: 'Ruang Rapat & Konferensi',
     subtitle: 'Ruang Rapat & Presentasi Klien (Pak Hendra)',
     badge: 'CONFERENCE ROOM',
     borderColor: 0x355c5a,
@@ -86,17 +84,17 @@ const OFFICE_ZONES: OfficeZone[] = [
     check: (x, y) => x >= 100 && x <= 1166 && y > 518 && y <= 970,
   },
   {
-    id: 'zona-3',
-    name: 'Zona 3 · Smoking & Creative Lounge',
-    subtitle: 'Area Santai & Diskusi Informal',
-    badge: 'SMOKING LOUNGE',
+    id: 'afk-room',
+    name: 'AFK Room & Area Santai',
+    subtitle: 'Area Istirahat & Relaksasi Karyawan',
+    badge: 'AFK & LOUNGE',
     borderColor: 0x697b8b,
     textColor: '#fff9eb',
     check: (x, y) => x >= 100 && x <= 1166 && y > 970 && y <= 1260,
   },
   {
-    id: 'zona-5',
-    name: 'Zona 5 · Workstation Utama',
+    id: 'room-workspace',
+    name: 'Workstation Utama',
     subtitle: 'Ruang Kerja Karyawan & Kolaborasi Tim',
     badge: 'MAIN WORKSPACE',
     borderColor: 0x2b6e4f,
@@ -199,7 +197,7 @@ export class OfficeScene extends Phaser.Scene {
     // 6. Refresh static obstacles so Arcade Physics indexes all bodies immediately
     this.obstacles.refresh();
 
-    // 7. Spawn Player in Main Room (Zona 5)
+    // 7. Spawn Player in Workstation Utama
     this.buildPlayer();
 
     // 8. Spawn NPCs (Bu Rina, Dimas, Pak Hendra)
@@ -518,7 +516,7 @@ export class OfficeScene extends Phaser.Scene {
       .setStrokeStyle(1.5, 0xe0b65d);
 
     this.topBannerTitleText = this.add
-      .text(0, -9, 'Zona 5 · Workstation Utama', {
+      .text(0, -9, 'Workstation Utama', {
         fontFamily: 'system-ui, -apple-system, sans-serif',
         fontSize: '15px',
         color: '#ffffff',
@@ -635,11 +633,11 @@ export class OfficeScene extends Phaser.Scene {
     // -----------------------------------------------------------------------
     // B. BOTTOM OUTER WALL PROFILE (Seals all windows & outer grass completely)
     // -----------------------------------------------------------------------
-    // 1. Under Zona 3 (Smoking Room: x: 95..1166, floor ends at y=1230)
-    this.addStaticWall(630, 1383, 1071, 306);
+    // 1. Under AFK Room (x: 95..1205, floor ends at y=1230)
+    this.addStaticWall(650, 1383, 1110, 306);
 
     // 2. Entrance Hallway Bottom Boundary (keeps player safely inside entrance)
-    this.addStaticWall(1320, 1433, 200, 206);
+    this.addStaticWall(1320, 1433, 240, 206);
 
     // 3. Bottom wall right of entrance (Under corridor window: x: 1420..1890, floor ends at y=1324)
     this.addStaticWall(1655, 1430, 470, 212);
@@ -647,36 +645,36 @@ export class OfficeScene extends Phaser.Scene {
     // 4. Vertical jog step between corridor window and main hall window (at x = 1890)
     this.addStaticWall(1890, 1347, 30, 56);
 
-    // 5. Bottom wall under Zona 5 (Main Workspace: x: 1890..2600, floor ends at y=1370)
+    // 5. Bottom wall under Workstation Utama (x: 1890..2600, floor ends at y=1370)
     this.addStaticWall(2245, 1453, 710, 166);
 
     // -----------------------------------------------------------------------
     // C. VERTICAL DIVIDING WALL (Left Rooms vs Corridor at X = 1166)
     //    Generous walk-through clearances for 2.0 scale:
-    //    - Zona 1 Door: y = 290 .. 445 (OPEN gap = 155px)
-    //    - Zona 2 Door: y = 700 .. 855 (OPEN gap = 155px)
-    //    - Zona 3 Door: y = 1120 .. 1230 (OPEN gap = 110px)
+    //    - Pantry Door: y = 290 .. 445 (OPEN gap = 155px)
+    //    - Meeting Room Door: y = 700 .. 855 (OPEN gap = 155px)
+    //    - AFK Room Door: y = 1080 .. 1230 (OPEN gap = 150px)
     // -----------------------------------------------------------------------
-    // Solid 1: Above Zona 1 Door (y: 105..290)
+    // Solid 1: Above Pantry Door (y: 105..290)
     this.addStaticWall(1166, 198, 56, 185);
 
-    // Solid 2: Between Zona 1 & Zona 2 Doors (y: 445..700)
+    // Solid 2: Between Pantry & Meeting Room Doors (y: 445..700)
     this.addStaticWall(1166, 573, 56, 255);
 
-    // Solid 3: Between Zona 2 & Zona 3 Doors (y: 855..1100)
-    this.addStaticWall(1166, 978, 56, 245);
+    // Solid 3: Between Meeting Room & AFK Room Doors (y: 855..1080)
+    this.addStaticWall(1166, 968, 56, 225);
 
     // -----------------------------------------------------------------------
     // D. HORIZONTAL ROOM DIVIDERS (Left Rooms)
     // -----------------------------------------------------------------------
-    // Divider 1: Between Zona 1 (Pantry) & Zona 2 (Meeting Room) at y = 518
+    // Divider 1: Between Pantry & Meeting Room at y = 518
     this.addStaticWall(633, 518, 1066, 44);
 
-    // Divider 2: Between Zona 2 (Meeting Room) & Zona 3 (Smoking Area) at y = 970
+    // Divider 2: Between Meeting Room & AFK Room at y = 970
     this.addStaticWall(633, 970, 1066, 44);
 
     // -----------------------------------------------------------------------
-    // E. ZONA 4 (BOSS ROOM - BU RINA) WALLS & DOORWAY
+    // E. RUANG EKSEKUTIF & MANAJEMEN (BU RINA) WALLS & DOORWAY
     //    Doorway gap: x = 2080 .. 2250 (OPEN gap = 170px at y = 518)
     // -----------------------------------------------------------------------
     // Vertical left wall of Boss room (x = 1730, y: 100..518)
@@ -702,7 +700,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private buildOfficeFurnishings(): void {
     // =======================================================================
-    // 1. ZONA 1: PANTRY & DAPUR (Dimas - Skenario 2)
+    // 1. PANTRY & DAPUR (Dimas - Skenario 2)
     // =======================================================================
     // Kitchen Countertop along top wall (solid full depth)
     this.addSolidProp('fridge', 190, 150, 70, 80);
@@ -745,7 +743,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-art', 890, 95);
 
     // =======================================================================
-    // 2. ZONA 2: MEETING ROOM (Pak Hendra / Klien - Skenario 3)
+    // 2. RUANG RAPAT & KONFERENSI (Pak Hendra / Klien - Skenario 3)
     // =======================================================================
     // Boardroom Carpet
     this.addDecorativeProp('rug', 580, 720);
@@ -791,34 +789,35 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-clock', 630, 520);
 
     // =======================================================================
-    // 3. ZONA 3: SMOKING & CREATIVE LOUNGE
+    // 3. AFK ROOM & AREA SANTAI (Relaksasi, Istirahat, dan Baca Buku)
     // =======================================================================
-    // Primary Lounge Cluster
-    this.addDecorativeProp('rug', 350, 1130);
-    this.addSolidProp('sofa', 350, 1100, 110, 58);
-    this.addSolidProp('coffee-table', 350, 1160, 64, 40);
-    this.addSolidProp('armchair', 220, 1125, 58, 52);
-    this.addSolidProp('armchair', 480, 1125, 58, 52);
+    // Sisi Kiri: Sudut Baca Buku & Relaksasi Tenang (x: 150..460)
+    this.addSolidProp('bookcase', 210, 1025, 75, 52);
+    this.addSolidProp('bookcase', 290, 1025, 75, 52);
+    this.addDecorativeProp('wall-art', 360, 975);
+    this.addDecorativeProp('rug', 420, 1090);
+    this.addSolidProp('sofa', 420, 1025, 110, 48);
+    this.addSolidProp('coffee-table', 420, 1085, 60, 34);
+    this.addDecorativeProp('floor-lamp', 150, 1030);
+    this.addSolidProp('plant-large', 150, 1180, 50, 50);
 
-    // Secondary Lounge Cluster
-    this.addDecorativeProp('rug', 730, 1130);
-    this.addSolidProp('sofa', 730, 1100, 110, 58);
-    this.addSolidProp('coffee-table', 730, 1160, 64, 40);
-    this.addSolidProp('armchair', 600, 1125, 58, 52);
-    this.addSolidProp('armchair', 860, 1125, 58, 52);
+    // Tengah: Area Santai & Ngobrol Tim (x: 550..850)
+    this.addDecorativeProp('wall-art', 680, 975);
+    this.addDecorativeProp('wall-clock', 840, 975);
+    this.addDecorativeProp('rug', 680, 1090);
+    this.addSolidProp('sofa', 680, 1025, 110, 48);
+    this.addSolidProp('coffee-table', 680, 1085, 64, 34);
+    this.addSolidProp('armchair', 570, 1035, 54, 46);
+    this.addSolidProp('armchair', 790, 1035, 54, 46);
 
-    // Lounge Amenities
-    this.addSolidProp('water-cooler', 1040, 1050, 52, 52);
-    this.addDecorativeProp('floor-lamp', 160, 1125);
-    this.addDecorativeProp('floor-lamp', 950, 1050);
-    this.addSolidProp('plant-large', 160, 1030, 52, 52);
-    this.addSolidProp('plant-large', 160, 1190, 52, 52);
-    this.addSolidProp('plant-large', 950, 1190, 52, 52);
-    this.addDecorativeProp('wall-art', 350, 975);
-    this.addDecorativeProp('wall-art', 730, 975);
+    // Sisi Kanan: Fasilitas Refreshment & Akses Pintu Masuk Plong (x: 900..1166)
+    // Terapit rapi di dinding atas (y=1025), area lorong masuk (y: 1080..1225) 100% bebas hambatan
+    this.addSolidProp('water-cooler', 1040, 1025, 48, 48);
+    this.addDecorativeProp('plant-small', 1100, 1025);
+    this.addDecorativeProp('floor-lamp', 960, 1025);
 
     // =======================================================================
-    // 4. ZONA 4: RUANGAN BOS (Bu Rina - Skenario 1)
+    // 4. RUANG EKSEKUTIF & MANAJEMEN (Bu Rina - Skenario 1)
     // =======================================================================
     // Luxury Executive Carpet
     this.addDecorativeProp('rug', 2150, 245);
@@ -857,7 +856,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-clock', 2150, 100);
 
     // =======================================================================
-    // 5. ZONA 5: DENSE & ORGANIZED WORKSPACE (Klaster Pod Meja Tim yang Rapi)
+    // 5. WORKSTATION UTAMA (Klaster Pod Meja Tim yang Rapi)
     // =======================================================================
     // Modern Workstation Pods (2×2 Desk Islands) — Rapi, Padat, Profesional
     // Tidak amburadul: tertata simetris dengan aisle/lorong luas & tidak menutupi pintu!
@@ -892,14 +891,6 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('water-cooler', 2550, 1075, 52, 52);
     this.addSolidProp('parcel-stack', 2550, 1160, 56, 52);
     this.addSolidProp('parcel-stack', 2550, 1230, 56, 52);
-
-    // Left Divider & Corridor Wall Area (Sepanjang Sekat Kiri x = 1470)
-    this.addSolidProp('plant-large', 1470, 580, 52, 52); // Sudut atas dekat ruang Bos
-    this.addSolidProp('filing-cabinet', 1470, 700, 58, 58);
-    this.addSolidProp('filing-cabinet', 1470, 770, 58, 58);
-    this.addSolidProp('water-cooler', 1470, 870, 52, 52);
-    this.addSolidProp('toolbox', 1470, 950, 52, 48);
-    this.addSolidProp('plant-large', 1470, 1330, 52, 52); // Sudut bawah
 
     // Border Greenery Accents
     this.addSolidProp('plant-large', 2340, 580, 52, 52);
@@ -1095,7 +1086,7 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('rug', 1375, 1260); // Entrance Welcome Mat
     this.addSolidProp('plant-large', 1230, 240, 52, 52); // Above pantry door, flush to wall
     this.addSolidProp('plant-large', 1230, 580, 52, 52); // Between pantry & meeting door
-    this.addSolidProp('plant-large', 1230, 990, 52, 52); // Between meeting & smoking door
+    this.addSolidProp('plant-large', 1230, 990, 52, 52); // Between meeting & AFK room door
     this.addDecorativeProp('floor-lamp', 1600, 180);
   }
 
@@ -1122,7 +1113,7 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   private buildNPCs(): void {
-    // 1. Bu Rina — Zona 4 (Ruangan Bos)
+    // 1. Bu Rina — Ruang Eksekutif & Manajemen
     this.spawnNpc(
       'rina',
       'Bu Rina (Atasan)',
@@ -1132,7 +1123,7 @@ export class OfficeScene extends Phaser.Scene {
       NPC_POSITIONS.rina
     );
 
-    // 2. Dimas — Zona 1 (Pantry & Dapur)
+    // 2. Dimas — Pantry & Dapur
     this.spawnNpc(
       'dimas',
       'Dimas (Rekan Senior)',
@@ -1142,7 +1133,7 @@ export class OfficeScene extends Phaser.Scene {
       NPC_POSITIONS.dimas
     );
 
-    // 3. Pak Hendra — Zona 2 (Meeting Room)
+    // 3. Pak Hendra — Ruang Rapat & Konferensi
     this.spawnNpc(
       'klien',
       'Pak Hendra (Klien)',
