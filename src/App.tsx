@@ -70,11 +70,18 @@ export const App: React.FC = () => {
 
   return (
     <div className="relative w-screen h-screen bg-[#0f1117] flex flex-col select-none overflow-hidden font-sans">
-      {/* Top Bar Status */}
+      {/* Top Bar Header with Official Logo */}
       <header className="z-10 flex items-center justify-between px-4 py-2 bg-[#242a38] text-[#fff9eb] border-b border-[#3d485b] shadow-md">
         <div className="flex items-center gap-3">
-          <span className="font-bold text-sm tracking-wide text-[#e0b65d]">NEUROSIM</span>
-          <span className="text-xs px-2 py-0.5 rounded bg-[#355c5a] text-[#fff9eb]">
+          <div className="flex items-center gap-2">
+            <img 
+              src="/logo.webp" 
+              alt="NeuroSim Logo" 
+              className="w-7 h-7 object-contain drop-shadow-sm" 
+            />
+            <span className="font-bold text-base tracking-wide text-[#e0b65d]">NEUROSIM</span>
+          </div>
+          <span className="text-xs px-2.5 py-0.5 rounded bg-[#355c5a] text-[#fff9eb] font-medium hidden sm:inline-block">
             2D Office Engine (Phaser 3.85+)
           </span>
           <span className={`text-[11px] px-2 py-0.5 rounded font-mono ${sceneReady ? 'bg-[#2b6e4f] text-white' : 'bg-[#94463d] text-white'}`}>
@@ -83,8 +90,8 @@ export const App: React.FC = () => {
         </div>
 
         <div className="text-xs text-[#a7b7bb] flex items-center gap-4">
-          <span>Gerak: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono">WASD</kbd> / Panah</span>
-          <span>Interaksi: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono">E</kbd></span>
+          <span>Gerak: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono text-[11px]">WASD</kbd> / Panah</span>
+          <span>Interaksi: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono text-[11px]">E</kbd></span>
         </div>
       </header>
 
@@ -92,14 +99,14 @@ export const App: React.FC = () => {
       <main className="relative flex-1 w-full h-full">
         <PhaserGame />
 
-        {/* Dialog Modal Overlay */}
+        {/* Dialog Modal Overlay with Logo */}
         {activeDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-full max-w-xl bg-[#f4ead5] border-4 border-[#355c5a] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-[#355c5a] text-[#fff9eb]">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#e0b65d]" />
+              <div className="flex items-center justify-between px-4 py-2.5 bg-[#355c5a] text-[#fff9eb]">
+                <div className="flex items-center gap-2.5">
+                  <img src="/logo.webp" alt="Logo" className="w-5 h-5 object-contain" />
                   <span className="font-semibold text-sm">{activeDialog.npcName}</span>
                   <span className="text-xs px-2 py-0.5 rounded bg-black/25 font-mono uppercase">
                     {activeDialog.scenarioId}
@@ -167,7 +174,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* To-Do List Modal Overlay */}
+        {/* To-Do List Modal Overlay with Logo */}
         {isTodoListOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="w-full max-w-lg bg-[#f4ead5] border-4 border-[#355c5a] rounded-xl shadow-2xl flex flex-col overflow-hidden">
@@ -232,4 +239,3 @@ export const App: React.FC = () => {
     </div>
   );
 };
-
