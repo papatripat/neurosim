@@ -122,6 +122,15 @@ export class OfficeScene extends Phaser.Scene {
 
     // 12. Listeners
     EventBus.on(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
+    EventBus.on(GAME_EVENTS.CLOSE_TODO_LIST, this.handleCloseDialog, this);
+    EventBus.on(GAME_EVENTS.PAUSE_INPUT, this.lockPlayer, this);
+    EventBus.on(GAME_EVENTS.RESUME_INPUT, this.handleCloseDialog, this);
+
+    // Otomatis bebaskan capture keyboard saat user mengetik di input/textbox mana pun di React
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focusin', this.handleWindowFocusIn);
+      window.addEventListener('focusout', this.handleWindowFocusOut);
+    }
 
     // 13. Notify React
     EventBus.emit(GAME_EVENTS.SCENE_READY);
@@ -135,8 +144,27 @@ export class OfficeScene extends Phaser.Scene {
     // Dynamic Y-depth sorting for realistic 2.5D perspective
     this.player.setDepth(this.player.y);
 
-    if (this.isPlayerLocked) {
+    // Check if user is typing in any HTML input or if player is locked
+    const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+    const isTyping = Boolean(
+      activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable)
+    );
+
+    if (this.isPlayerLocked || isTyping) {
       this.player.setVelocity(0, 0);
+      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+      if (isTyping) {
+        this.input.keyboard?.disableGlobalCapture();
+        if (this.wasd) {
+          this.wasd.W?.reset();
+          this.wasd.A?.reset();
+          this.wasd.S?.reset();
+          this.wasd.D?.reset();
+        }
+      }
       return;
     }
 
@@ -763,16 +791,69 @@ export class OfficeScene extends Phaser.Scene {
   // PLAYER CONTROLS LOCK & UNLOCK
   // =========================================================================
 
-  private lockPlayer(): void {
+  private lockPlayer = (): void => {
     this.isPlayerLocked = true;
-    this.player.setVelocity(0, 0);
-    this.promptContainer.setVisible(false);
+    if (this.player && this.player.body) {
+      this.player.setVelocity(0, 0);
+      this.player.play(`char-player-idle-${this.lastDirection}`, true);
+    }
+    if (this.promptContainer) {
+      this.promptContainer.setVisible(false);
+    }
     this.input.keyboard?.disableGlobalCapture();
-  }
+    if (this.wasd) {
+      this.wasd.W?.reset();
+      this.wasd.A?.reset();
+      this.wasd.S?.reset();
+      this.wasd.D?.reset();
+    }
+  };
 
   private handleCloseDialog = (): void => {
-    this.isPlayerLocked = false;
-    this.input.keyboard?.enableGlobalCapture();
+    // Only re-enable capture if not focused in any input
+    const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
+    const isTyping = Boolean(
+      activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          (activeEl as HTMLElement).isContentEditable)
+    );
+
+    if (!isTyping) {
+      this.isPlayerLocked = false;
+      this.input.keyboard?.enableGlobalCapture();
+    }
+  };
+
+  private handleWindowFocusIn = (e: FocusEvent): void => {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+    ) {
+      this.lockPlayer();
+    }
+  };
+
+  private handleWindowFocusOut = (e: FocusEvent): void => {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+    ) {
+      setTimeout(() => {
+        const nextActive = typeof document !== 'undefined' ? document.activeElement : null;
+        const stillTyping = Boolean(
+          nextActive &&
+            (nextActive.tagName === 'INPUT' ||
+              nextActive.tagName === 'TEXTAREA' ||
+              (nextActive as HTMLElement).isContentEditable)
+        );
+        if (!stillTyping && !this.isPlayerLocked) {
+          this.input.keyboard?.enableGlobalCapture();
+        }
+      }, 50);
+    }
   };
 
   // =========================================================================
@@ -781,6 +862,13 @@ export class OfficeScene extends Phaser.Scene {
 
   shutdown(): void {
     EventBus.off(GAME_EVENTS.CLOSE_DIALOG, this.handleCloseDialog, this);
+    EventBus.off(GAME_EVENTS.CLOSE_TODO_LIST, this.handleCloseDialog, this);
+    EventBus.off(GAME_EVENTS.PAUSE_INPUT, this.lockPlayer, this);
+    EventBus.off(GAME_EVENTS.RESUME_INPUT, this.handleCloseDialog, this);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('focusin', this.handleWindowFocusIn);
+      window.removeEventListener('focusout', this.handleWindowFocusOut);
+    }
   }
 
   destroy(): void {

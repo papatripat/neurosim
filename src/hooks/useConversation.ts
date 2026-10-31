@@ -74,7 +74,7 @@ export function useConversation() {
     }
   }, [activeScenarioId, isLoading, sendMessage]);
 
-  const evaluateSession = useCallback(async () => {
+  const evaluateSession = useCallback(async (userId?: number) => {
     if (!activeScenarioId) return;
     setIsLoading(true);
 
@@ -82,7 +82,7 @@ export function useConversation() {
       const res = await fetch('/api/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenarioId: activeScenarioId, level, userGoal, transcript }),
+        body: JSON.stringify({ scenarioId: activeScenarioId, level, userGoal, transcript, userId }),
       });
       if (!res.ok) throw new Error('offline');
       const data: EvaluationResult = await res.json();

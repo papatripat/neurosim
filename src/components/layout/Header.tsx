@@ -1,5 +1,7 @@
 import React from 'react';
+import { User, ShieldCheck } from 'lucide-react';
 import { A11yControls, TextScale } from '../ui/A11yControls';
+import { UserProfile } from '../modals/AuthModal';
 
 interface Props {
   mode: '2d' | 'list';
@@ -14,6 +16,8 @@ interface Props {
   onOpenTodoList: () => void;
   completedCount: number;
   totalCount: number;
+  currentUser: UserProfile | null;
+  onOpenAuth: () => void;
 }
 
 export const Header: React.FC<Props> = ({
@@ -29,6 +33,8 @@ export const Header: React.FC<Props> = ({
   onOpenTodoList,
   completedCount,
   totalCount,
+  currentUser,
+  onOpenAuth,
 }) => (
   <header className="flex-shrink-0 flex flex-wrap items-center justify-between px-4 py-2.5 bg-cream border-b border-[#d1c7b5] text-ink gap-3">
     {/* Product Nameplate with Official Proposal Logo */}
@@ -103,6 +109,23 @@ export const Header: React.FC<Props> = ({
         className="px-2.5 py-1 text-xs font-medium rounded border border-teal text-teal hover:bg-teal hover:text-soft transition-colors"
       >
         Berkas Proposal
+      </button>
+
+      {/* Employee ID / Auth Button */}
+      <button
+        type="button"
+        onClick={onOpenAuth}
+        title={currentUser ? "Lihat Kartu Pegawai & Riwayat MySQL" : "Masuk / Terbitkan ID Pegawai"}
+        className={`px-2.5 py-1 text-xs font-semibold rounded border transition-colors flex items-center gap-1.5 shadow-xs ${
+          currentUser
+            ? 'bg-teal text-soft border-teal hover:bg-teal-dark'
+            : 'bg-sand text-ink border-teal/40 hover:bg-sand/80'
+        }`}
+      >
+        <User className="w-3.5 h-3.5" />
+        <span className="max-w-[120px] truncate">
+          {currentUser ? currentUser.fullName.split(' ')[0] : 'ID Pegawai'}
+        </span>
       </button>
     </div>
 
