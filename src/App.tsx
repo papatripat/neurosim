@@ -117,6 +117,36 @@ export const App: React.FC = () => {
   const [textScale, setTextScale] = useState<TextScale>('normal');
   const [highContrast, setHighContrast] = useState(false);
 
+  // Apply accessibility settings directly to document root for real REM scaling & effects
+  useEffect(() => {
+    const root = document.documentElement;
+    if (textScale === 'medium') {
+      root.style.fontSize = '115%';
+    } else if (textScale === 'large') {
+      root.style.fontSize = '130%';
+    } else {
+      root.style.fontSize = '100%';
+    }
+  }, [textScale]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (reduceMotion) {
+      root.classList.add('reduce-motion');
+    } else {
+      root.classList.remove('reduce-motion');
+    }
+  }, [reduceMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+  }, [highContrast]);
+
   // Gather.town Online Office States
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
