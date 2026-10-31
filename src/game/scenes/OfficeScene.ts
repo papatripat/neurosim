@@ -39,9 +39,9 @@ const TODO_INTERACT_DIST = 80;
 const CHAR_SCALE = 2.0;
 const PROP_SCALE = 2.0;
 
-// Default Spawn: In Main Room (Zona 5) right in front of player workstation facing desk!
+// Default Spawn: In Main Room (Zona 5) at employee workstation facing desk!
 // "semisal awal spawn dia tuh fokusnya ke main room"
-const SPAWN = { x: 1680, y: 950 };
+const SPAWN = { x: 1687, y: 840 };
 
 // To-Do List board mounted ON THE TOP WALL of the central corridor
 // "untuk bagian todolist itu tolong jangan di taroh di tengah-tengah gitu jadi tolong benerin agar to do list nya itu lebih keatas dan buat semacam papan gituann dan itu ada barriernya"
@@ -245,12 +245,38 @@ export class OfficeScene extends Phaser.Scene {
     cam.setZoom(1.22);
 
     this.scale.on('resize', this.handleResize, this);
+    this.refreshHUDPositions();
   }
 
   private handleResize(gameSize: Phaser.Structs.Size): void {
     this.cameras.main.setViewport(0, 0, gameSize.width, gameSize.height);
-    if (this.topBannerContainer) {
-      this.topBannerContainer.setX(gameSize.width / 2);
+    this.refreshHUDPositions();
+  }
+
+  /**
+   * Helper: Map screen-space pixel coordinates (CSS pixels) to camera coordinates
+   * taking into account main camera zoom so HUD elements stay pinned and 1:1 crisp.
+   */
+  private getScreenCoord(screenX: number, screenY: number): { x: number; y: number } {
+    const cam = this.cameras?.main;
+    const zoom = cam ? cam.zoom : 1;
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    return {
+      x: cx + (screenX - cx) / zoom,
+      y: cy + (screenY - cy) / zoom,
+    };
+  }
+
+  private refreshHUDPositions(): void {
+    const zoom = this.cameras?.main?.zoom || 1.22;
+    if (this.locationPillContainer) {
+      const { x: pillX, y: pillY } = this.getScreenCoord(24, 24);
+      this.locationPillContainer.setPosition(pillX, pillY).setScale(1 / zoom);
+    }
+    if (this.topBannerContainer && !this.topBannerTween) {
+      const { x: bannerX, y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
+      this.topBannerContainer.setPosition(bannerX, hiddenY).setScale(1 / zoom);
     }
   }
 
@@ -317,10 +343,14 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   private buildLocationHUD(): void {
-    // A. Persistent Mini Location Pill (Top-Left of Screen, always visible)
+    const zoom = 1.22;
+
+    // A. Persistent Mini Location Pill (Top-Left of Screen at screen x=24, y=24, always visible)
+    const { x: pillX, y: pillY } = this.getScreenCoord(24, 24);
     this.locationPillContainer = this.add
-      .container(20, 20)
+      .container(pillX, pillY)
       .setScrollFactor(0)
+      .setScale(1 / zoom)
       .setDepth(9990);
 
     this.locationPillBg = this.add
@@ -341,12 +371,13 @@ export class OfficeScene extends Phaser.Scene {
 
     // B. TOP-AREA Sleek Notification Banner
     // "juga untuk notif pindah-pindah tempatnya itu arahin ke bagian atas aja karena kalo tengah sepertinya ngalangin"
-    const centerX = this.scale.width / 2;
-    const topY = -80; // Hidden above screen initially
+    // "terus untuk setiap berpindahannya itu kurang bawah lagi karena itu tabrakan jadi tolong benerin kembali dong"
+    const { x: bannerX, y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
 
     this.topBannerContainer = this.add
-      .container(centerX, topY)
+      .container(bannerX, hiddenY)
       .setScrollFactor(0)
+      .setScale(1 / zoom)
       .setDepth(9995)
       .setAlpha(0);
 
@@ -421,8 +452,12 @@ export class OfficeScene extends Phaser.Scene {
       this.topBannerTween = null;
     }
 
-    const centerX = this.scale.width / 2;
-    this.topBannerContainer.setX(centerX);
+    const zoom = this.cameras.main?.zoom || 1.22;
+    // Target Y = 85px on screen (generous headroom below top header and location pill without colliding!)
+    const { x: bannerX, y: targetY } = this.getScreenCoord(this.scale.width / 2, 85);
+    const { y: hiddenY } = this.getScreenCoord(this.scale.width / 2, -100);
+
+    this.topBannerContainer.setX(bannerX).setScale(1 / zoom);
     this.topBannerBadgeText.setText(zone.icon);
     this.topBannerTitleText.setText(zone.name);
     this.topBannerSubText.setText(zone.subtitle);
@@ -434,22 +469,22 @@ export class OfficeScene extends Phaser.Scene {
     this.topBannerTitleText.setX(-bannerW / 2 + 56);
     this.topBannerSubText.setX(-bannerW / 2 + 56);
 
-    // Initial state: above viewport
-    this.topBannerContainer.setY(-70).setAlpha(0);
+    // Initial state: above viewport in screen space
+    this.topBannerContainer.setY(hiddenY).setAlpha(0);
 
-    // Drops down to y: 65, holds for 2.2s, then slides back up smoothly
+    // Drops down to targetY (screen Y = 125px), holds for 2.4s, then slides back up smoothly
     this.topBannerTween = this.tweens.add({
       targets: this.topBannerContainer,
-      y: 65,
+      y: targetY,
       alpha: 1,
-      duration: 300,
+      duration: 320,
       ease: 'Back.easeOut',
       onComplete: () => {
-        this.time.delayedCall(2200, () => {
+        this.time.delayedCall(2400, () => {
           if (this.topBannerContainer) {
             this.tweens.add({
               targets: this.topBannerContainer,
-              y: -70,
+              y: hiddenY,
               alpha: 0,
               duration: 280,
               ease: 'Power2.easeIn',
@@ -702,58 +737,54 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-clock', 2150, 100);
 
     // =======================================================================
-    // 5. ZONA 5: DENSE & VIBRANT WORKSPACE (Ruang Kerja Karyawan Lengkap)
+    // 5. ZONA 5: DENSE & ORGANIZED WORKSPACE (Klaster Pod Meja Tim yang Rapi)
     // =======================================================================
-    // 4 Workstation Columns × 4 Rows = 16 Full Workstations!
-    // Col 1: 1680 | Col 2: 1880 | Col 3: 2080 | Col 4: 2280
+    // Modern Workstation Pods (2×2 Desk Islands) — Rapi, Padat, Profesional
+    // Tidak amburadul: tertata simetris dengan aisle/lorong luas & tidak menutupi pintu!
 
-    // Row 1 (Workstations facing North at y = 700)
-    this.createWorkstation(1680, 700, 'north', false);
-    this.createWorkstation(1880, 700, 'north', false);
-    this.createWorkstation(2080, 700, 'north', false);
-    this.createWorkstation(2280, 700, 'north', false);
+    // Pod 1 (Top-Left): Tim Frontend & UI (Termasuk MEJA KAMU)
+    this.createWorkstationPod(1750, 740, '💻 TIM FRONTEND & UI', 'left');
 
-    // Row 2 (Workstations facing South at y = 870 - PLAYER WORKSTATION at 1680, 870)
-    this.createWorkstation(1680, 870, 'south', true); // Player Workstation ("MEJA KAMU")
-    this.createWorkstation(1880, 870, 'south', false);
-    this.createWorkstation(2080, 870, 'south', false);
-    this.createWorkstation(2280, 870, 'south', false);
+    // Pod 2 (Top-Right): Tim Backend & AI
+    this.createWorkstationPod(2210, 740, '⚡ TIM BACKEND & AI');
 
-    // Row 3 (Workstations facing North at y = 1060)
-    this.createWorkstation(1680, 1060, 'north', false);
-    this.createWorkstation(1880, 1060, 'north', false);
-    this.createWorkstation(2080, 1060, 'north', false);
-    this.createWorkstation(2280, 1060, 'north', false);
+    // Pod 3 (Bottom-Left): Tim Game Engine
+    this.createWorkstationPod(1750, 1040, '🎮 TIM GAME ENGINE');
 
-    // Row 4 (Workstations facing South at y = 1230)
-    this.createWorkstation(1680, 1230, 'south', false);
-    this.createWorkstation(1880, 1230, 'south', false);
-    this.createWorkstation(2080, 1230, 'south', false);
-    this.createWorkstation(2280, 1230, 'south', false);
+    // Pod 4 (Bottom-Right): Tim QA & Otomasi
+    this.createWorkstationPod(2210, 1040, '🧪 TIM QA & OTOMASI');
 
-    // Operations, Printing & Utility Area (Along Right Perimeter)
+    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan, bukan di tengah jalan!)
+    this.addDecorativeProp('rug', 2100, 1270);
+    this.addSolidProp('sofa', 2100, 1245, 108, 54);
+    this.addSolidProp('coffee-table', 2100, 1295, 64, 38);
+    this.addSolidProp('armchair', 1995, 1270, 56, 50);
+    this.addSolidProp('armchair', 2205, 1270, 56, 50);
+    this.addDecorativeProp('floor-lamp', 2275, 1245);
+    this.addSolidProp('plant-large', 1915, 1270, 52, 52);
+
+    // Operations, Printing & Utility Area (Sepanjang Dinding Kanan x = 2550)
     this.addSolidProp('printer', 2550, 680, 60, 54);
-    this.addSolidProp('printer', 2550, 765, 60, 54);
+    this.addSolidProp('printer', 2550, 760, 60, 54);
     this.addSolidProp('filing-cabinet', 2550, 850, 58, 58);
-    this.addSolidProp('filing-cabinet', 2550, 925, 58, 58);
-    this.addSolidProp('filing-cabinet', 2550, 1000, 58, 58);
-    this.addSolidProp('water-cooler', 2550, 1095, 52, 52);
-    this.addSolidProp('parcel-stack', 2550, 1195, 56, 52);
-    this.addSolidProp('parcel-stack', 2550, 1265, 56, 52);
+    this.addSolidProp('filing-cabinet', 2550, 920, 58, 58);
+    this.addSolidProp('filing-cabinet', 2550, 990, 58, 58);
+    this.addSolidProp('water-cooler', 2550, 1075, 52, 52);
+    this.addSolidProp('parcel-stack', 2550, 1160, 56, 52);
+    this.addSolidProp('parcel-stack', 2550, 1230, 56, 52);
 
-    // Breakout Discussion Lounge in Main Room (Lower Left Corner: x = 1490, y = 1180)
-    this.addDecorativeProp('rug', 1490, 1180);
-    this.addSolidProp('sofa', 1490, 1150, 108, 58);
-    this.addSolidProp('coffee-table', 1490, 1205, 64, 40);
-    this.addSolidProp('armchair', 1490, 1265, 58, 52);
-    this.addDecorativeProp('floor-lamp', 1440, 1150);
+    // Left Divider & Corridor Wall Area (Sepanjang Sekat Kiri x = 1470)
+    this.addSolidProp('plant-large', 1470, 580, 52, 52); // Sudut atas dekat ruang Bos
+    this.addSolidProp('filing-cabinet', 1470, 700, 58, 58);
+    this.addSolidProp('filing-cabinet', 1470, 770, 58, 58);
+    this.addSolidProp('water-cooler', 1470, 870, 52, 52);
+    this.addSolidProp('toolbox', 1470, 950, 52, 48);
+    this.addSolidProp('plant-large', 1470, 1330, 52, 52); // Sudut bawah
 
-    // Main Hall Greenery (Tucked neatly against solid borders — NO PLANTS IN AISLES!)
-    this.addSolidProp('plant-large', 1470, 580, 52, 52); // Beside Boss room outer corner
-    this.addSolidProp('plant-large', 1470, 720, 52, 52); // Hallway edge
-    this.addSolidProp('plant-large', 2340, 580, 52, 52); // Below Boss room divider
-    this.addSolidProp('plant-large', 2550, 600, 52, 52); // Right wall top
-    this.addSolidProp('plant-large', 2550, 1340, 52, 52); // Right wall bottom
+    // Border Greenery Accents
+    this.addSolidProp('plant-large', 2340, 580, 52, 52);
+    this.addSolidProp('plant-large', 2550, 590, 52, 52);
+    this.addSolidProp('plant-large', 2550, 1330, 52, 52);
     this.addDecorativeProp('floor-lamp', 2340, 880);
   }
 
@@ -775,39 +806,92 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   /**
-   * Helper: Build complete employee workstation (Solid Desk + PC + Chair + Tag)
+   * Helper: Build an organized, professional 4-desk team workstation pod (2×2 island).
+   * Dense, clean, and 100% impenetrable with solid colliders and team identity.
    */
-  private createWorkstation(
-    x: number,
-    y: number,
-    facing: 'north' | 'south',
-    isPlayer: boolean
+  private createWorkstationPod(
+    podX: number,
+    podY: number,
+    teamName: string,
+    playerDeskCol?: 'left' | 'right'
   ): void {
-    // 100% Solid Desk (Cannot be penetrated!)
-    this.addSolidDesk(x, y);
+    const colSpacing = 63;
+    const leftDeskX = podX - colSpacing;
+    const rightDeskX = podX + colSpacing;
 
-    // Computer Monitor
-    const pcY = facing === 'south' ? y - 26 : y + 16;
-    this.addDecorativeProp('computer', x, pcY);
+    const northDeskY = podY - 36;
+    const southDeskY = podY + 36;
 
-    // Office Chair
-    const chairY = facing === 'south' ? y + 54 : y - 54;
-    this.addDecorativeProp('office-chair', x, chairY);
+    // 1. Desks Sprites (4 desks joined back-to-back in a pod)
+    // North pair
+    this.add.image(leftDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
+    this.add.image(rightDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
+    // South pair
+    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
+    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
 
-    // Player Desk Accent
-    if (isPlayer) {
-      this.addDecorativeProp('plant-small', x - 24, pcY + 4);
-      // Desk tag
+    // 2. Computers & Monitors
+    // North desks: monitors face south toward user sitting above
+    this.addDecorativeProp('computer', leftDeskX, northDeskY + 14);
+    this.addDecorativeProp('computer', rightDeskX, northDeskY + 14);
+    // South desks: monitors face north toward user sitting below
+    this.addDecorativeProp('computer', leftDeskX, southDeskY - 14);
+    this.addDecorativeProp('computer', rightDeskX, southDeskY - 14);
+
+    // Center seam decorative succulent
+    this.addDecorativeProp('plant-small', podX, podY);
+
+    // 3. Ergonomic Office Chairs
+    // North chairs (sitting above desks facing south)
+    this.addDecorativeProp('office-chair', leftDeskX, northDeskY - 56);
+    this.addDecorativeProp('office-chair', rightDeskX, northDeskY - 56);
+    // South chairs (sitting below desks facing north)
+    this.addDecorativeProp('office-chair', leftDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair', rightDeskX, southDeskY + 56);
+
+    // 4. 100% Solid Physics Collider covering entire 4-desk island
+    const podCollider = this.add.rectangle(podX, podY, 244, 144, 0x000000, 0);
+    this.physics.add.existing(podCollider, true);
+    (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.obstacles.add(podCollider);
+
+    // 5. Team Identity Banner above the pod
+    this.add
+      .rectangle(podX, northDeskY - 95, 170, 22, 0x141824, 0.92)
+      .setStrokeStyle(1.5, 0x355c5a)
+      .setDepth(northDeskY + 2);
+    this.add
+      .text(podX, northDeskY - 95, teamName, {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#e0b65d',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(northDeskY + 3);
+
+    // 6. Player Desk Highlight ("MEJA KAMU")
+    if (playerDeskCol) {
+      const pX = playerDeskCol === 'left' ? leftDeskX : rightDeskX;
+      const pY = southDeskY;
+
+      // Small personalized desk succulent
+      this.addDecorativeProp('plant-small', pX - 22, pY - 12);
+
+      // "MEJA KAMU" prominent tag placed above the monitor seam so player standing below never obscures it!
       this.add
-        .text(x, y - 46, 'MEJA KAMU', {
+        .rectangle(pX, pY - 32, 86, 18, 0x1e293b, 0.95)
+        .setStrokeStyle(1.5, 0xe0b65d)
+        .setDepth(pY + 30);
+      this.add
+        .text(pX, pY - 32, '★ MEJA KAMU', {
           fontFamily: 'monospace',
-          fontSize: '11px',
+          fontSize: '10px',
           color: '#e0b65d',
-          backgroundColor: '#1e293b',
-          padding: { x: 5, y: 2 },
+          fontStyle: 'bold',
         })
         .setOrigin(0.5)
-        .setDepth(y + 30);
+        .setDepth(pY + 31);
     }
   }
 
