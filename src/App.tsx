@@ -1,241 +1,358 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { SafetyBanner } from './components/layout/SafetyBanner';
+import { Header } from './components/layout/Header';
+import { ProposalModal } from './components/modals/ProposalModal';
+import { TodoListModal } from './components/modals/TodoListModal';
+import { DialogueModal } from './components/modals/DialogueModal';
+import { EvaluationModal } from './components/modals/EvaluationModal';
+import { ScenarioList } from './components/scenarios/ScenarioList';
 import { PhaserGame } from './game/PhaserGame';
 import { EventBus, GAME_EVENTS } from './game/EventBus';
-import { MessageSquare, CheckSquare, X, Send } from 'lucide-react';
+import { useConversation } from './hooks/useConversation';
+import { SCENARIOS, INITIAL_TASKS } from './config/scenarios';
+import { TextScale } from './components/ui/A11yControls';
+import { OfficeTask } from './types/conversation';
 
-interface DialogPayload {
-  scenarioId: string;
-  npcName: string;
-}
+// Gather.town virtual office components
+import { GatherDock, UserStatus } from './components/gather/GatherDock';
+import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
+import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
+import { WebcamWidget } from './components/gather/WebcamWidget';
+import { FloatingReactions } from './components/gather/FloatingReactions';
+
+const INITIAL_PARTICIPANTS: Participant[] = [
+  {
+    id: 'user-baginda',
+    name: 'Baginda Putra Krista (Kamu)',
+    role: 'Frontend UI/UX & Aksesibilitas',
+    zone: 'Zona 5 · Workstation Utama',
+    status: 'online',
+    isNPC: false,
+    portrait: '/assets/characters/resident/standing/south.png',
+  },
+  {
+    id: 'member-priyoga',
+    name: 'Priyoga Listyo Ananda',
+    role: 'Game Engine & Phaser Lead',
+    zone: 'Zona 5 · Workstation Utama',
+    status: 'online',
+    isNPC: false,
+    portrait: '/assets/characters/resident/standing/south.png',
+  },
+  {
+    id: 'member-rifat',
+    name: 'Rifat Abhista',
+    role: 'Backend & AI Architecture Lead',
+    zone: 'Zona 5 · Workstation Utama',
+    status: 'online',
+    isNPC: false,
+    portrait: '/assets/characters/resident/standing/south.png',
+  },
+  {
+    id: 'npc-rina',
+    name: 'Bu Rina',
+    role: 'Atasan Tim Antarmuka',
+    zone: 'Zona 4 · Ruangan Bos',
+    status: 'busy',
+    isNPC: true,
+    scenarioId: 'skenario-1',
+    portrait: '/assets/characters/office-worker/standing/south.png',
+  },
+  {
+    id: 'npc-dimas',
+    name: 'Dimas',
+    role: 'Rekan Kerja Senior',
+    zone: 'Zona 1 · Pantry & Dapur',
+    status: 'pantry',
+    isNPC: true,
+    scenarioId: 'skenario-2',
+    portrait: '/assets/characters/resident/standing/south.png',
+  },
+  {
+    id: 'npc-hendra',
+    name: 'Pak Hendra',
+    role: 'Klien Pemilik Proyek',
+    zone: 'Zona 2 · Meeting Room',
+    status: 'online',
+    isNPC: true,
+    scenarioId: 'skenario-3',
+    portrait: '/assets/characters/courier/standing/south.png',
+  },
+];
+
+const INITIAL_CHAT_MESSAGES: OfficeChatMessage[] = [
+  {
+    id: 'm-1',
+    sender: 'Priyoga',
+    time: '14:30',
+    text: 'Viewport kantor 2D 2752x1536 dan sistem kamera sudah aktif lancar ya tim.',
+  },
+  {
+    id: 'm-2',
+    sender: 'Rifat',
+    time: '14:32',
+    text: 'Siap, endpoint proxy Gemini dan naskah persona sudah terhubung.',
+  },
+  {
+    id: 'm-3',
+    sender: 'Bu Rina',
+    time: '14:35',
+    text: 'Halo tim, tolong perhatikan instruksi kerja di meja saya ya.',
+  },
+];
 
 export const App: React.FC = () => {
-  const [sceneReady, setSceneReady] = useState(false);
-  const [activeDialog, setActiveDialog] = useState<DialogPayload | null>(null);
+  const [mode, setMode] = useState<'2d' | 'list'>('2d');
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [isTodoListOpen, setIsTodoListOpen] = useState(false);
-  const [testInput, setTestInput] = useState('');
-  const [dialogMessages, setDialogMessages] = useState<Array<{ sender: string; text: string }>>([]);
+  const [tasks, setTasks] = useState<OfficeTask[]>(() => {
+    const saved = localStorage.getItem('neurosim_tasks');
+    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+  });
+
+  // A11y States
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [textScale, setTextScale] = useState<TextScale>('normal');
+  const [highContrast, setHighContrast] = useState(false);
+
+  // Gather.town Online Office States
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isCamOn, setIsCamOn] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState<UserStatus>('available');
+  const [currentReaction, setCurrentReaction] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
+
+  const {
+    activeScenarioId,
+    userGoal,
+    transcript,
+    turnCount,
+    isLoading,
+    evaluation,
+    previousAttempt,
+    startConversation,
+    sendMessage,
+    skipTurn,
+    evaluateSession,
+    retrySession,
+    resetSession,
+  } = useConversation();
 
   useEffect(() => {
-    const handleSceneReady = () => {
-      setSceneReady(true);
-    };
+    localStorage.setItem('neurosim_tasks', JSON.stringify(tasks));
+  }, [tasks]);
 
-    const handleOpenDialog = (data: DialogPayload) => {
-      setActiveDialog(data);
-      setDialogMessages([
-        {
-          sender: data.npcName,
-          text: `Halo! Selamat datang di simulasi interaksi (${data.scenarioId}). Silakan ketik respons untuk menguji input teks WASD saat dialog terbuka.`,
-        },
-      ]);
+  useEffect(() => {
+    if (evaluation && activeScenarioId) {
+      setTasks((prev) =>
+        prev.map((t) => (t.scenarioId === activeScenarioId ? { ...t, completed: true } : t))
+      );
+    }
+  }, [evaluation, activeScenarioId]);
+
+  const handleStartScenario = useCallback(
+    (scenarioId: string, level: 1 | 2 | 3 = 2, goal?: string) => {
+      const sc = SCENARIOS.find((s) => s.id === scenarioId);
+      if (!sc) return;
+      startConversation(scenarioId, sc.initialDialogue, level, goal || sc.defaultGoal);
+    },
+    [startConversation]
+  );
+
+  useEffect(() => {
+    const handleOpenDialog = ({ scenarioId }: { scenarioId: string; npcName: string }) => {
+      handleStartScenario(scenarioId);
     };
 
     const handleOpenTodoList = () => {
       setIsTodoListOpen(true);
     };
 
-    EventBus.on(GAME_EVENTS.SCENE_READY, handleSceneReady);
     EventBus.on(GAME_EVENTS.OPEN_DIALOG, handleOpenDialog);
     EventBus.on(GAME_EVENTS.OPEN_TODO_LIST, handleOpenTodoList);
 
     return () => {
-      EventBus.off(GAME_EVENTS.SCENE_READY, handleSceneReady);
       EventBus.off(GAME_EVENTS.OPEN_DIALOG, handleOpenDialog);
       EventBus.off(GAME_EVENTS.OPEN_TODO_LIST, handleOpenTodoList);
     };
-  }, []);
+  }, [handleStartScenario]);
 
-  const closeDialog = () => {
-    setActiveDialog(null);
-    setTestInput('');
+  const handleCloseDialogue = () => {
+    resetSession();
     EventBus.emit(GAME_EVENTS.CLOSE_DIALOG);
   };
 
-  const closeTodoList = () => {
+  const handleCloseTodoList = () => {
     setIsTodoListOpen(false);
     EventBus.emit(GAME_EVENTS.CLOSE_DIALOG);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!testInput.trim()) return;
+  const activeScenario = SCENARIOS.find((s) => s.id === activeScenarioId);
 
-    setDialogMessages((prev) => [
-      ...prev,
-      { sender: 'Pemain', text: testInput.trim() },
-      { sender: activeDialog?.npcName || 'NPC', text: `Respons diterima: "${testInput.trim()}". Input teks keyboard (WASD) berfungsi normal tanpa interference Phaser!` },
-    ]);
-    setTestInput('');
+  const handleRetryDialogue = () => {
+    if (activeScenario) {
+      retrySession(activeScenario.initialDialogue);
+    }
   };
 
+  const handleSendOfficeChat = (text: string) => {
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes()
+    ).padStart(2, '0')}`;
+    const newMsg: OfficeChatMessage = {
+      id: `user-${Date.now()}`,
+      sender: 'Baginda (Kamu)',
+      time: timeStr,
+      text,
+      isSelf: true,
+    };
+    setChatMessages((prev) => [...prev, newMsg]);
+  };
+
+  const handleSendReaction = (emoji: string) => {
+    setCurrentReaction(emoji);
+    setTimeout(() => setCurrentReaction(null), 2500);
+  };
+
+  const scaleClass = () => {
+    if (textScale === 'medium') return 'text-[110%]';
+    if (textScale === 'large') return 'text-[125%]';
+    return 'text-base';
+  };
+
+  const completedCount = tasks.filter((t) => t.completed).length;
+
   return (
-    <div className="relative w-screen h-screen bg-[#0f1117] flex flex-col select-none overflow-hidden font-sans">
-      {/* Top Bar Header with Official Logo */}
-      <header className="z-10 flex items-center justify-between px-4 py-2 bg-[#242a38] text-[#fff9eb] border-b border-[#3d485b] shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <img 
-              src="/logo.webp" 
-              alt="NeuroSim Logo" 
-              className="w-7 h-7 object-contain drop-shadow-sm" 
+    <div
+      className={`h-screen w-screen overflow-hidden flex flex-col bg-sand text-ink select-none ${
+        reduceMotion ? 'motion-reduce' : ''
+      } ${highContrast ? 'contrast-125' : ''} ${scaleClass()}`}
+    >
+      {/* 1. Psychological Safety Banner */}
+      <SafetyBanner onLearnMore={() => setIsProposalOpen(true)} />
+
+      {/* 2. Top Header & Mode Switcher */}
+      <Header
+        mode={mode}
+        onModeChange={setMode}
+        reduceMotion={reduceMotion}
+        onToggleReduceMotion={() => setReduceMotion((m) => !m)}
+        textScale={textScale}
+        onChangeTextScale={setTextScale}
+        highContrast={highContrast}
+        onToggleHighContrast={() => setHighContrast((c) => !c)}
+        onOpenProposal={() => setIsProposalOpen(true)}
+        onOpenTodoList={() => setIsTodoListOpen(true)}
+        completedCount={completedCount}
+        totalCount={tasks.length}
+      />
+
+      {/* 3. Main Workspace Viewport (Zero Scrollbar Overflow) */}
+      <main className="flex-1 w-full min-h-0 relative overflow-hidden bg-[#0f1117]">
+        {mode === '2d' ? (
+          <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+            {/* Phaser Game Canvas */}
+            <PhaserGame />
+
+            {/* Floating Live Reactions (Gather.town style) */}
+            <FloatingReactions reaction={currentReaction} />
+
+            {/* Webcam / Video Preview Widget */}
+            <WebcamWidget
+              isOpen={isCamOn}
+              onClose={() => setIsCamOn(false)}
+              isMicOn={isMicOn}
             />
-            <span className="font-bold text-base tracking-wide text-[#e0b65d]">NEUROSIM</span>
+
+            {/* Bottom Gather.town Action Dock */}
+            <GatherDock
+              isMicOn={isMicOn}
+              onToggleMic={() => setIsMicOn((m) => !m)}
+              isCamOn={isCamOn}
+              onToggleCam={() => setIsCamOn((c) => !c)}
+              isScreenSharing={isScreenSharing}
+              onToggleScreenShare={() => setIsScreenSharing((s) => !s)}
+              onOpenParticipants={() => setIsParticipantsOpen((p) => !p)}
+              onOpenOfficeChat={() => setIsOfficeChatOpen((c) => !c)}
+              onSendReaction={handleSendReaction}
+              participantsCount={INITIAL_PARTICIPANTS.length}
+              unreadChatCount={0}
+              status={userStatus}
+              onChangeStatus={setUserStatus}
+            />
+
+            {/* Slide-in Drawers */}
+            <ParticipantsDrawer
+              isOpen={isParticipantsOpen}
+              onClose={() => setIsParticipantsOpen(false)}
+              participants={INITIAL_PARTICIPANTS}
+              onStartScenario={handleStartScenario}
+            />
+
+            <OfficeChatDrawer
+              isOpen={isOfficeChatOpen}
+              onClose={() => setIsOfficeChatOpen(false)}
+              messages={chatMessages}
+              onSendMessage={handleSendOfficeChat}
+            />
           </div>
-          <span className="text-xs px-2.5 py-0.5 rounded bg-[#355c5a] text-[#fff9eb] font-medium hidden sm:inline-block">
-            2D Office Engine (Phaser 3.85+)
-          </span>
-          <span className={`text-[11px] px-2 py-0.5 rounded font-mono ${sceneReady ? 'bg-[#2b6e4f] text-white' : 'bg-[#94463d] text-white'}`}>
-            {sceneReady ? '● Engine Ready' : '○ Loading Assets...'}
-          </span>
-        </div>
-
-        <div className="text-xs text-[#a7b7bb] flex items-center gap-4">
-          <span>Gerak: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono text-[11px]">WASD</kbd> / Panah</span>
-          <span>Interaksi: <kbd className="px-1.5 py-0.5 bg-[#3d485b] rounded text-white font-mono text-[11px]">E</kbd></span>
-        </div>
-      </header>
-
-      {/* Phaser Canvas Viewport */}
-      <main className="relative flex-1 w-full h-full">
-        <PhaserGame />
-
-        {/* Dialog Modal Overlay with Logo */}
-        {activeDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-xl bg-[#f4ead5] border-4 border-[#355c5a] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-[#355c5a] text-[#fff9eb]">
-                <div className="flex items-center gap-2.5">
-                  <img src="/logo.webp" alt="Logo" className="w-5 h-5 object-contain" />
-                  <span className="font-semibold text-sm">{activeDialog.npcName}</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-black/25 font-mono uppercase">
-                    {activeDialog.scenarioId}
-                  </span>
-                </div>
-                <button
-                  onClick={closeDialog}
-                  aria-label="Tutup Dialog"
-                  className="p-1 hover:bg-white/20 rounded transition text-[#fff9eb]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Message List */}
-              <div className="flex-1 p-4 max-h-[300px] overflow-y-auto space-y-3 bg-[#e6dfce]/40">
-                {dialogMessages.map((msg, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex flex-col ${msg.sender === 'Pemain' ? 'items-end' : 'items-start'}`}
-                  >
-                    <span className="text-[11px] font-semibold text-[#5c6d70] mb-0.5">
-                      {msg.sender}
-                    </span>
-                    <div
-                      className={`max-w-[85%] p-3 rounded-lg text-sm leading-relaxed ${
-                        msg.sender === 'Pemain'
-                          ? 'bg-[#355c5a] text-[#fff9eb] rounded-tr-none'
-                          : 'bg-[#fff9eb] border border-[#d1c7b5] text-[#242a38] rounded-tl-none shadow-sm'
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Text Input Form (Verifies WASD capture release) */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-[#f4ead5] border-t border-[#d1c7b5] flex gap-2">
-                <input
-                  type="text"
-                  autoFocus
-                  value={testInput}
-                  onChange={(e) => setTestInput(e.target.value)}
-                  placeholder="Ketik responsmu (uji ketik 'w', 'a', 's', 'd')..."
-                  className="flex-1 px-3 py-2 bg-[#fff9eb] border border-[#a7b7bb] rounded-md text-sm text-[#242a38] focus:outline-none focus:ring-2 focus:ring-[#355c5a]"
-                />
-                <button
-                  type="submit"
-                  disabled={!testInput.trim()}
-                  className="px-4 py-2 bg-[#355c5a] text-[#fff9eb] rounded-md text-sm font-semibold hover:bg-[#2c4d4b] transition flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <Send className="w-4 h-4" />
-                  Kirim
-                </button>
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  className="px-3 py-2 border border-[#a7b7bb] text-[#242a38] rounded-md text-sm hover:bg-[#e6dfce] transition"
-                >
-                  Selesai
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* To-Do List Modal Overlay with Logo */}
-        {isTodoListOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg bg-[#f4ead5] border-4 border-[#355c5a] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-[#355c5a] text-[#fff9eb]">
-                <div className="flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-[#e0b65d]" />
-                  <span className="font-semibold text-sm">Papan To-Do List Kantor</span>
-                </div>
-                <button
-                  onClick={closeTodoList}
-                  aria-label="Tutup To-Do List"
-                  className="p-1 hover:bg-white/20 rounded transition text-[#fff9eb]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-5 space-y-3 bg-[#fff9eb]">
-                <p className="text-xs text-[#5c6d70]">
-                  Daftar agenda skenario komunikasi yang dapat kamu latih di kantor ini:
-                </p>
-
-                <div className="space-y-2">
-                  <div className="p-3 bg-[#e6dfce] rounded-lg border border-[#a7b7bb] flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-[#242a38]">Skenario 1: Klarifikasi Instruksi Ambigu</h4>
-                      <p className="text-[11px] text-[#5c6d70]">Ruangan Bos (Zona 4 - Kanan Atas) • Bu Rina</p>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-[#355c5a] text-[#fff9eb]">Tersedia</span>
-                  </div>
-
-                  <div className="p-3 bg-[#e6dfce] rounded-lg border border-[#a7b7bb] flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-[#242a38]">Skenario 2: Kritik Tidak Langsung</h4>
-                      <p className="text-[11px] text-[#5c6d70]">Pantry & Dapur (Zona 1 - Kiri Atas) • Dimas</p>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-[#355c5a] text-[#fff9eb]">Tersedia</span>
-                  </div>
-
-                  <div className="p-3 bg-[#e6dfce] rounded-lg border border-[#a7b7bb] flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-[#242a38]">Skenario 3: Revisi Mendadak & Negosiasi Tenggat</h4>
-                      <p className="text-[11px] text-[#5c6d70]">Meeting Room (Zona 2 - Kiri Tengah) • Pak Hendra</p>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-[#355c5a] text-[#fff9eb]">Tersedia</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 bg-[#f4ead5] border-t border-[#d1c7b5] flex justify-end">
-                <button
-                  onClick={closeTodoList}
-                  className="px-4 py-2 bg-[#355c5a] text-[#fff9eb] rounded-md text-xs font-semibold hover:bg-[#2c4d4b] transition"
-                >
-                  Kembali ke Kantor (Tutup)
-                </button>
-              </div>
-            </div>
+        ) : (
+          <div className="w-full h-full overflow-y-auto py-6 bg-sand">
+            <ScenarioList scenarios={SCENARIOS} onStartScenario={handleStartScenario} />
           </div>
         )}
       </main>
+
+      {/* 4. Active Dialogue Modal */}
+      {activeScenario && !evaluation && (
+        <DialogueModal
+          isOpen={true}
+          scenarioId={activeScenario.id}
+          npcName={activeScenario.name}
+          portraitSrc={activeScenario.portrait}
+          userGoal={userGoal || activeScenario.defaultGoal}
+          transcript={transcript}
+          turnCount={turnCount}
+          maxTurns={6}
+          isLoading={isLoading}
+          hintText={activeScenario.hint}
+          onSendMessage={sendMessage}
+          onSkipTurn={skipTurn}
+          onExit={handleCloseDialogue}
+          onRequestEvaluation={evaluateSession}
+        />
+      )}
+
+      {/* 5. Objective Evaluation Modal */}
+      {activeScenario && evaluation && (
+        <EvaluationModal
+          isOpen={true}
+          evaluation={evaluation}
+          userGoal={userGoal || activeScenario.defaultGoal}
+          transcript={transcript}
+          previousAttempt={previousAttempt}
+          onRetry={handleRetryDialogue}
+          onNextScenario={handleCloseDialogue}
+          onClose={handleCloseDialogue}
+        />
+      )}
+
+      {/* 6. Central Corridor To-Do Board Modal */}
+      <TodoListModal
+        isOpen={isTodoListOpen}
+        onClose={handleCloseTodoList}
+        tasks={tasks}
+        onSelectTask={(scId) => handleStartScenario(scId)}
+      />
+
+      {/* 7. Proposal Dossier Modal */}
+      <ProposalModal isOpen={isProposalOpen} onClose={() => setIsProposalOpen(false)} />
     </div>
   );
 };
+
+export default App;
