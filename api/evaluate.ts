@@ -2,12 +2,14 @@ import { getScenarioConfig } from '../src/config/scenarios.config';
 import { FullEvaluationResult, RubricOutput } from '../src/schemas/evaluator.schema';
 import { generateRubricEvaluation } from '../src/services/gemini.service';
 import { calculateLevelRecommendation } from '../src/services/levelEngine';
+import { getDbPool } from '../src/lib/db';
 
 export interface EvaluateRequestBody {
   scenarioId: string;
   level?: 1 | 2 | 3;
   userGoal?: string;
   transcript: Array<{ speaker: string; text: string }>;
+  userId?: number;
 }
 
 /**
@@ -59,6 +61,58 @@ export function getFallbackEvaluation(scenarioId: string): FullEvaluationResult 
 }
 
 /**
+ * Simpan hasil evaluasi ke MySQL jika user sedang login
+ */
+async function saveEvaluationToDb(
+  userId: number,
+  scenarioId: string,
+  level: number,
+  userGoal: string,
+  result: FullEvaluationResult,
+  transcript: any[]
+) {
+  try {
+    const pool = getDbPool();
+    if (!pool) return;
+
+    await pool.query(
+      `INSERT INTO user_evaluations (
+        user_id, scenario_id, level, user_goal,
+        kejelasan_tingkat, kejelasan_alasan,
+        konteks_tingkat, konteks_alasan,
+        tujuan_tingkat, tujuan_alasan,
+        batasan_tingkat, batasan_alasan,
+        maksud_tersembunyi, rekomendasi_level,
+        alternatif_ringkas, alternatif_rinci,
+        transcript_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        scenarioId,
+        level,
+        userGoal,
+        result.kejelasan_pesan.tingkat,
+        result.kejelasan_pesan.alasan,
+        result.pemahaman_konteks.tingkat,
+        result.pemahaman_konteks.alasan,
+        result.ketercapaian_tujuan.tingkat,
+        result.ketercapaian_tujuan.alasan,
+        result.rasa_hormat_dan_batasan.tingkat,
+        result.rasa_hormat_dan_batasan.alasan,
+        result.maksud_tersembunyi_karakter,
+        result.rekomendasi_level,
+        result.alternatif_respons.versi_ringkas,
+        result.alternatif_respons.versi_rinci,
+        JSON.stringify(transcript),
+      ]
+    );
+    console.log(`[DB] Evaluasi berhasil disimpan ke MySQL untuk user_id: ${userId}`);
+  } catch (err) {
+    console.warn('[DB Save Evaluation Error]:', err);
+  }
+}
+
+/**
  * Logika murni pemrosesan evaluasi rubrik 4 dimensi
  */
 export async function processEvaluate(body: EvaluateRequestBody): Promise<FullEvaluationResult> {
@@ -66,6 +120,7 @@ export async function processEvaluate(body: EvaluateRequestBody): Promise<FullEv
   const level = (body.level === 1 || body.level === 2 || body.level === 3) ? body.level : 2;
   const userGoal = body.userGoal || '';
   const transcript = Array.isArray(body.transcript) ? body.transcript : [];
+  const userId = body.userId;
 
   const scenario = getScenarioConfig(scenarioId);
 
@@ -77,18 +132,26 @@ export async function processEvaluate(body: EvaluateRequestBody): Promise<FullEv
       transcript,
     });
 
+    let finalResult: FullEvaluationResult;
+
     if (!rubric) {
-      return getFallbackEvaluation(scenarioId);
+      finalResult = getFallbackEvaluation(scenarioId);
+    } else {
+      // Hitung rekomendasi level secara deterministik (Rule Engine Bab E)
+      const levelRec = calculateLevelRecommendation(rubric);
+      finalResult = {
+        ...rubric,
+        maksud_tersembunyi_karakter: scenario.hiddenIntent,
+        rekomendasi_level: levelRec,
+      };
     }
 
-    // Hitung rekomendasi level secara deterministik (Rule Engine Bab E)
-    const levelRec = calculateLevelRecommendation(rubric);
+    // Jika user login, simpan ke MySQL
+    if (userId) {
+      saveEvaluationToDb(userId, scenarioId, level, userGoal, finalResult, transcript);
+    }
 
-    return {
-      ...rubric,
-      maksud_tersembunyi_karakter: scenario.hiddenIntent,
-      rekomendasi_level: levelRec,
-    };
+    return finalResult;
   } catch (error) {
     console.error('[API Evaluate] Error:', error);
     return getFallbackEvaluation(scenarioId);
@@ -116,5 +179,4 @@ export async function handleEvaluate(req: Request): Promise<Response> {
   }
 }
 
-// Default export untuk kemudahan import jika diperlukan
 export default handleEvaluate;
