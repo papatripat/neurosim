@@ -146,11 +146,8 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
             </div>
             <div>
               <h2 id="customizer-title" className="text-sm sm:text-base font-bold leading-tight">
-                Kustomisasi Karakter & Pakaian Kerja
+                Kustomisasi Karakter
               </h2>
-              <p className="text-[11px] text-soft/80 font-mono">
-                Universal LPC Spritesheet Format · Gather.town Online Office
-              </p>
             </div>
           </div>
           <button
@@ -280,13 +277,13 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
           {/* Right Column: Customization Tabs & Options */}
           <div className="flex-1 flex flex-col min-h-0 bg-parchment/40">
             {/* Category Tabs */}
-            <div className="flex items-center border-b border-[#d1c7b5] bg-cream px-3 overflow-x-auto no-scrollbar flex-shrink-0">
+            <div className="grid grid-cols-5 border-b border-[#d1c7b5] bg-cream flex-shrink-0">
               {[
-                { id: 'identity', label: 'Wajah & Tubuh', icon: User },
+                { id: 'identity', label: 'Wajah', icon: User },
                 { id: 'hair', label: 'Rambut', icon: Scissors },
-                { id: 'top', label: 'Atasan & Jas', icon: Shirt },
-                { id: 'bottom', label: 'Bawahan & Sepatu', icon: Briefcase },
-                { id: 'accessories', label: 'Aksesoris Kantor', icon: Tag },
+                { id: 'top', label: 'Atasan', icon: Shirt },
+                { id: 'bottom', label: 'Bawahan', icon: Briefcase },
+                { id: 'accessories', label: 'Aksesoris', icon: Tag },
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -295,14 +292,14 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id as TabCategory)}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-colors ${
+                    className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-semibold border-b-2 transition-colors ${
                       isActive
                         ? 'border-teal text-teal bg-sand/30'
                         : 'border-transparent text-ink-muted hover:text-ink hover:bg-sand/10'
                     }`}
                   >
-                    <IconComponent className="w-3.5 h-3.5" />
-                    <span>{tab.label}</span>
+                    <IconComponent className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">{tab.label}</span>
                   </button>
                 );
               })}
@@ -810,12 +807,11 @@ export const CharacterCustomizerModal: React.FC<Props> = ({
                   <div className="p-3 bg-cream border border-[#d1c7b5] rounded-lg text-xs text-ink-muted space-y-1">
                     <div className="flex items-center gap-1.5 text-teal font-semibold">
                       <Info className="w-4 h-4" />
-                      <span>Standar Integrasi Universal LPC Spritesheet</span>
+                      <span>Format Karakter 64×64 Pixel</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      Seluruh layer di atas (rambut, pakaian, dasi, aksesoris) memiliki koordinat
-                      frame 64×64 pixel yang siap digabungkan menjadi satu spritesheet PNG utuh
-                      saat aset diintegrasikan ke Phaser nanti.
+                      Seluruh pilihan pakaian, rambut, dan aksesoris di atas dirancang untuk
+                      frame animasi 64×64 pixel agar selaras dengan tampilan karakter di dalam kantor 2D.
                     </p>
                   </div>
                 </div>
