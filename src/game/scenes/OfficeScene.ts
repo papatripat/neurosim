@@ -30,7 +30,7 @@ export interface OfficeZone {
 const MAP_W = 2752;
 const MAP_H = 1536;
 const PLAYER_SPEED = 185;
-const NPC_INTERACT_DIST = 85;
+const NPC_INTERACT_DIST = 130;
 const TODO_INTERACT_DIST = 80;
 
 // Proportional scales for 64×64 sprites onto 2752×1536 map
@@ -46,9 +46,9 @@ const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 250 },   // Ruang Eksekutif & Manajemen (Skenario 1)
+  rina: { x: 2150, y: 175 },   // Ruang Eksekutif & Manajemen (Bu Rina di kursi eksekutif rapi di balik meja)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
-  klien: { x: 640, y: 700 },   // Ruang Rapat & Konferensi (Skenario 3)
+  klien: { x: 630, y: 650 },   // Ruang Rapat & Konferensi (Pak Hendra di kursi rapat di balik meja)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -785,10 +785,10 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('office-chair', 540, 645);
     this.addDecorativeProp('office-chair', 630, 645);
     this.addDecorativeProp('office-chair', 720, 645);
-    this.addDecorativeProp('office-chair', 450, 795);
-    this.addDecorativeProp('office-chair', 540, 795);
-    this.addDecorativeProp('office-chair', 630, 795);
-    this.addDecorativeProp('office-chair', 720, 795);
+    this.addDecorativeProp('office-chair-north', 450, 795);
+    this.addDecorativeProp('office-chair-north', 540, 795);
+    this.addDecorativeProp('office-chair-north', 630, 795);
+    this.addDecorativeProp('office-chair-north', 720, 795);
     this.addDecorativeProp('office-chair', 360, 720); // Head of table
 
     // Credenza & Storage against top wall
@@ -846,9 +846,10 @@ export class OfficeScene extends Phaser.Scene {
     // Meja & Kursi-kursian Santai Seberang Kanan: Set Meja Diskusi & Armchair (x: 710..890, y: 1290)
     // Meja di tengah diapit armchair kiri dan kanan (menghadap ke meja, tidak ada sofa terbalik/bertabrakan)
     this.addDecorativeProp('rug', 800, 1290);
-    this.addSolidProp('coffee-table', 800, 1290, 64, 34);
-    this.addSolidProp('armchair', 715, 1290, 54, 46);
-    this.addSolidProp('armchair', 885, 1290, 54, 46);
+    this.addSolidProp('coffee-table', 800, 1265, 64, 34);
+    this.addSolidProp('armchair', 700, 1290, 54, 46);
+    this.addSolidProp('armchair', 900, 1290, 54, 46);
+    this.addSolidProp('sofa-north', 800, 1320, 104, 48);
     this.addSolidProp('plant-large', 1090, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 1000, 1315);
 
@@ -939,23 +940,19 @@ export class OfficeScene extends Phaser.Scene {
    * Helper: Add a 100% Solid Desk (Cannot be penetrated from any angle!)
    */
   private addSolidDesk(x: number, y: number): void {
-    // Render visual desk with proper depth sorting at base
+    // Render visual desk with baseline depth sorting at base
     this.add
       .image(x, y, 'prop-desk')
       .setScale(PROP_SCALE)
-      .setDepth(y + 15);
+      .setDepth(y + 52);
 
-    // Impenetrable physics body covering the desk width & depth
-    const col = this.add.rectangle(x, y + 8, 110, 64, 0x000000, 0);
+    // Precise physics collider placed at desk floor base (no phantom offside barrier!)
+    const col = this.add.rectangle(x, y + 26, 96, 36, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
   }
 
-  /**
-   * Helper: Build an organized, professional 4-desk team workstation pod (2×2 island).
-   * Dense, clean, and 100% impenetrable with solid colliders.
-   */
   private createWorkstationPod(
     podX: number,
     podY: number,
@@ -981,8 +978,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('computer', leftDeskX, northDeskY + 14);
     this.addDecorativeProp('computer', rightDeskX, northDeskY + 14);
     // South desks: monitors face north toward user sitting below
-    this.addDecorativeProp('computer', leftDeskX, southDeskY - 14);
-    this.addDecorativeProp('computer', rightDeskX, southDeskY - 14);
+    this.addDecorativeProp('computer-north', leftDeskX, southDeskY - 14);
+    this.addDecorativeProp('computer-north', rightDeskX, southDeskY - 14);
 
     // Center seam decorative succulent
     this.addDecorativeProp('plant-small', podX, podY);
@@ -992,11 +989,11 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('office-chair', leftDeskX, northDeskY - 56);
     this.addDecorativeProp('office-chair', rightDeskX, northDeskY - 56);
     // South chairs (sitting below desks facing north)
-    this.addDecorativeProp('office-chair', leftDeskX, southDeskY + 56);
-    this.addDecorativeProp('office-chair', rightDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair-north', leftDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair-north', rightDeskX, southDeskY + 56);
 
     // 4. 100% Solid Physics Collider covering entire 4-desk island
-    const podCollider = this.add.rectangle(podX, podY, 244, 144, 0x000000, 0);
+    const podCollider = this.add.rectangle(podX, podY + 16, 216, 96, 0x000000, 0);
     this.physics.add.existing(podCollider, true);
     (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(podCollider);
@@ -1036,12 +1033,16 @@ export class OfficeScene extends Phaser.Scene {
     bodyW: number,
     bodyH: number
   ): Phaser.GameObjects.Image {
+    // Baseline depth sorting at base of sprite
     const img = this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(y + 12);
+      .setDepth(y + 52);
 
-    const col = this.add.rectangle(x, y, bodyW, bodyH, 0x000000, 0);
+    // Ground contact collider aligned with floor contact (no ghost offside barrier!)
+    const colH = Math.min(bodyH, 36);
+    const colY = y + 26;
+    const col = this.add.rectangle(x, colY, bodyW, colH, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
@@ -1060,12 +1061,8 @@ export class OfficeScene extends Phaser.Scene {
     return this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(name === 'rug' ? 1 : y);
+      .setDepth(name === 'rug' ? 1 : y + 50);
   }
-
-  // =========================================================================
-  // CORRIDOR & WALL-MOUNTED TO-DO LIST BOARD (PAPAN AGENDA DINDING ATAS)
-  // =========================================================================
 
   private buildCorridorElements(): void {
     // Mounted against the top corridor wall (x = 1450, y = 140)

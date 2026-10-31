@@ -63,10 +63,11 @@ export class BootScene extends Phaser.Scene {
     // 1. Office ground map (WebP, 2752×1536)
     this.load.image('office-ground', '/assets/maps/rooms-ground.webp');
 
-    // 2. Office Props (29 types)
+    // 2. Office Props (Modular & Directional Assets)
     const propNames = [
-      'desk', 'office-chair', 'computer', 'water-cooler', 'filing-cabinet',
-      'plant-large', 'plant-small', 'sofa', 'coffee-table', 'armchair',
+      'desk', 'office-chair', 'office-chair-north', 'computer', 'computer-north',
+      'water-cooler', 'filing-cabinet', 'plant-large', 'plant-small',
+      'sofa', 'sofa-north', 'coffee-table', 'armchair',
       'counter', 'espresso-machine', 'pastry-case', 'bar-stool', 'fridge',
       'kitchen-cabinet', 'cafe-table', 'cafe-chair', 'bookcase', 'floor-lamp',
       'printer', 'rug', 'stove', 'sink', 'wall-art', 'wall-clock', 'wall-window',
