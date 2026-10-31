@@ -214,11 +214,13 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     });
   }
 
-  // 3. Body base
+  // 3. Body base (Universal LPC humanoid frame for 100% clothing & shoe alignment)
+  // Note: All clothing & shoes in LPC are drafted on the universal humanoid frame ('male').
+  // Using 'male' as the body mannequin avoids the classic LPC bug where female bare feet
+  // stick out between pants and shoes ("2 pasang kaki"), while gender distinction is fully
+  // preserved via the feminine head, eyes, face, eyelashes, and hairstyles.
   const gender = config.gender || 'male';
-  let bodyFile = 'male';
-  if (gender === 'female') bodyFile = 'female';
-  if (config.bodyType === 'muscular') bodyFile = 'muscular';
+  const bodyFile = 'male';
 
   layers.push({
     id: 'body',

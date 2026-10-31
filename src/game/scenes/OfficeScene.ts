@@ -808,42 +808,44 @@ export class OfficeScene extends Phaser.Scene {
     // 3. AFK ROOM & AREA SANTAI (Relaksasi, Istirahat, dan Baca Buku)
     // =======================================================================
     // --- SISI ATAS (Along Top Wall y = 970..1090) ---
-    // Sudut Baca Buku & Relaksasi Tenang (x: 150..320)
-    this.addSolidProp('bookcase', 210, 1025, 75, 52);
-    this.addSolidProp('bookcase', 290, 1025, 75, 52);
-    this.addDecorativeProp('floor-lamp', 150, 1030);
+    // Sudut Baca Buku & Mini Library Tenang (x: 150..340)
+    this.addSolidProp('bookcase', 210, 1015, 75, 52);
+    this.addSolidProp('bookcase', 290, 1015, 75, 52);
+    this.addDecorativeProp('floor-lamp', 150, 1020);
     this.addDecorativeProp('wall-art', 360, 975);
 
-    // Lounge Set Atas (x: 450..820)
-    this.addDecorativeProp('rug', 600, 1070);
-    this.addSolidProp('sofa', 600, 1025, 110, 48);
-    this.addSolidProp('coffee-table', 600, 1075, 64, 34);
-    this.addSolidProp('armchair', 490, 1035, 54, 46);
-    this.addSolidProp('armchair', 710, 1035, 54, 46);
-    this.addDecorativeProp('wall-art', 600, 975);
-    this.addDecorativeProp('wall-clock', 780, 975);
+    // Lounge Set Atas (Sofa bersandar rapi di dinding utara menghadap South ke dalam ruangan,
+    // coffee-table tepat di depannya pada y=1075, dan armchair di samping kiri & kanan)
+    this.addDecorativeProp('rug', 630, 1055);
+    this.addSolidProp('sofa', 630, 1015, 110, 48);
+    this.addSolidProp('coffee-table', 630, 1075, 64, 34);
+    this.addSolidProp('armchair', 515, 1045, 54, 46);
+    this.addSolidProp('armchair', 745, 1045, 54, 46);
+    this.addDecorativeProp('wall-art', 630, 975);
+    this.addDecorativeProp('wall-clock', 790, 975);
 
     // Fasilitas Refreshment Sudut Atas (x: 950..1120)
-    this.addSolidProp('water-cooler', 1040, 1025, 48, 48);
-    this.addDecorativeProp('plant-small', 1100, 1025);
-    this.addDecorativeProp('floor-lamp', 960, 1025);
+    this.addSolidProp('water-cooler', 1030, 1015, 48, 48);
+    this.addDecorativeProp('plant-small', 1090, 1015);
+    this.addDecorativeProp('floor-lamp', 960, 1015);
 
-    // --- SISI SEBERANG / BAWAH (Along Bottom Wall y = 1250..1370) ---
-    // Meja & Kursi-kursian Santai Seberang Kiri (x: 330..520)
-    this.addDecorativeProp('rug', 420, 1300);
-    this.addSolidProp('coffee-table', 420, 1300, 64, 36);
-    this.addSolidProp('armchair', 330, 1300, 54, 46);
-    this.addSolidProp('armchair', 510, 1300, 54, 46);
-    this.addSolidProp('plant-large', 160, 1330, 50, 50);
+    // --- SISI SEBERANG / BAWAH (Along Bottom Wall y = 1250..1360) ---
+    // Meja & Kursi-kursian Santai Seberang Kiri: Set Meja Kafe Santai (x: 330..510, y: 1290)
+    this.addDecorativeProp('rug', 420, 1290);
+    this.addSolidProp('cafe-table', 420, 1290, 56, 52);
+    this.addDecorativeProp('cafe-chair', 345, 1290);
+    this.addDecorativeProp('cafe-chair', 495, 1290);
+    this.addSolidProp('plant-large', 160, 1315, 50, 50);
+    this.addDecorativeProp('floor-lamp', 240, 1315);
 
-    // Meja & Kursi-kursian Santai Seberang Kanan (x: 650..920)
-    this.addDecorativeProp('rug', 780, 1300);
-    this.addSolidProp('sofa', 780, 1320, 110, 48);
-    this.addSolidProp('coffee-table', 780, 1265, 64, 34);
-    this.addSolidProp('armchair', 660, 1300, 54, 46);
-    this.addSolidProp('armchair', 900, 1300, 54, 46);
-    this.addSolidProp('plant-large', 1100, 1280, 50, 50);
-    this.addDecorativeProp('floor-lamp', 1100, 1340);
+    // Meja & Kursi-kursian Santai Seberang Kanan: Set Meja Diskusi & Armchair (x: 710..890, y: 1290)
+    // Meja di tengah diapit armchair kiri dan kanan (menghadap ke meja, tidak ada sofa terbalik/bertabrakan)
+    this.addDecorativeProp('rug', 800, 1290);
+    this.addSolidProp('coffee-table', 800, 1290, 64, 34);
+    this.addSolidProp('armchair', 715, 1290, 54, 46);
+    this.addSolidProp('armchair', 885, 1290, 54, 46);
+    this.addSolidProp('plant-large', 1090, 1315, 50, 50);
+    this.addDecorativeProp('floor-lamp', 1000, 1315);
 
     // =======================================================================
     // 4. RUANG EKSEKUTIF & MANAJEMEN (Bu Rina - Skenario 1)
