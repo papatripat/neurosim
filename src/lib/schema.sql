@@ -98,8 +98,8 @@ CREATE TABLE IF NOT EXISTS `rooms` (
   `name` VARCHAR(128) NOT NULL,
   `description` TEXT,
   `zone` VARCHAR(64) NOT NULL,
-  `spawn_x` INT DEFAULT 1810,
-  `spawn_y` INT DEFAULT 790,
+  `spawn_x` INT DEFAULT 1687,
+  `spawn_y` INT DEFAULT 880,
   `capacity` INT DEFAULT 20,
   `is_active` TINYINT(1) DEFAULT 1,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `rooms` (
 -- Seed Initial Rooms
 -- -----------------------------------------------------------------------------
 INSERT INTO `rooms` (`id`, `name`, `description`, `zone`, `spawn_x`, `spawn_y`, `capacity`) VALUES
-('room-main', 'Kantor Utama & Open Workspace', 'Pusat workstation tim dengan meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.', 'Workstation Utama', 1810, 790, 25),
+('room-main', 'Kantor Utama & Open Workspace', 'Pusat workstation tim dengan meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.', 'Workstation Utama', 1687, 880, 25),
 ('room-meeting', 'Ruang Rapat Strategis', 'Ruang meeting formal berkarpet kayu untuk negosiasi proyek bersama Pak Hendra.', 'Ruang Rapat & Konferensi', 600, 480, 12),
 ('room-pantry', 'Pantry & Coffee Breakroom', 'Area santai dengan espresso bar, meja kafe, dan rekan kerja Dimas.', 'Pantry & Dapur', 480, 950, 15),
 ('room-executive', 'Ruang Eksekutif & Manajemen', 'Ruangan kerja pimpinan Bu Rina untuk pembagian tugas dan feedback berkala.', 'Ruang Eksekutif & Manajemen', 2150, 360, 8),
