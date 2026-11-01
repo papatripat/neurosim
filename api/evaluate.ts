@@ -179,4 +179,18 @@ export async function handleEvaluate(req: Request): Promise<Response> {
   }
 }
 
-export default handleEvaluate;
+// Universal Vercel Serverless Function Handler (Node.js & Edge compatible)
+export default async function handler(req: any, res?: any) {
+  if (res && typeof res.status === 'function') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const result = await processEvaluate(body);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('[API Evaluate Node Handler] Error:', error);
+      const fallback = getFallbackEvaluation('skenario-1');
+      return res.status(200).json(fallback);
+    }
+  }
+  return handleEvaluate(req);
+}

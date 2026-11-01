@@ -57,5 +57,17 @@ export async function handleChat(req: Request): Promise<Response> {
   }
 }
 
-// Default export untuk kemudahan import jika diperlukan
-export default handleChat;
+// Universal Vercel Serverless Function Handler (Node.js & Edge compatible)
+export default async function handler(req: any, res?: any) {
+  if (res && typeof res.status === 'function') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const result = await processChat(body);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('[API Chat Node Handler] Error:', error);
+      return res.status(200).json({ reply: 'Baik, tolong lanjutkan tugasnya ya.' });
+    }
+  }
+  return handleChat(req);
+}
