@@ -209,7 +209,6 @@ export function mapClothColorToLpc(id: string): string {
       return 'slate';
     case 'slate-teal':
     case 'slate':
-    case 'slate-suit':
       return 'slate';
     case 'forest-green':
     case 'forest':
@@ -220,7 +219,6 @@ export function mapClothColorToLpc(id: string): string {
     case 'wine':
       return 'maroon';
     case 'cream':
-    case 'beige-suit':
       return 'tan';
     case 'terracotta':
       return 'orange';
