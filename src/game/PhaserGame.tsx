@@ -44,6 +44,8 @@ export const PhaserGame: React.FC<PhaserGameProps> = ({ onSceneReady, className 
         const game = new Phaser.Game(config);
         gameRef.current = game;
         (window as any).__PHASER_GAME__ = game;
+        (window as any).__EVENT_BUS__ = EventBus;
+        (window as any).__GAME_EVENTS__ = GAME_EVENTS;
       } catch (err) {
         console.error('Failed to initialize Phaser game engine:', err);
       }

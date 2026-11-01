@@ -145,7 +145,7 @@ export const DialogueModal: React.FC<Props> = ({
           <p className="text-ink">
             Target Latihan: <strong className="text-teal font-semibold">"{userGoal}"</strong>
           </p>
-          {turnCount >= 2 && (
+          {turnCount >= 1 && (
             <button
               type="button"
               onClick={onRequestEvaluation}
