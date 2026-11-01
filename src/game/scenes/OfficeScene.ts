@@ -1,5 +1,9 @@
+import { generateFullLpcSpritesheet } from '../../lib/lpcCompositor';
 import Phaser from 'phaser';
 import { EventBus, GAME_EVENTS } from '../EventBus';
+import { multiplayerService } from '../../services/multiplayer.service';
+import { PlayerPresence, PlayerMovementPacket } from '../../types/multiplayer';
+import { UserStatus } from '../../components/gather/GatherDock';
 
 // ---------------------------------------------------------------------------
 // Types & Interfaces
@@ -13,6 +17,17 @@ interface NPCData {
   scenarioId: string;
 }
 
+export interface SeatSpot {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  sitX: number;
+  sitY: number;
+  facing: 'south' | 'north' | 'east' | 'west';
+  type: 'chair' | 'sofa' | 'armchair' | 'stool';
+}
+
 export interface OfficeZone {
   id: string;
   name: string;
@@ -23,6 +38,29 @@ export interface OfficeZone {
   check: (x: number, y: number) => boolean;
 }
 
+interface RemotePlayerRecord {
+  presence: PlayerPresence;
+  container: Phaser.GameObjects.Container;
+  sprite: Phaser.GameObjects.Sprite;
+  nameBg: Phaser.GameObjects.Graphics;
+  nameText: Phaser.GameObjects.Text;
+  statusDot: Phaser.GameObjects.Graphics;
+  targetX: number;
+  targetY: number;
+  direction: 'north' | 'south' | 'east' | 'west';
+  isMoving: boolean;
+  archetypeKey: string;
+  activeChatBubble?: {
+    container: Phaser.GameObjects.Container;
+    offsetY: number;
+  } | null;
+  activeEmotes: {
+    container: Phaser.GameObjects.Container;
+    offsetX: number;
+    offsetY: number;
+  }[];
+}
+
 // ---------------------------------------------------------------------------
 // Constants & Map Geometry
 // ---------------------------------------------------------------------------
@@ -30,7 +68,7 @@ export interface OfficeZone {
 const MAP_W = 2752;
 const MAP_H = 1536;
 const PLAYER_SPEED = 185;
-const NPC_INTERACT_DIST = 85;
+const NPC_INTERACT_DIST = 130;
 const TODO_INTERACT_DIST = 80;
 
 // Proportional scales for 64×64 sprites onto 2752×1536 map
@@ -46,9 +84,9 @@ const TODO_POS = { x: 1450, y: 140 };
 
 // NPC spawn positions per official specification
 const NPC_POSITIONS = {
-  rina: { x: 2150, y: 250 },   // Ruang Eksekutif & Manajemen (Skenario 1)
+  rina: { x: 2150, y: 172 },   // Ruang Eksekutif & Manajemen (Bu Rina di meja eksekutif)
   dimas: { x: 580, y: 270 },   // Pantry & Dapur (Skenario 2)
-  klien: { x: 640, y: 700 },   // Ruang Rapat & Konferensi (Skenario 3)
+  klien: { x: 920, y: 640 },   // Ruang Rapat & Konferensi (Pak Hendra di sudut dalam dekat credenza/dispenser)
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -125,6 +163,10 @@ export class OfficeScene extends Phaser.Scene {
   // NPCs
   private npcs: NPCData[] = [];
 
+  // Remote Multiplayer Players
+  private remotePlayers: Map<string, RemotePlayerRecord> = new Map();
+  private wasMovingLocally: boolean = false;
+
   // Physics Obstacles (Walls & Solid Furniture)
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
 
@@ -132,6 +174,13 @@ export class OfficeScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
   private keyE!: Phaser.Input.Keyboard.Key;
+  private keySpace!: Phaser.Input.Keyboard.Key;
+
+  // Sitting & Interactive Seat System
+  private seats: SeatSpot[] = [];
+  private isSitting = false;
+  private currentSeat: SeatSpot | null = null;
+  private lastStandPos: { x: number; y: number } = { x: 0, y: 0 };
 
   // Interaction State
   private isPlayerLocked = false;
@@ -206,6 +255,9 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   create(): void {
+    this.seats = [];
+    this.isSitting = false;
+    this.currentSeat = null;
     // 1. Office Ground Texture (WebP 2752×1536)
     this.add.image(0, 0, 'office-ground').setOrigin(0, 0).setDepth(0);
     this.physics.world.setBounds(0, 0, MAP_W, MAP_H);
@@ -261,6 +313,7 @@ export class OfficeScene extends Phaser.Scene {
       Phaser.Input.Keyboard.Key
     >;
     this.keyE = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keySpace = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
     // Prevent Phaser from hijacking default browser typing behavior (Space, Arrows, Tab)
     this.safeDisableCapture();
@@ -284,21 +337,23 @@ export class OfficeScene extends Phaser.Scene {
     EventBus.on(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, this.handleUpdatePlayerCharacter, this);
     EventBus.on(GAME_EVENTS.TELEPORT_TO_ROOM, this.handleTeleportToRoom, this);
     EventBus.on(GAME_EVENTS.SCREEN_SHARE_CHANGED, this.handleScreenShareChanged, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_JOINED, this.handleRemotePlayerJoined, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_MOVED, this.handleRemotePlayerMoved, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_LEFT, this.handleRemotePlayerLeft, this);
+    EventBus.on(GAME_EVENTS.REMOTE_PLAYER_STATUS, this.handleRemotePlayerStatus, this);
+
+    // Initial sync of players already present in room
+    const currentOnline = multiplayerService.getOnlinePlayers();
+    for (const player of currentOnline) {
+      this.handleRemotePlayerJoined(player);
+    }
 
     if (typeof localStorage !== 'undefined') {
       try {
         const saved = localStorage.getItem('neurosim_character_config');
-        const savedSheet = localStorage.getItem('neurosim_character_spritesheet');
-        if (savedSheet) {
-          this.handleUpdatePlayerCharacter({
-            config: saved ? JSON.parse(saved) : null,
-            spritesheetDataUrl: savedSheet,
-          });
-        } else if (saved) {
+        if (saved) {
           const cfg = JSON.parse(saved);
-          if (cfg?.archetype) {
-            this.handleUpdatePlayerCharacter(cfg);
-          }
+          this.handleUpdatePlayerCharacter(cfg);
         }
       } catch (e) {}
     }
@@ -374,6 +429,32 @@ export class OfficeScene extends Phaser.Scene {
   update(): void {
     // Dynamic Y-depth sorting based on where feet touch the floor
     if (!this.player || !this.player.body || !this.player.active) return;
+
+    // 0. Sitting State Guard & Controls
+    if (this.isSitting) {
+      this.player.setVelocity(0, 0);
+
+      // Check if user wants to stand up (Pressing SPACE, E, W, A, S, D or Arrows)
+      const wantsStandUp =
+        Phaser.Input.Keyboard.JustDown(this.keySpace) ||
+        Phaser.Input.Keyboard.JustDown(this.keyE) ||
+        this.wasd.W.isDown ||
+        this.wasd.A.isDown ||
+        this.wasd.S.isDown ||
+        this.wasd.D.isDown ||
+        this.cursors.up.isDown ||
+        this.cursors.down.isDown ||
+        this.cursors.left.isDown ||
+        this.cursors.right.isDown;
+
+      if (wantsStandUp) {
+        this.standUp();
+      } else {
+        this.showPrompt(this.player.x, this.player.y - 56, 'Tekan [SPASI / WASD] Berdiri');
+      }
+      return;
+    }
+
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
 
     // Update active reaction emote positions so they strictly track the player sprite
@@ -405,6 +486,66 @@ export class OfficeScene extends Phaser.Scene {
       this.screenShareBadgeContainer.setDepth(this.player.y + 1030);
     }
 
+    // -------------------------------------------------------------------------
+    // Update Remote Multiplayer Players (Lerp movement, animations, nametags, emotes)
+    // -------------------------------------------------------------------------
+    for (const [, record] of this.remotePlayers.entries()) {
+      if (!record.container || !record.container.active) continue;
+
+      const dx = record.targetX - record.container.x;
+      const dy = record.targetY - record.container.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Smooth lerp towards network target position
+      if (dist > 1.2) {
+        record.container.x = Phaser.Math.Linear(record.container.x, record.targetX, 0.22);
+        record.container.y = Phaser.Math.Linear(record.container.y, record.targetY, 0.22);
+      } else {
+        record.container.x = record.targetX;
+        record.container.y = record.targetY;
+      }
+
+      // Dynamic Y-depth sorting based on player position on floor
+      record.container.setDepth(record.container.y);
+
+      // Animation handling: play walking if actively moving or converging towards target
+      const isMoving = record.isMoving || dist > 2.5;
+      if (isMoving) {
+        const walkAnim = `${record.archetypeKey}-walk-${record.direction}`;
+        if (this.anims.exists(walkAnim)) {
+          record.sprite.play(walkAnim, true);
+        }
+      } else {
+        const idleAnim = `${record.archetypeKey}-idle-${record.direction}`;
+        if (this.anims.exists(idleAnim)) {
+          record.sprite.play(idleAnim, true);
+        }
+      }
+
+      // Update active reaction emote positions for this remote player
+      for (let i = record.activeEmotes.length - 1; i >= 0; i--) {
+        const item = record.activeEmotes[i];
+        if (!item.container.active) {
+          record.activeEmotes.splice(i, 1);
+          continue;
+        }
+        item.container.setPosition(
+          record.container.x + item.offsetX,
+          record.container.y - item.offsetY
+        );
+        item.container.setDepth(record.container.y + 1000);
+      }
+
+      // Update active chat speech bubble for this remote player
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.setPosition(
+          record.container.x,
+          record.container.y - record.activeChatBubble.offsetY
+        );
+        record.activeChatBubble.container.setDepth(record.container.y + 1050);
+      }
+    }
+
     // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
     const isModalOpen = typeof document !== 'undefined' && Boolean(document.querySelector('[role="dialog"]'));
     const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -416,6 +557,17 @@ export class OfficeScene extends Phaser.Scene {
     );
 
     if (this.isPlayerLocked || isModalOpen || isUserTyping) {
+      if (this.wasMovingLocally) {
+        this.wasMovingLocally = false;
+        multiplayerService.sendMovement({
+          x: Math.round(this.player.x),
+          y: Math.round(this.player.y),
+          direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+          anim: `${this.playerArchetypeKey}-idle-${this.lastDirection}`,
+          isMoving: false,
+          zone: this.currentZoneId || 'koridor',
+        });
+      }
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
       this.safeDisableCapture();
@@ -455,6 +607,7 @@ export class OfficeScene extends Phaser.Scene {
 
     // Continuous, blink-free walking animation with full diagonal (serong) support
     if (vx !== 0 || vy !== 0) {
+      this.wasMovingLocally = true;
       const isDiagonal = vx !== 0 && vy !== 0;
       let targetAngle = 0;
       let chosenAnim = '';
@@ -512,7 +665,29 @@ export class OfficeScene extends Phaser.Scene {
       } else {
         this.player.play(`${this.playerArchetypeKey}-walk-${this.lastDirection}`, true);
       }
+
+      // Broadcast pergerakan ke room online secara realtime
+      multiplayerService.sendMovement({
+        x: Math.round(this.player.x),
+        y: Math.round(this.player.y),
+        direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+        anim: chosenAnim,
+        isMoving: true,
+        zone: this.currentZoneId || 'koridor',
+      });
     } else {
+      if (this.wasMovingLocally) {
+        this.wasMovingLocally = false;
+        // Broadcast penghentian seketika ke pemain lain
+        multiplayerService.sendMovement({
+          x: Math.round(this.player.x),
+          y: Math.round(this.player.y),
+          direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+          anim: `${this.playerArchetypeKey}-idle-${this.lastDirection}`,
+          isMoving: false,
+          zone: this.currentZoneId || 'koridor',
+        });
+      }
       // Idle / Berhenti: pastikan badan tegak kembali
       this.player.setAngle(0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
@@ -781,17 +956,23 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('counter', 850, 155, 64, 60);
     this.addDecorativeProp('bar-stool', 770, 205);
     this.addDecorativeProp('bar-stool', 850, 205);
+    this.addSeat('Kursi Bar', 770, 205, 'north', 'stool', 0, -2);
+    this.addSeat('Kursi Bar', 850, 205, 'north', 'stool', 0, -2);
 
     // Cafe Tables & Seating (Break Area)
     this.addDecorativeProp('rug', 340, 330);
     this.addSolidProp('cafe-table', 340, 320, 56, 52);
     this.addDecorativeProp('cafe-chair', 280, 320);
     this.addDecorativeProp('cafe-chair', 400, 320);
+    this.addSeat('Kursi Kafe', 280, 320, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 400, 320, 'west', 'chair', 4, 0);
 
     this.addDecorativeProp('rug', 650, 330);
     this.addSolidProp('cafe-table', 650, 320, 56, 52);
     this.addDecorativeProp('cafe-chair', 590, 320);
     this.addDecorativeProp('cafe-chair', 710, 320);
+    this.addSeat('Kursi Kafe', 590, 320, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe', 710, 320, 'west', 'chair', 4, 0);
 
     // Refreshment & Greenery (tucked against perimeter)
     this.addSolidProp('water-cooler', 960, 200, 52, 52);
@@ -808,7 +989,7 @@ export class OfficeScene extends Phaser.Scene {
     // 2. RUANG RAPAT & KONFERENSI (Pak Hendra / Klien - Skenario 3)
     // =======================================================================
     // Boardroom Carpet
-    this.addDecorativeProp('rug', 580, 720);
+    this.addDecorativeProp('rug', 585, 720);
 
     // Impenetrable Boardroom Table (Solid 4 Desks Cluster)
     this.addSolidDesk(450, 720);
@@ -816,21 +997,25 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidDesk(630, 720);
     this.addSolidDesk(720, 720);
 
-    // Laptops on Meeting Table
-    this.addDecorativeProp('computer', 450, 690);
-    this.addDecorativeProp('computer', 630, 690);
-    this.addDecorativeProp('plant-small', 540, 695);
+    // Meeting room center accent — NO COMPUTERS in meeting room as requested!
+    this.addDecorativeProp('plant-small', 630, 695);
 
-    // Executive Meeting Chairs around table
-    this.addDecorativeProp('office-chair', 450, 645);
-    this.addDecorativeProp('office-chair', 540, 645);
-    this.addDecorativeProp('office-chair', 630, 645);
-    this.addDecorativeProp('office-chair', 720, 645);
-    this.addDecorativeProp('office-chair', 450, 795);
-    this.addDecorativeProp('office-chair', 540, 795);
-    this.addDecorativeProp('office-chair', 630, 795);
-    this.addDecorativeProp('office-chair', 720, 795);
-    this.addDecorativeProp('office-chair', 360, 720); // Head of table
+    // Executive Meeting Chairs around table (Comfortable, uncrowded spacing)
+    this.addDecorativeProp('office-chair', 470, 645);
+    this.addDecorativeProp('office-chair', 585, 645);
+    this.addDecorativeProp('office-chair', 700, 645);
+    this.addDecorativeProp('office-chair-north', 470, 795);
+    this.addDecorativeProp('office-chair-north', 585, 795);
+    this.addDecorativeProp('office-chair-north', 700, 795);
+    this.addDecorativeProp('office-chair-east', 360, 720); // Head of table facing East towards table
+
+    // Register interactive seats in Meeting Room
+    this.addSeat('Kursi Rapat', 470, 645, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Rapat', 700, 645, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Rapat', 470, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Rapat', 585, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Rapat', 700, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Utama Rapat', 360, 720, 'east', 'chair', -6, 0);
 
     // Credenza & Storage against top wall
     this.addSolidProp('bookcase', 250, 565, 75, 58);
@@ -861,12 +1046,16 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('wall-art', 360, 975);
 
     // Lounge Set Atas (Sofa bersandar rapi di dinding utara menghadap South ke dalam ruangan,
-    // coffee-table tepat di depannya pada y=1075, dan armchair di samping kiri & kanan)
+    // coffee-table tepat di depannya pada y=1075, dan armchair-east & armchair-west di samping)
     this.addDecorativeProp('rug', 630, 1055);
     this.addSolidProp('sofa', 630, 1015, 110, 48);
     this.addSolidProp('coffee-table', 630, 1075, 64, 34);
-    this.addSolidProp('armchair', 515, 1045, 54, 46);
-    this.addSolidProp('armchair', 745, 1045, 54, 46);
+    this.addSolidProp('armchair-east', 515, 1075, 36, 32);
+    this.addSolidProp('armchair-west', 745, 1075, 36, 32);
+    this.addSeat('Sofa Santai', 595, 1015, 'south', 'sofa', 0, 4);
+    this.addSeat('Sofa Santai', 665, 1015, 'south', 'sofa', 0, 4);
+    this.addSeat('Armchair Santai Kiri', 515, 1075, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Santai Kanan', 745, 1075, 'west', 'armchair', 4, 0);
     this.addDecorativeProp('wall-art', 630, 975);
     this.addDecorativeProp('wall-clock', 790, 975);
 
@@ -881,15 +1070,22 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('cafe-table', 420, 1290, 56, 52);
     this.addDecorativeProp('cafe-chair', 345, 1290);
     this.addDecorativeProp('cafe-chair', 495, 1290);
+    this.addSeat('Kursi Kafe Santai Kiri', 345, 1290, 'east', 'chair', -4, 0);
+    this.addSeat('Kursi Kafe Santai Kanan', 495, 1290, 'west', 'chair', 4, 0);
     this.addSolidProp('plant-large', 160, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 240, 1315);
 
     // Meja & Kursi-kursian Santai Seberang Kanan: Set Meja Diskusi & Armchair (x: 710..890, y: 1290)
-    // Meja di tengah diapit armchair kiri dan kanan (menghadap ke meja, tidak ada sofa terbalik/bertabrakan)
+    // Meja di tengah diapit armchair-east (kiri) dan armchair-west (kanan) serta sofa-north
     this.addDecorativeProp('rug', 800, 1290);
-    this.addSolidProp('coffee-table', 800, 1290, 64, 34);
-    this.addSolidProp('armchair', 715, 1290, 54, 46);
-    this.addSolidProp('armchair', 885, 1290, 54, 46);
+    this.addSolidProp('coffee-table', 800, 1270, 64, 34);
+    this.addSolidProp('armchair-east', 690, 1270, 36, 32);
+    this.addSolidProp('armchair-west', 910, 1270, 36, 32);
+    this.addSolidProp('sofa-north', 800, 1330, 104, 48);
+    this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', 4, 0);
+    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -22);
+    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -22);
     this.addSolidProp('plant-large', 1090, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 1000, 1315);
 
@@ -899,13 +1095,24 @@ export class OfficeScene extends Phaser.Scene {
     // Luxury Executive Carpet
     this.addDecorativeProp('rug', 2150, 245);
 
-    // Impenetrable Executive Desk Suite
-    this.addSolidDesk(2150, 230);
-    this.addDecorativeProp('computer', 2150, 202);
-    this.addDecorativeProp('plant-small', 2110, 206);
-    this.addDecorativeProp('office-chair', 2150, 166); // Bu Rina's Chair
-    this.addSolidProp('armchair', 2060, 305, 58, 52);  // Guest Chair 1
-    this.addSolidProp('armchair', 2240, 305, 58, 52);  // Guest Chair 2
+    // Grand Executive Desk Suite (Meja utama luas tanpa meja sayap yang menghalangi)
+    this.addSolidDesk(2105, 235); // Meja eksekutif kiri
+    this.addSolidDesk(2195, 235); // Meja eksekutif kanan
+
+    // PC menghadap ke arah bos (screen faces North toward Bu Rina, casing back faces visitors)
+    this.addDecorativeProp('computer-north', 2150, 225);
+    this.addDecorativeProp('plant-small', 2225, 215);
+
+    // Kursi Eksekutif Bu Rina di belakang meja utama menghadap South
+    this.addDecorativeProp('office-chair', 2150, 155).setDepth(150);
+
+    // Kursi Tamu di depan meja utama menghadap ke Bu Rina
+    this.addSolidProp('armchair-north', 2105, 335, 58, 52);  // Guest Chair 1
+    this.addSolidProp('armchair-north', 2195, 335, 58, 52);  // Guest Chair 2
+
+    // Register interactive seats in Executive Suite
+    this.addSeat('Armchair Tamu Kiri', 2105, 335, 'north', 'armchair', 0, -4);
+    this.addSeat('Armchair Tamu Kanan', 2195, 335, 'north', 'armchair', 0, -4);
 
     // Executive Library Wall
     this.addSolidProp('bookcase', 1850, 140, 75, 58);
@@ -917,12 +1124,6 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('filing-cabinet', 1780, 215, 58, 58);
     this.addSolidProp('filing-cabinet', 1780, 285, 58, 58);
     this.addDecorativeProp('floor-lamp', 2530, 145);
-
-    // Private Executive Discussion Lounge
-    this.addDecorativeProp('rug', 1920, 390);
-    this.addSolidProp('coffee-table', 1920, 390, 64, 40);
-    this.addSolidProp('armchair', 1845, 390, 58, 52);
-    this.addSolidProp('armchair', 1995, 390, 58, 52);
 
     // Greenery & Accents (tucked against corners)
     this.addSolidProp('plant-large', 1780, 440, 52, 52);
@@ -950,12 +1151,16 @@ export class OfficeScene extends Phaser.Scene {
     // Pod 4 (Bottom-Right): QA & Otomasi
     this.createWorkstationPod(2210, 1040);
 
-    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan, bukan di tengah jalan!)
+    // Breakout Coffee & Discussion Lounge (Ditempatkan rapi di tepi jendela selatan)
     this.addDecorativeProp('rug', 2100, 1270);
     this.addSolidProp('sofa', 2100, 1245, 108, 54);
     this.addSolidProp('coffee-table', 2100, 1295, 64, 38);
-    this.addSolidProp('armchair', 1995, 1270, 56, 50);
-    this.addSolidProp('armchair', 2205, 1270, 56, 50);
+    this.addSolidProp('armchair-east', 1995, 1295, 36, 32);
+    this.addSolidProp('armchair-west', 2205, 1295, 36, 32);
+    this.addSeat('Sofa Breakout Kiri', 2065, 1245, 'south', 'sofa', 0, 4);
+    this.addSeat('Sofa Breakout Kanan', 2135, 1245, 'south', 'sofa', 0, 4);
+    this.addSeat('Armchair Breakout Kiri', 1995, 1295, 'east', 'armchair', -4, 0);
+    this.addSeat('Armchair Breakout Kanan', 2205, 1295, 'west', 'armchair', 4, 0);
     this.addDecorativeProp('floor-lamp', 2275, 1245);
     this.addSolidProp('plant-large', 1915, 1270, 52, 52);
 
@@ -980,23 +1185,19 @@ export class OfficeScene extends Phaser.Scene {
    * Helper: Add a 100% Solid Desk (Cannot be penetrated from any angle!)
    */
   private addSolidDesk(x: number, y: number): void {
-    // Render visual desk with proper depth sorting at base
+    // Render visual desk with baseline depth sorting at base
     this.add
       .image(x, y, 'prop-desk')
       .setScale(PROP_SCALE)
-      .setDepth(y + 15);
+      .setDepth(y + 52);
 
-    // Impenetrable physics body covering the desk width & depth
-    const col = this.add.rectangle(x, y + 8, 110, 64, 0x000000, 0);
+    // Precise physics collider placed at desk floor base (no phantom offside barrier!)
+    const col = this.add.rectangle(x, y + 26, 96, 36, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
   }
 
-  /**
-   * Helper: Build an organized, professional 4-desk team workstation pod (2×2 island).
-   * Dense, clean, and 100% impenetrable with solid colliders.
-   */
   private createWorkstationPod(
     podX: number,
     podY: number,
@@ -1017,27 +1218,34 @@ export class OfficeScene extends Phaser.Scene {
     this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
     this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
 
-    // 2. Computers & Monitors
-    // North desks: monitors face south toward user sitting above
-    this.addDecorativeProp('computer', leftDeskX, northDeskY + 14);
-    this.addDecorativeProp('computer', rightDeskX, northDeskY + 14);
-    // South desks: monitors face north toward user sitting below
-    this.addDecorativeProp('computer', leftDeskX, southDeskY - 14);
-    this.addDecorativeProp('computer', rightDeskX, southDeskY - 14);
+    // 2. Computers & Monitors (Screen 'yang bergambar' strictly faces toward the chair!)
+    // North desks: user sits at northDeskY - 56 facing South -> screen must face North toward chair!
+    // Rear casing faces camera (computer-north), screen faces chair.
+    this.addDecorativeProp('computer-north', leftDeskX, northDeskY - 8);
+    this.addDecorativeProp('computer-north', rightDeskX, northDeskY - 8);
+    // South desks: user sits at southDeskY + 56 facing North -> screen must face South toward chair!
+    // Illuminated screen faces camera (computer), screen faces chair.
+    this.addDecorativeProp('computer', leftDeskX, southDeskY - 12);
+    this.addDecorativeProp('computer', rightDeskX, southDeskY - 12);
 
-    // Center seam decorative succulent
-    this.addDecorativeProp('plant-small', podX, podY);
+    // Center seam succulent removed per user request
 
     // 3. Ergonomic Office Chairs
     // North chairs (sitting above desks facing south)
     this.addDecorativeProp('office-chair', leftDeskX, northDeskY - 56);
     this.addDecorativeProp('office-chair', rightDeskX, northDeskY - 56);
     // South chairs (sitting below desks facing north)
-    this.addDecorativeProp('office-chair', leftDeskX, southDeskY + 56);
-    this.addDecorativeProp('office-chair', rightDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair-north', leftDeskX, southDeskY + 56);
+    this.addDecorativeProp('office-chair-north', rightDeskX, southDeskY + 56);
+
+    // Register interactive seats for workstation
+    this.addSeat('Kursi Kerja', leftDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Kerja', rightDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
 
     // 4. 100% Solid Physics Collider covering entire 4-desk island
-    const podCollider = this.add.rectangle(podX, podY, 244, 144, 0x000000, 0);
+    const podCollider = this.add.rectangle(podX, podY + 16, 216, 96, 0x000000, 0);
     this.physics.add.existing(podCollider, true);
     (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(podCollider);
@@ -1077,12 +1285,16 @@ export class OfficeScene extends Phaser.Scene {
     bodyW: number,
     bodyH: number
   ): Phaser.GameObjects.Image {
+    // Baseline depth sorting at base of sprite
     const img = this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(y + 12);
+      .setDepth(y + 52);
 
-    const col = this.add.rectangle(x, y, bodyW, bodyH, 0x000000, 0);
+    // Ground contact collider aligned with floor contact (no ghost offside barrier!)
+    const colH = Math.min(bodyH, 36);
+    const colY = y + 26;
+    const col = this.add.rectangle(x, colY, bodyW, colH, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
@@ -1101,12 +1313,8 @@ export class OfficeScene extends Phaser.Scene {
     return this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(name === 'rug' ? 1 : y);
+      .setDepth(name === 'rug' ? 1 : y + 50);
   }
-
-  // =========================================================================
-  // CORRIDOR & WALL-MOUNTED TO-DO LIST BOARD (PAPAN AGENDA DINDING ATAS)
-  // =========================================================================
 
   private buildCorridorElements(): void {
     // Mounted against the top corridor wall (x = 1450, y = 140)
@@ -1172,7 +1380,20 @@ export class OfficeScene extends Phaser.Scene {
   // =========================================================================
 
   private buildPlayer(): void {
-    this.player = this.physics.add.sprite(SPAWN.x, SPAWN.y, 'char-player');
+    let initialKey = 'char-resident';
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('neurosim_character_config');
+        if (saved) {
+          const cfg = JSON.parse(saved);
+          if (cfg?.archetype && this.textures.exists(`char-${cfg.archetype}`)) {
+            initialKey = `char-${cfg.archetype}`;
+          }
+        }
+      } catch {}
+    }
+    this.playerArchetypeKey = initialKey;
+    this.player = this.physics.add.sprite(SPAWN.x, SPAWN.y, initialKey);
     this.player.setScale(CHAR_SCALE);
 
     // Collision body at feet: nimble & agile with no catching on doorways
@@ -1239,8 +1460,13 @@ export class OfficeScene extends Phaser.Scene {
       .setSize(26, 20)
       .setOffset(19, 44);
 
-    sprite.play(`${spriteKey}-idle-south`);
-    sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
+    if (id === 'rina') {
+      sprite.play(`${spriteKey}-sit-south`);
+      sprite.setDepth(210);
+    } else {
+      sprite.play(`${spriteKey}-idle-south`);
+      sprite.setDepth((sprite.body as Phaser.Physics.Arcade.Body).bottom);
+    }
 
     this.npcs.push({ id, name, role, sprite, scenarioId });
   }
@@ -1300,7 +1526,8 @@ export class OfficeScene extends Phaser.Scene {
         npc.sprite.y
       );
 
-      if (dist < NPC_INTERACT_DIST) {
+      const maxDist = npc.id === 'rina' ? 175 : NPC_INTERACT_DIST;
+      if (dist < maxDist) {
         this.activeNpcNear = npc;
         break;
       }
@@ -1320,9 +1547,129 @@ export class OfficeScene extends Phaser.Scene {
           npcName: this.activeNpcNear.name,
         });
       }
+      return;
+    }
+
+    // 3. Proximity to Sittable Seats (Chairs, Armchairs, Sofas)
+    let nearestSeat: SeatSpot | null = null;
+    let minSeatDist = 65; // Proximity threshold
+    for (const seat of this.seats) {
+      const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, seat.x, seat.y);
+      if (d < minSeatDist) {
+        nearestSeat = seat;
+        minSeatDist = d;
+      }
+    }
+
+    if (nearestSeat) {
+      this.showPrompt(nearestSeat.x, nearestSeat.y - 45, `Tekan [SPASI] Duduk (${nearestSeat.name})`);
+      if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+        this.sitDown(nearestSeat);
+      }
     } else {
       this.promptContainer.setVisible(false);
     }
+  }
+
+
+  // =========================================================================
+  // SEAT INTERACTION SYSTEM (SIT & STAND)
+  // =========================================================================
+
+  private addSeat(
+    name: string,
+    x: number,
+    y: number,
+    facing: 'south' | 'north' | 'east' | 'west',
+    type: 'chair' | 'sofa' | 'armchair' | 'stool' = 'chair',
+    offsetX: number = 0,
+    offsetY: number = 0
+  ): void {
+    this.seats.push({
+      id: `seat-${this.seats.length}`,
+      name,
+      x,
+      y,
+      sitX: x + offsetX,
+      sitY: y + offsetY,
+      facing,
+      type,
+    });
+  }
+
+  private sitDown(seat: SeatSpot): void {
+    this.isSitting = true;
+    this.currentSeat = seat;
+    this.lastStandPos = { x: this.player.x, y: this.player.y };
+    this.player.setVelocity(0, 0);
+    this.player.setPosition(seat.sitX, seat.sitY);
+    const sitAnim = `${this.playerArchetypeKey}-sit-${seat.facing}`;
+    if (this.anims.exists(sitAnim)) {
+      this.player.play(sitAnim, true);
+    } else {
+      this.player.play(`${this.playerArchetypeKey}-idle-${seat.facing}`, true);
+    }
+    this.lastDirection = seat.facing;
+
+    // Depth sorting when seated:
+    // Chair/sofa decorative prop depth is (y + 50).
+    // Facing South: player sits in front of the chair backrest -> player depth must be GREATER than chair depth!
+    if (seat.facing === 'south') {
+      this.player.setDepth(seat.y + 55);
+    } else if (seat.facing === 'north') {
+      // Facing North: backrest is in front of player -> player depth is slightly below chair depth
+      this.player.setDepth(seat.y + 45);
+    } else {
+      // Facing East or West: player sits in the cushion between the flanks -> depth must be > chair depth (y + 52)
+      this.player.setDepth(seat.y + 55);
+    }
+    this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [SPASI / WASD] Berdiri');
+  }
+
+  private standUp(): void {
+    if (!this.isSitting || !this.currentSeat) return;
+    const seat = this.currentSeat;
+    this.isSitting = false;
+    this.currentSeat = null;
+
+    // Exit strictly BEHIND the chair / into open walkway (prevents clipping through desks/tables!)
+    let exitX = seat.x;
+    let exitY = seat.y;
+
+    if (seat.type === 'chair' || seat.type === 'stool') {
+      if (seat.facing === 'south') {
+        // Chair faces South into desk -> step NORTH into the open corridor above the chair!
+        exitY = seat.y - 36;
+      } else if (seat.facing === 'north') {
+        // Chair faces North into desk -> step SOUTH into the open corridor below the chair!
+        exitY = seat.y + 36;
+      } else if (seat.facing === 'east') {
+        // Chair faces East into table -> step WEST into open aisle on left!
+        exitX = seat.x - 36;
+      } else if (seat.facing === 'west') {
+        // Chair faces West into table -> step EAST into open aisle on right!
+        exitX = seat.x + 36;
+      }
+    } else {
+      // For sofas and lounge sets: step into open room space away from the wall
+      if (seat.facing === 'south') {
+        exitY = seat.y + 44;
+      } else if (seat.facing === 'north') {
+        exitY = seat.y - 44;
+      } else if (seat.facing === 'east') {
+        exitX = seat.x + 36;
+      } else if (seat.facing === 'west') {
+        exitX = seat.x - 36;
+      }
+    }
+
+    this.player.setPosition(exitX, exitY);
+    this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
+    const idleAnim = `${this.playerArchetypeKey}-idle-${this.lastDirection}`;
+    if (this.anims.exists(idleAnim)) {
+      this.player.play(idleAnim, true);
+    }
+    this.promptContainer.setVisible(false);
   }
 
   private showPrompt(x: number, y: number, text: string): void {
@@ -1410,32 +1757,186 @@ export class OfficeScene extends Phaser.Scene {
     }
   };
 
-    // =========================================================================
-  // FLOATING REACTION EMOTES
+  // =========================================================================
+  // MULTIPLAYER REMOTE PLAYERS & STATUS HELPERS
   // =========================================================================
 
-  private handleTriggerReaction = ({ emoji }: { emoji: string }): void => {
-    if (!this.player || !this.player.active) return;
+  private getStatusColorHex(status?: UserStatus | string): number {
+    switch (status) {
+      case 'available':
+      case 'online':
+        return 0x10b981; // emerald / green
+      case 'busy':
+        return 0xef4444; // rose / red
+      case 'pantry':
+        return 0xf59e0b; // amber / coffee
+      default:
+        return 0x10b981;
+    }
+  }
 
-    // 1. Spam control: keep at most 3 simultaneous emotes to prevent clutter
-    if (this.activeEmotes.length >= 3) {
-      const oldest = this.activeEmotes.shift();
+  private drawStatusDot(graphics: Phaser.GameObjects.Graphics, x: number, y: number, status?: UserStatus | string): void {
+    graphics.clear();
+    const color = this.getStatusColorHex(status);
+    graphics.fillStyle(color, 1);
+    graphics.fillCircle(x, y, 3.5);
+    graphics.lineStyle(1, 0x141824, 0.85);
+    graphics.strokeCircle(x, y, 3.5);
+  }
+
+  private handleRemotePlayerJoined = (presence: PlayerPresence): void => {
+    if (!presence || !presence.socketId) return;
+
+    // Clean up if already exists
+    if (this.remotePlayers.has(presence.socketId)) {
+      this.handleRemotePlayerLeft({ socketId: presence.socketId });
+    }
+
+    const archetype = presence.archetype || presence.characterConfig?.archetype || 'resident';
+    let archetypeKey = `char-${archetype}`;
+    if (!this.textures.exists(archetypeKey)) {
+      archetypeKey = 'char-resident';
+    }
+
+    const container = this.add.container(presence.x, presence.y);
+    container.setDepth(presence.y);
+
+    const sprite = this.add.sprite(0, 0, archetypeKey);
+    sprite.setScale(CHAR_SCALE);
+    const idleAnim = `${archetypeKey}-idle-${presence.direction || 'south'}`;
+    if (this.anims.exists(idleAnim)) {
+      sprite.play(idleAnim);
+    }
+
+    // Nametag & Status indicator
+    const displayName = presence.fullName || presence.username || 'Tamu';
+    const nameText = this.add.text(0, 0, displayName, {
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '11px',
+      color: '#f4ead5',
+      fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+
+    const paddingX = 8;
+    const dotWidth = 12;
+    const pillW = Math.max(52, nameText.width + paddingX * 2 + dotWidth);
+    const pillH = 20;
+    const halfW = pillW / 2;
+    const pillY = -54;
+
+    const nameBg = this.add.graphics();
+    nameBg.fillStyle(0x141824, 0.88);
+    nameBg.lineStyle(1.2, 0x355c5a, 0.9);
+    nameBg.fillRoundedRect(-halfW, pillY - pillH / 2, pillW, pillH, 5);
+    nameBg.strokeRoundedRect(-halfW, pillY - pillH / 2, pillW, pillH, 5);
+
+    const statusDot = this.add.graphics();
+    this.drawStatusDot(statusDot, -halfW + 8, pillY, presence.status);
+
+    nameText.setPosition(-halfW + 16, pillY);
+
+    container.add([sprite, nameBg, statusDot, nameText]);
+
+    // Entrance pop-in animation
+    container.setScale(0);
+    container.setAlpha(0);
+    this.tweens.add({
+      targets: container,
+      scale: 1,
+      alpha: 1,
+      duration: 250,
+      ease: 'Back.easeOut',
+    });
+
+    const record: RemotePlayerRecord = {
+      presence,
+      container,
+      sprite,
+      nameBg,
+      nameText,
+      statusDot,
+      targetX: presence.x,
+      targetY: presence.y,
+      direction: presence.direction || 'south',
+      isMoving: Boolean(presence.isMoving),
+      archetypeKey,
+      activeEmotes: [],
+      activeChatBubble: null,
+    };
+
+    this.remotePlayers.set(presence.socketId, record);
+  };
+
+  private handleRemotePlayerMoved = (data: PlayerMovementPacket): void => {
+    if (!data || !data.socketId) return;
+    const record = this.remotePlayers.get(data.socketId);
+    if (!record) return;
+
+    record.targetX = data.x;
+    record.targetY = data.y;
+    record.direction = data.direction;
+    record.isMoving = data.isMoving;
+  };
+
+  private handleRemotePlayerLeft = ({ socketId }: { socketId: string }): void => {
+    const record = this.remotePlayers.get(socketId);
+    if (!record) return;
+
+    if (record.activeChatBubble && record.activeChatBubble.container.active) {
+      record.activeChatBubble.container.destroy();
+    }
+    for (const e of record.activeEmotes) {
+      if (e.container.active) e.container.destroy();
+    }
+
+    this.tweens.add({
+      targets: record.container,
+      alpha: 0,
+      scale: 0.6,
+      duration: 200,
+      onComplete: () => {
+        if (record.container.active) {
+          record.container.destroy();
+        }
+      },
+    });
+
+    this.remotePlayers.delete(socketId);
+  };
+
+  private handleRemotePlayerStatus = ({ socketId, status }: { socketId: string; status: UserStatus }): void => {
+    const record = this.remotePlayers.get(socketId);
+    if (!record) return;
+    record.presence.status = status;
+    const pillW = Math.max(52, record.nameText.width + 16 + 12);
+    const halfW = pillW / 2;
+    const pillY = -54;
+    this.drawStatusDot(record.statusDot, -halfW + 8, pillY, status);
+  };
+
+  // =========================================================================
+  // FLOATING REACTION EMOTES (LOCAL & REMOTE)
+  // =========================================================================
+
+  private spawnReactionForTarget(
+    targetX: number,
+    targetY: number,
+    emoji: string,
+    targetEmotesList: { container: Phaser.GameObjects.Container; offsetX: number; offsetY: number }[]
+  ): void {
+    if (targetEmotesList.length >= 3) {
+      const oldest = targetEmotesList.shift();
       if (oldest && oldest.container.active) {
         oldest.container.destroy();
       }
     }
 
-    // 2. Spawn offset directly above player head with slight horizontal jitter
     const offsetX = Phaser.Math.Between(-8, 8);
     const startOffsetY = 56;
 
-    const container = this.add.container(
-      this.player.x + offsetX,
-      this.player.y - startOffsetY
-    );
-    container.setDepth(this.player.y + 1000);
+    const container = this.add.container(targetX + offsetX, targetY - startOffsetY);
+    container.setDepth(targetY + 1000);
 
-    // Compact circular badge (diameter 28px)
     const radius = 14;
     const bg = this.add.graphics();
     bg.fillStyle(0xf4ead5, 0.95);
@@ -1457,9 +1958,8 @@ export class OfficeScene extends Phaser.Scene {
       offsetX,
       offsetY: startOffsetY,
     };
-    this.activeEmotes.push(emoteRecord);
+    targetEmotesList.push(emoteRecord);
 
-    // Pop-in bounce
     this.tweens.add({
       targets: container,
       scale: 1,
@@ -1467,7 +1967,6 @@ export class OfficeScene extends Phaser.Scene {
       duration: 160,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Float up smoothly and fade out
         this.tweens.addCounter({
           from: startOffsetY,
           to: startOffsetY + 40,
@@ -1485,35 +1984,44 @@ export class OfficeScene extends Phaser.Scene {
             if (container.active) {
               container.destroy();
             }
-            const idx = this.activeEmotes.indexOf(emoteRecord);
+            const idx = targetEmotesList.indexOf(emoteRecord);
             if (idx !== -1) {
-              this.activeEmotes.splice(idx, 1);
+              targetEmotesList.splice(idx, 1);
             }
           },
         });
       },
     });
+  }
+
+  private handleTriggerReaction = ({ emoji, socketId }: { emoji: string; socketId?: string }): void => {
+    if (!emoji) return;
+
+    if (socketId && this.remotePlayers.has(socketId)) {
+      const record = this.remotePlayers.get(socketId)!;
+      this.spawnReactionForTarget(record.container.x, record.container.y, emoji, record.activeEmotes);
+      return;
+    }
+
+    if (!this.player || !this.player.active) return;
+    this.spawnReactionForTarget(this.player.x, this.player.y, emoji, this.activeEmotes);
   };
 
   // =========================================================================
-  // LIVE CHAT SPEECH BUBBLE
+  // LIVE CHAT SPEECH BUBBLE (LOCAL & REMOTE)
   // =========================================================================
 
-  private handleTriggerChatBubble = ({ text }: { text: string }): void => {
-    if (!this.player || !this.player.active || !text.trim()) return;
-
-    // 1. Strictly 1 chat bubble at a time: immediately destroy previous one if exists
-    if (this.activeChatBubble && this.activeChatBubble.container.active) {
-      this.activeChatBubble.container.destroy();
-      this.activeChatBubble = null;
-    }
-
-    // 2. Format & wrap text (truncate if excessively long)
+  private spawnChatBubbleForTarget(
+    targetX: number,
+    targetY: number,
+    text: string,
+    onCreated: (bubble: { container: Phaser.GameObjects.Container; offsetY: number }) => void
+  ): void {
     const maxTextWidth = 190;
     const displayText = text.length > 80 ? text.slice(0, 77) + '...' : text;
 
-    const container = this.add.container(this.player.x, this.player.y);
-    container.setDepth(this.player.y + 1050);
+    const container = this.add.container(targetX, targetY);
+    container.setDepth(targetY + 1050);
 
     const txt = this.add.text(0, -3, displayText, {
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -1523,7 +2031,6 @@ export class OfficeScene extends Phaser.Scene {
       wordWrap: { width: maxTextWidth, useAdvancedWrap: true },
     }).setOrigin(0.5, 0.5);
 
-    // 3. Compute speech bubble dimensions
     const paddingX = 9;
     const paddingY = 5;
     const bw = Math.max(46, Math.min(220, txt.width + paddingX * 2));
@@ -1533,16 +2040,13 @@ export class OfficeScene extends Phaser.Scene {
     const halfH = bh / 2;
     const centerY = -3;
 
-    // Background bubble geometry
     const bg = this.add.graphics();
     bg.fillStyle(0xf4ead5, 0.96);
     bg.lineStyle(1.5, 0x355c5a, 0.95);
 
-    // Rounded rectangle body
     bg.fillRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
     bg.strokeRoundedRect(-halfW, centerY - halfH, bw, bh, radius);
 
-    // Downward triangle tail pointing directly towards the player's head
     bg.fillTriangle(-4, centerY + halfH, 4, centerY + halfH, 0, centerY + halfH + 5);
     bg.beginPath();
     bg.moveTo(-4, centerY + halfH);
@@ -1550,26 +2054,20 @@ export class OfficeScene extends Phaser.Scene {
     bg.lineTo(4, centerY + halfH);
     bg.strokePath();
 
-    // Cover edge to merge body with tail
     const cover = this.add.graphics();
     cover.fillStyle(0xf4ead5, 1);
     cover.fillRect(-3, centerY + halfH - 1, 6, 2);
 
     container.add([bg, cover, txt]);
 
-    // Position above avatar head: avatar top is ~48px above feet, tail length 5px
     const offsetY = 54 + halfH;
-    container.setPosition(this.player.x, this.player.y - offsetY);
+    container.setPosition(targetX, targetY - offsetY);
 
-    // Pop-in bounce
     container.setScale(0.5);
     container.setAlpha(0);
 
-    const record = {
-      container,
-      offsetY,
-    };
-    this.activeChatBubble = record;
+    const bubbleRecord = { container, offsetY };
+    onCreated(bubbleRecord);
 
     this.tweens.add({
       targets: container,
@@ -1578,7 +2076,6 @@ export class OfficeScene extends Phaser.Scene {
       duration: 150,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Stay visible for 4.2 seconds, fading out during the last 600ms
         this.tweens.addCounter({
           from: 1,
           to: 0,
@@ -1593,12 +2090,34 @@ export class OfficeScene extends Phaser.Scene {
             if (container.active) {
               container.destroy();
             }
-            if (this.activeChatBubble === record) {
-              this.activeChatBubble = null;
-            }
           },
         });
       },
+    });
+  }
+
+  private handleTriggerChatBubble = ({ text, socketId }: { text: string; socketId?: string }): void => {
+    if (!text || !text.trim()) return;
+
+    if (socketId && this.remotePlayers.has(socketId)) {
+      const record = this.remotePlayers.get(socketId)!;
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.destroy();
+        record.activeChatBubble = null;
+      }
+      this.spawnChatBubbleForTarget(record.container.x, record.container.y, text, (bubble) => {
+        record.activeChatBubble = bubble;
+      });
+      return;
+    }
+
+    if (!this.player || !this.player.active) return;
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      this.activeChatBubble.container.destroy();
+      this.activeChatBubble = null;
+    }
+    this.spawnChatBubbleForTarget(this.player.x, this.player.y, text, (bubble) => {
+      this.activeChatBubble = bubble;
     });
   };
 
@@ -1630,6 +2149,10 @@ export class OfficeScene extends Phaser.Scene {
       this.screenShareBadgeContainer.destroy();
       this.screenShareBadgeContainer = null;
     }
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_JOINED, this.handleRemotePlayerJoined, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_MOVED, this.handleRemotePlayerMoved, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_LEFT, this.handleRemotePlayerLeft, this);
+    EventBus.off(GAME_EVENTS.REMOTE_PLAYER_STATUS, this.handleRemotePlayerStatus, this);
     if (this.activeChatBubble && this.activeChatBubble.container.active) {
       this.activeChatBubble.container.destroy();
       this.activeChatBubble = null;
@@ -1638,6 +2161,20 @@ export class OfficeScene extends Phaser.Scene {
       if (item.container.active) item.container.destroy();
     }
     this.activeEmotes = [];
+
+    // Clean up all remote player avatars
+    for (const [, record] of this.remotePlayers.entries()) {
+      if (record.activeChatBubble && record.activeChatBubble.container.active) {
+        record.activeChatBubble.container.destroy();
+      }
+      for (const item of record.activeEmotes) {
+        if (item.container.active) item.container.destroy();
+      }
+      if (record.container.active) {
+        record.container.destroy();
+      }
+    }
+    this.remotePlayers.clear();
   }
 
   destroy(): void {
@@ -1695,27 +2232,71 @@ export class OfficeScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+
+    // 4 Sitting Animations (Rows 8..11)
+    const texture = this.textures.get(key);
+    const totalFrames = texture ? texture.frameTotal : 0;
+    if (totalFrames >= 108) {
+      const sitConfigs = [
+        { dir: 'south', start: 72 }, // Row 8: duduk madep bawah
+        { dir: 'east', start: 81 },  // Row 9: duduk madep kanan
+        { dir: 'north', start: 90 }, // Row 10: duduk madep atas
+        { dir: 'west', start: 99 },  // Row 11: duduk madep kiri
+      ];
+      for (const { dir, start } of sitConfigs) {
+        const animKey = `${key}-sit-${dir}`;
+        if (this.anims.exists(animKey)) this.anims.remove(animKey);
+        this.anims.create({
+          key: animKey,
+          frames: this.anims.generateFrameNumbers(key, { start, end: start + 8 }),
+          frameRate: 2,
+          repeat: -1,
+        });
+      }
+    }
   }
 
   private handleUpdatePlayerCharacter = (payload: any): void => {
     if (!this.player) return;
     const config = payload?.config || payload;
-    const dataUrl =
-      payload?.spritesheetDataUrl ||
-      (typeof localStorage !== 'undefined'
-        ? localStorage.getItem('neurosim_character_spritesheet')
-        : null);
 
-    if (dataUrl) {
+    const isCustom = config?.archetype === 'custom';
+    const dataUrl =
+      isCustom && typeof localStorage !== 'undefined'
+        ? localStorage.getItem('neurosim_character_spritesheet')
+        : null;
+
+    if (isCustom && dataUrl) {
       const customKey = 'char-player-custom';
       const img = new Image();
       img.src = dataUrl;
-      img.onload = () => {
+      img.onload = async () => {
         if (!this.scene.isActive()) return;
+        let finalImg: HTMLImageElement = img;
+
+        // If cached sheet has old 512px height and we have config, re-composite to 768px!
+        if (img.height < 768 && config) {
+          try {
+            const upgradedCanvas = await generateFullLpcSpritesheet(config);
+            const upgradedDataUrl = upgradedCanvas.toDataURL('image/png');
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('neurosim_character_spritesheet', upgradedDataUrl);
+            }
+            const upgradedImg = new Image();
+            upgradedImg.src = upgradedDataUrl;
+            await new Promise((resolve) => {
+              upgradedImg.onload = resolve;
+            });
+            finalImg = upgradedImg;
+          } catch (e) {
+            console.warn('Could not upgrade custom spritesheet to 768px:', e);
+          }
+        }
+
         if (this.textures.exists(customKey)) {
           this.textures.remove(customKey);
         }
-        this.textures.addSpriteSheet(customKey, img, {
+        this.textures.addSpriteSheet(customKey, finalImg, {
           frameWidth: 64,
           frameHeight: 64,
         });
@@ -1723,7 +2304,18 @@ export class OfficeScene extends Phaser.Scene {
         this.createCustomAnimations(customKey);
         this.playerArchetypeKey = customKey;
         this.player.setTexture(customKey);
-        const idleAnim = `${customKey}-idle-${this.lastDirection}`;
+        // Standardize LPC character height (50px * 1.52 = 76px, matching aligned.png 38px * 2.0 = 76px)
+        this.player.setScale(1.52);
+
+        const currentDir =
+          this.lastDirection === 'north' ||
+          this.lastDirection === 'south' ||
+          this.lastDirection === 'east' ||
+          this.lastDirection === 'west'
+            ? this.lastDirection
+            : 'south';
+
+        const idleAnim = `${customKey}-idle-${currentDir}`;
         if (this.anims.exists(idleAnim)) {
           this.player.play(idleAnim, true);
         }
@@ -1731,12 +2323,23 @@ export class OfficeScene extends Phaser.Scene {
       return;
     }
 
-    const arch = config?.archetype || 'resident';
+    const arch = config?.archetype && config.archetype !== 'custom' ? config.archetype : 'resident';
     const newKey = `char-${arch}`;
+
     if (this.textures.exists(newKey)) {
       this.playerArchetypeKey = newKey;
       this.player.setTexture(newKey);
-      const idleAnim = `${newKey}-idle-${this.lastDirection}`;
+      this.player.setScale(CHAR_SCALE); // Strictly maintain standard 2.0 scale (76px height)
+
+      const currentDir =
+        this.lastDirection === 'north' ||
+        this.lastDirection === 'south' ||
+        this.lastDirection === 'east' ||
+        this.lastDirection === 'west'
+          ? this.lastDirection
+          : 'south';
+
+      const idleAnim = `${newKey}-idle-${currentDir}`;
       if (this.anims.exists(idleAnim)) {
         this.player.play(idleAnim, true);
       }

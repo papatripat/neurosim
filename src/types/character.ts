@@ -7,7 +7,8 @@ export type Archetype =
   | 'courier'
   | 'barista'
   | 'cook'
-  | 'maintenance-worker';
+  | 'maintenance-worker'
+  | 'custom';
 
 export interface ColorOption {
   id: string;

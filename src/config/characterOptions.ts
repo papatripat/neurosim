@@ -62,6 +62,14 @@ export const ARCHETYPE_OPTIONS: ArchetypeOption[] = [
     spriteBase: 'maintenance-worker',
     previewUrl: '/assets/characters/maintenance-worker/standing/south.png',
   },
+  {
+    id: 'custom',
+    name: 'Karakter Kustom (Universal LPC)',
+    category: 'Desain Bebas & Modular',
+    description: 'Bebas kustomisasi rambut, pakaian, warna kulit, dan aksesoris secara mandiri.',
+    spriteBase: 'custom',
+    previewUrl: '/assets/characters/resident/standing/south.png',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -216,11 +224,14 @@ export const SHOES_OPTIONS: SelectOption[] = [
 ];
 
 export const ACCESSORIES_OPTIONS: SelectOption[] = [
+  { id: 'none', name: 'Tanpa Aksesoris Tambahan', description: 'Tampilan bersih tanpa hiasan ekstra' },
+  { id: 'id-badge', name: 'Tali Lanyard ID Card Kantor', description: 'Tanda pengenal karyawan tergantung di leher' },
   { id: 'leather-watch', name: 'Jam Tangan Kulit Mewah', description: 'Arloji berkelas melingkar di pergelangan tangan' },
   { id: 'belt-leather', name: 'Ikat Pinggang Kulit Formal', description: 'Sabuk kulit formal dengan gesper logam rapi' },
+  { id: 'briefcase', name: 'Tas Berkas / Laptop Case', description: 'Membawa map dokumen penting di tangan' },
+  { id: 'headset', name: 'Headset Peredam Bising (ANC)', description: 'Headphone over-ear untuk fokus kerja bebas distraksi' },
   { id: 'scarf', name: 'Syal Leher Profesional (Scarf)', description: 'Syal kain halus pelengkap busana kantor ber-AC' },
   { id: 'earrings', name: 'Anting Stud Emas Minimalis', description: 'Aksesoris anting kecil anggun untuk tampilan formal' },
-  { id: 'none', name: 'Tanpa Aksesoris Tambahan', description: 'Tampilan bersih minimalis tanpa hiasan ekstra' },
 ];
 
 // ---------------------------------------------------------------------------
