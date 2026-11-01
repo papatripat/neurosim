@@ -33,25 +33,35 @@ export const OfficeChatDrawer: React.FC<Props> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const unreadDividerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messages.length);
+  const isAutoScrollingRef = useRef(false);
 
   // Bila chat drawer baru dibuka atau pesan bertambah
   useEffect(() => {
     if (!isOpen) return;
 
-    // Jika belum pernah membaca atau pertama kali ada pesan
     if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+
+      // JIKA PESAN TERAKHIR ADALAH PESAN SENDIRI (isSelf):
+      // Jangan pernah tandai pesan sendiri sebagai unread ("Lihat Pesan Baru")!
+      if (lastMsg.isSelf) {
+        setLastReadMessageId(lastMsg.id);
+        setFirstUnreadId(null);
+        setShowScrollBottomBtn(false);
+        onMarkAllRead?.();
+        return;
+      }
+
       if (!lastReadMessageId) {
-        // Anggap pesan yang sudah ada sebelum membuka adalah yang pertama dilihat
-        const lastMsg = messages[messages.length - 1];
         setLastReadMessageId(lastMsg.id);
         setFirstUnreadId(null);
       } else {
-        // Cek apakah ada pesan baru setelah lastReadMessageId
         const lastReadIdx = messages.findIndex((m) => m.id === lastReadMessageId);
         if (lastReadIdx !== -1 && lastReadIdx < messages.length - 1) {
-          // Ada pesan baru!
-          if (!firstUnreadId) {
-            setFirstUnreadId(messages[lastReadIdx + 1].id);
+          // Hanya cari pesan baru yang berasal dari orang lain (!isSelf)
+          const newFromOthers = messages.slice(lastReadIdx + 1).find((m) => !m.isSelf);
+          if (newFromOthers && !firstUnreadId) {
+            setFirstUnreadId(newFromOthers.id);
           }
         }
       }
@@ -60,13 +70,29 @@ export const OfficeChatDrawer: React.FC<Props> = ({
     onMarkAllRead?.();
   }, [isOpen, messages.length, onMarkAllRead]);
 
+  // Jika pesan yang belum dibaca sudah tampil di layar tanpa perlu scroll, bersihkan otomatis setelah 2.5 detik
+  useEffect(() => {
+    if (!isOpen || !firstUnreadId) return;
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        const { scrollHeight, clientHeight } = containerRef.current;
+        if (scrollHeight <= clientHeight + 40) {
+          handleClearUnread();
+        }
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [isOpen, firstUnreadId, messages.length]);
+
   // Deteksi scroll posisi pengguna
   const handleScroll = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || isAutoScrollingRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 60;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const isNearBottom = distanceFromBottom < 80;
 
-    setShowScrollBottomBtn(!isNearBottom && messages.length > 3);
+    // Tombol hanya tampil jika user sengaja scroll ke atas lebih dari 120px
+    setShowScrollBottomBtn(distanceFromBottom > 120 && messages.length > 3);
 
     // Jika sudah di paling bawah, bersihkan status unread
     if (isNearBottom && messages.length > 0) {
@@ -87,15 +113,16 @@ export const OfficeChatDrawer: React.FC<Props> = ({
     if (isNewMessage) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg?.isSelf) {
-        // Jika pesan sendiri, langsung scroll ke paling bawah
-        scrollToBottom('smooth');
-        setLastReadMessageId(lastMsg.id);
+        // Jika pesan sendiri, langsung hilangkan tombol scroll dan lompat instan tanpa glitch
+        setShowScrollBottomBtn(false);
         setFirstUnreadId(null);
+        scrollToBottom('auto');
       } else {
         // Jika pesan orang lain dan user sedang di bawah, ikuti scroll
         if (containerRef.current) {
           const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-          if (scrollHeight - scrollTop - clientHeight < 100) {
+          const dist = scrollHeight - scrollTop - clientHeight;
+          if (dist < 100) {
             scrollToBottom('smooth');
           } else {
             setShowScrollBottomBtn(true);
@@ -108,29 +135,53 @@ export const OfficeChatDrawer: React.FC<Props> = ({
     }
   }, [messages, isOpen]);
 
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    isAutoScrollingRef.current = true;
+    setShowScrollBottomBtn(false);
     messagesEndRef.current?.scrollIntoView({ behavior });
     if (messages.length > 0) {
       setLastReadMessageId(messages[messages.length - 1].id);
       setFirstUnreadId(null);
-      setShowScrollBottomBtn(false);
       onMarkAllRead?.();
     }
+    // Lepas kunci auto-scrolling setelah proses scroll selesai
+    setTimeout(() => {
+      isAutoScrollingRef.current = false;
+      if (containerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+        const dist = scrollHeight - scrollTop - clientHeight;
+        setShowScrollBottomBtn(dist > 120 && messages.length > 3);
+      }
+    }, behavior === 'smooth' ? 300 : 50);
+  };
+
+  const handleClearUnread = () => {
+    setFirstUnreadId(null);
+    if (messages.length > 0) {
+      setLastReadMessageId(messages[messages.length - 1].id);
+    }
+    onMarkAllRead?.();
   };
 
   const scrollToFirstUnread = () => {
     if (unreadDividerRef.current) {
       unreadDividerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
-      scrollToBottom('smooth');
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
+    // Langsung hilangkan tombol merah dan penanda unread saat ditekan (seperti Discord/WA)
+    handleClearUnread();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
-    onSendMessage(inputText.trim());
+    const textToSend = inputText.trim();
     setInputText('');
+    setShowScrollBottomBtn(false);
+    handleClearUnread();
+    isAutoScrollingRef.current = true;
+    onSendMessage(textToSend);
   };
 
   if (!isOpen) return null;
@@ -177,19 +228,25 @@ export const OfficeChatDrawer: React.FC<Props> = ({
           </div>
         ) : (
           messages.map((m) => {
-            const isFirstUnread = m.id === firstUnreadId;
+            const isFirstUnread = m.id === firstUnreadId && !m.isSelf;
 
             return (
               <React.Fragment key={m.id}>
-                {/* Pembatas Discord-style untuk pesan baru belum dilihat */}
+                {/* Pembatas Discord/WA-style untuk pesan baru belum dilihat (bisa diklik untuk hilang) */}
                 {isFirstUnread && (
-                  <div ref={unreadDividerRef} className="relative my-3 flex items-center justify-center">
+                  <div
+                    ref={unreadDividerRef}
+                    onClick={handleClearUnread}
+                    title="Klik untuk menandai pesan sudah dibaca"
+                    className="relative my-3 flex items-center justify-center cursor-pointer group"
+                  >
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t-2 border-brick/70" />
+                      <div className="w-full border-t-2 border-brick/70 group-hover:border-brick transition-colors" />
                     </div>
-                    <span className="relative bg-brick text-soft text-[9.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs flex items-center gap-1">
+                    <span className="relative bg-brick hover:bg-brick-dark text-soft text-[9.5px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs flex items-center gap-1.5 transition-all">
                       <span className="w-1.5 h-1.5 rounded-full bg-soft animate-ping" />
-                      Pesan Baru Belum Dilihat
+                      <span>Pesan Baru Belum Dilihat</span>
+                      <X className="w-3 h-3 opacity-75 group-hover:opacity-100" />
                     </span>
                   </div>
                 )}
