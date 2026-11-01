@@ -51,7 +51,7 @@ export const getOfficeRooms = (userName: string, activeZoneId: string = 'room-wo
       name: 'Kantor Utama & Open Workspace',
       zone: 'Workstation Utama',
       description: 'Pusat workstation tim dengan 16 meja kerja komputer, koridor navigasi sentral, dan area kolaborasi.',
-      spawnCoords: { x: 1810, y: 790 },
+      spawnCoords: { x: 1687, y: 880 },
       capacity: 25,
       activeCount: currentRoomId === 'room-main' ? 1 : 0,
       npcs: currentRoomId === 'room-main' ? [selfLabel] : ['Meja Kerja Siap Pakai'],

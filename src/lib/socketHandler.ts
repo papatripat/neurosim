@@ -35,7 +35,7 @@ export function setupRealtimeSocketIO(httpServer: HTTPServer): SocketIOServer {
       const roomPlayers = rooms.get(currentRoomId)!;
 
       const user = (payload && payload.user) || { username: 'Pengunjung', fullName: 'Pengunjung Kantor' };
-      const spawnCoords = (payload && payload.spawnCoords) || { x: 1810, y: 790 };
+      const spawnCoords = (payload && payload.spawnCoords) || { x: 1687, y: 880 };
 
       playerData = {
         socketId: socket.id,

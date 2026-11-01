@@ -78,8 +78,8 @@ const TODO_INTERACT_DIST = 80;
 const CHAR_SCALE = 2.0;
 const PROP_SCALE = 2.0;
 
-// Default Spawn: In Main Workstation at employee desk
-const SPAWN = { x: 1687, y: 840 };
+// Default Spawn: In Main Workstation at employee desk (open corridor in front of desk)
+const SPAWN = { x: 1687, y: 880 };
 
 // To-Do List board mounted ON THE TOP WALL of the central corridor
 const TODO_POS = { x: 1450, y: 140 };
@@ -977,23 +977,23 @@ export class OfficeScene extends Phaser.Scene {
     // Kitchen Island Bar
     this.addSolidProp('counter', 770, 155, 64, 60);
     this.addSolidProp('counter', 850, 155, 64, 60);
-    this.addDecorativeProp('bar-stool', 770, 205);
-    this.addDecorativeProp('bar-stool', 850, 205);
+    this.addSolidChair('bar-stool', 770, 205, 36, 36);
+    this.addSolidChair('bar-stool', 850, 205, 36, 36);
     this.addSeat('Kursi Bar', 770, 205, 'north', 'stool', 0, -2);
     this.addSeat('Kursi Bar', 850, 205, 'north', 'stool', 0, -2);
 
     // Cafe Tables & Seating (Break Area)
     this.addDecorativeProp('rug', 340, 330);
     this.addSolidProp('cafe-table', 340, 320, 56, 52);
-    this.addDecorativeProp('cafe-chair', 280, 320);
-    this.addDecorativeProp('cafe-chair', 400, 320);
+    this.addSolidChair('cafe-chair', 280, 320, 38, 38);
+    this.addSolidChair('cafe-chair', 400, 320, 38, 38);
     this.addSeat('Kursi Kafe', 280, 320, 'east', 'chair', -4, 0);
     this.addSeat('Kursi Kafe', 400, 320, 'west', 'chair', 4, 0);
 
     this.addDecorativeProp('rug', 650, 330);
     this.addSolidProp('cafe-table', 650, 320, 56, 52);
-    this.addDecorativeProp('cafe-chair', 590, 320);
-    this.addDecorativeProp('cafe-chair', 710, 320);
+    this.addSolidChair('cafe-chair', 590, 320, 38, 38);
+    this.addSolidChair('cafe-chair', 710, 320, 38, 38);
     this.addSeat('Kursi Kafe', 590, 320, 'east', 'chair', -4, 0);
     this.addSeat('Kursi Kafe', 710, 320, 'west', 'chair', 4, 0);
 
@@ -1023,14 +1023,14 @@ export class OfficeScene extends Phaser.Scene {
     // Meeting room center accent — NO COMPUTERS in meeting room as requested!
     this.addDecorativeProp('plant-small', 630, 695);
 
-    // Executive Meeting Chairs around table (Comfortable, uncrowded spacing)
-    this.addDecorativeProp('office-chair', 470, 645);
-    this.addDecorativeProp('office-chair', 585, 645);
-    this.addDecorativeProp('office-chair', 700, 645);
-    this.addDecorativeProp('office-chair-north', 470, 795);
-    this.addDecorativeProp('office-chair-north', 585, 795);
-    this.addDecorativeProp('office-chair-north', 700, 795);
-    this.addDecorativeProp('office-chair-east', 360, 720); // Head of table facing East towards table
+    // Executive Meeting Chairs around table (Comfortable, uncrowded spacing with solid barriers)
+    this.addSolidChair('office-chair', 470, 645, 42, 38);
+    this.addSolidChair('office-chair', 585, 645, 42, 38);
+    this.addSolidChair('office-chair', 700, 645, 42, 38);
+    this.addSolidChair('office-chair-north', 470, 795, 42, 38);
+    this.addSolidChair('office-chair-north', 585, 795, 42, 38);
+    this.addSolidChair('office-chair-north', 700, 795, 42, 38);
+    this.addSolidChair('office-chair-east', 360, 720, 38, 42); // Head of table facing East towards table
 
     // Register interactive seats in Meeting Room
     this.addSeat('Kursi Rapat', 470, 645, 'south', 'chair', 0, 4);
@@ -1212,10 +1212,10 @@ export class OfficeScene extends Phaser.Scene {
     this.add
       .image(x, y, 'prop-desk')
       .setScale(PROP_SCALE)
-      .setDepth(y + 52);
+      .setDepth(y + 44);
 
     // Precise solid barrier covering full desk surface and floor contact (no clipping!)
-    const col = this.add.rectangle(x, y + 16, 92, 54, 0x000000, 0);
+    const col = this.add.rectangle(x, y + 19, 90, 50, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
@@ -1234,41 +1234,48 @@ export class OfficeScene extends Phaser.Scene {
     const southDeskY = podY + 36;
 
     // 1. Desks Sprites (4 desks joined back-to-back in a pod)
-    // North pair
-    this.add.image(leftDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
-    this.add.image(rightDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 15);
-    // South pair
-    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
-    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 15);
+    // Depth sorting strictly at desk foot contact line (y + 44) to prevent any reverse overlap
+    this.add.image(leftDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 44);
+    this.add.image(rightDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 44);
+    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 44);
+    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 44);
 
     // 2. Computers & Monitors (Screen 'yang bergambar' strictly faces toward the chair!)
     // North desks: user sits at northDeskY - 56 facing South -> screen must face North toward chair!
-    // Rear casing faces camera (computer-north), screen faces chair.
-    this.addDecorativeProp('computer-north', leftDeskX, northDeskY - 8);
-    this.addDecorativeProp('computer-north', rightDeskX, northDeskY - 8);
-    // South desks: user sits at southDeskY + 56 facing North -> screen must face South toward chair!
-    // Illuminated screen faces camera (computer), screen faces chair.
-    this.addDecorativeProp('computer', leftDeskX, southDeskY - 12);
-    this.addDecorativeProp('computer', rightDeskX, southDeskY - 12);
+    this.add
+      .image(leftDeskX, northDeskY - 8, 'prop-computer-north')
+      .setScale(PROP_SCALE)
+      .setDepth(northDeskY + 20);
+    this.add
+      .image(rightDeskX, northDeskY - 8, 'prop-computer-north')
+      .setScale(PROP_SCALE)
+      .setDepth(northDeskY + 20);
 
-    // Center seam succulent removed per user request
+    // South desks: user sits at southDeskY + 68 facing North -> screen faces South toward chair!
+    this.add
+      .image(leftDeskX, southDeskY - 12, 'prop-computer')
+      .setScale(PROP_SCALE)
+      .setDepth(southDeskY + 46);
+    this.add
+      .image(rightDeskX, southDeskY - 12, 'prop-computer')
+      .setScale(PROP_SCALE)
+      .setDepth(southDeskY + 46);
 
-    // 3. Ergonomic Office Chairs
-    // North chairs (sitting above desks facing south)
-    this.addDecorativeProp('office-chair', leftDeskX, northDeskY - 56);
-    this.addDecorativeProp('office-chair', rightDeskX, northDeskY - 56);
-    // South chairs (sitting below desks facing north)
-    this.addDecorativeProp('office-chair-north', leftDeskX, southDeskY + 56);
-    this.addDecorativeProp('office-chair-north', rightDeskX, southDeskY + 56);
+    // 3. Ergonomic Office Chairs (Solid props — cannot be stepped onto or walked through)
+    this.addSolidChair('office-chair', leftDeskX, northDeskY - 56, 42, 38);
+    this.addSolidChair('office-chair', rightDeskX, northDeskY - 56, 42, 38);
+    this.addSolidChair('office-chair-north', leftDeskX, southDeskY + 68, 42, 38);
+    this.addSolidChair('office-chair-north', rightDeskX, southDeskY + 68, 42, 38);
 
     // Register interactive seats for workstation
     this.addSeat('Kursi Kerja', leftDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
     this.addSeat('Kursi Kerja', rightDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
-    this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 68, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 68, 'north', 'chair', 0, -4);
 
-    // 4. 100% Solid Physics Collider covering entire 4-desk island from top north edge to bottom south edge
-    const podCollider = this.add.rectangle(podX, podY + 12, 212, 120, 0x000000, 0);
+    // 4. 100% Solid Physics Island Collider:
+    // Seals entire 4-desk pod and chair perimeter so player cannot walk through or wedge onto furniture
+    const podCollider = this.add.rectangle(podX, podY + 11, 216, 222, 0x000000, 0);
     this.physics.add.existing(podCollider, true);
     (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(podCollider);
@@ -1281,11 +1288,11 @@ export class OfficeScene extends Phaser.Scene {
       // Small personalized desk succulent
       this.addDecorativeProp('plant-small', pX - 22, pY - 12);
 
-      // "MEJA KAMU" prominent tag placed above the monitor seam so player standing below never obscures it
+      // "MEJA KAMU" prominent tag placed above the monitor seam
       this.add
         .rectangle(pX, pY - 32, 80, 18, 0x1e293b, 0.95)
         .setStrokeStyle(1.5, 0xe0b65d)
-        .setDepth(pY + 30);
+        .setDepth(pY + 50);
       this.add
         .text(pX, pY - 32, 'MEJA KAMU', {
           fontFamily: 'monospace',
@@ -1294,8 +1301,32 @@ export class OfficeScene extends Phaser.Scene {
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
-        .setDepth(pY + 31);
+        .setDepth(pY + 51);
     }
+  }
+
+  /**
+   * Helper: Add an interactive, solid chair prop.
+   * Solid collision barrier prevents characters from stepping onto or through the chair.
+   */
+  private addSolidChair(
+    name: string,
+    x: number,
+    y: number,
+    bodyW: number = 42,
+    bodyH: number = 38
+  ): Phaser.GameObjects.Image {
+    const img = this.add
+      .image(x, y, `prop-${name}`)
+      .setScale(PROP_SCALE)
+      .setDepth(y + 44);
+
+    const col = this.add.rectangle(x, y + 14, bodyW, bodyH, 0x000000, 0);
+    this.physics.add.existing(col, true);
+    (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+    this.obstacles.add(col);
+
+    return img;
   }
 
   /**
@@ -1575,7 +1606,7 @@ export class OfficeScene extends Phaser.Scene {
 
     // 3. Proximity to Sittable Seats (Chairs, Armchairs, Sofas)
     let nearestSeat: SeatSpot | null = null;
-    let minSeatDist = 65; // Proximity threshold
+    let minSeatDist = 65; // Precise proximity threshold (triggers comfortably when standing near chair)
     for (const seat of this.seats) {
       const d = Phaser.Math.Distance.Between(this.player.x, this.player.y, seat.x, seat.y);
       if (d < minSeatDist) {
@@ -1624,6 +1655,9 @@ export class OfficeScene extends Phaser.Scene {
     this.isSitting = true;
     this.currentSeat = seat;
     this.lastStandPos = { x: this.player.x, y: this.player.y };
+    if (this.player?.body) {
+      this.player.body.enable = false; // Disable body physics while seated so it doesn't push against furniture
+    }
     this.player.setVelocity(0, 0);
     this.player.setPosition(seat.sitX, seat.sitY);
     const sitAnim = `${this.playerArchetypeKey}-sit-${seat.facing}`;
@@ -1673,31 +1707,36 @@ export class OfficeScene extends Phaser.Scene {
     if (seat.type === 'chair' || seat.type === 'stool') {
       if (seat.facing === 'south') {
         // Chair faces South into desk -> step NORTH into the open corridor above the chair!
-        exitY = seat.y - 36;
+        exitY = seat.y - 48;
       } else if (seat.facing === 'north') {
         // Chair faces North into desk -> step SOUTH into the open corridor below the chair!
-        exitY = seat.y + 36;
+        exitY = seat.y + 44;
       } else if (seat.facing === 'east') {
         // Chair faces East into table -> step WEST into open aisle on left!
-        exitX = seat.x - 36;
+        exitX = seat.x - 42;
       } else if (seat.facing === 'west') {
         // Chair faces West into table -> step EAST into open aisle on right!
-        exitX = seat.x + 36;
+        exitX = seat.x + 42;
       }
     } else {
       // For sofas and lounge sets: step into open room space away from the wall
       if (seat.facing === 'south') {
-        exitY = seat.y + 44;
+        exitY = seat.y + 48;
       } else if (seat.facing === 'north') {
-        exitY = seat.y - 44;
+        exitY = seat.y - 48;
       } else if (seat.facing === 'east') {
-        exitX = seat.x + 36;
+        exitX = seat.x + 42;
       } else if (seat.facing === 'west') {
-        exitX = seat.x - 36;
+        exitX = seat.x - 42;
       }
     }
 
     this.player.setPosition(exitX, exitY);
+    if (this.player?.body) {
+      this.player.body.enable = true; // Re-enable body physics in open walkway
+      this.player.body.reset(exitX, exitY);
+    }
+    this.player.setVelocity(0, 0);
     this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
     const idleAnim = `${this.playerArchetypeKey}-idle-${this.lastDirection}`;
     if (this.anims.exists(idleAnim)) {
