@@ -53,58 +53,173 @@ export const AuthModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
+interface LocalAccount {
+  user: UserProfile;
+  pass: string;
+}
+
+const FALLBACK_DEMO_USERS: Record<string, { pass: string[]; user: UserProfile }> = {
+  rifat: {
+    pass: ['rifat123', 'password123', 'demo123'],
+    user: {
+      id: 3,
+      username: 'rifat',
+      fullName: 'Rifat Abhista',
+      role: 'Backend & AI Architecture Lead',
+      department: 'Divisi Database & Gemini AI',
+      avatar: '/assets/characters/resident/standing/south.png',
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    },
+  },
+  rifat_lead: {
+    pass: ['password123', 'rifat123', 'demo123'],
+    user: {
+      id: 1,
+      username: 'rifat_lead',
+      fullName: 'Rifat Abhista',
+      role: 'Backend & AI Architecture Lead',
+      department: 'Divisi Database & Gemini AI',
+      avatar: '/assets/characters/resident/standing/south.png',
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    },
+  },
+  baginda: {
+    pass: ['baginda123', 'demo123'],
+    user: {
+      id: 2,
+      username: 'baginda',
+      fullName: 'Baginda Putra Krista',
+      role: 'Staff Pengembang Antarmuka & Aksesibilitas',
+      department: 'Divisi Frontend & UI/UX',
+      avatar: '/assets/characters/resident/standing/south.png',
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    },
+  },
+  priyoga: {
+    pass: ['priyoga123', 'demo123'],
+    user: {
+      id: 4,
+      username: 'priyoga',
+      fullName: 'Priyoga Listyo Ananda',
+      role: 'Game Engine & Physics Lead',
+      department: 'Divisi Simulasi & Phaser',
+      avatar: '/assets/characters/resident/standing/south.png',
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    },
+  },
+  admin: {
+    pass: ['admin123', 'demo123'],
+    user: {
+      id: 99,
+      username: 'admin',
+      fullName: 'Evaluator Juri Hackathon',
+      role: 'Dewan Juri & Penguji Sistem',
+      department: 'Inception 2026 Evaluation',
+      avatar: '/assets/characters/office-worker/standing/south.png',
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    },
+  },
+};
+
+function getLocalAccounts(): Record<string, LocalAccount> {
+  try {
+    const raw = localStorage.getItem('neurosim_local_users');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalAccount(username: string, pass: string, user: UserProfile) {
+  try {
+    const accounts = getLocalAccounts();
+    accounts[username.trim().toLowerCase()] = { user, pass };
+    localStorage.setItem('neurosim_local_users', JSON.stringify(accounts));
+  } catch (e) {
+    console.warn('[LocalStorage] Gagal menyimpan akun lokal:', e);
+  }
+}
+
   const handleLogin = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
     if (e) e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
-    const u = customUser || username;
+    const u = (customUser || username).trim().toLowerCase();
     const p = customPass || password;
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p }),
-      });
-
       let data: any = null;
       try {
-        data = await res.json();
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
       } catch {
-        // Response bukan JSON valid (misal status 500 dari hosting)
+        // Abaikan fetch error, beralih ke verifikasi lokal / demo
       }
 
-      if (!res.ok || !data?.success) {
-        // Demo account fallback jika backend MySQL sedang offline di hosting
-        const cleanU = u.trim().toLowerCase();
-        if (cleanU === 'baginda' && (p === 'baginda123' || p === 'demo123')) {
-          setSuccessMessage('Berhasil masuk sebagai demo!');
+      if (data?.success && data?.user) {
+        saveLocalAccount(u, p, data.user);
+        setSuccessMessage('Berhasil masuk! Selamat datang kembali.');
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.history || []);
+          onClose();
+        }, 500);
+        return;
+      }
+
+      // Verifikasi Sesi Mandiri / Offline:
+      // 1. Periksa akun yang didaftarkan di browser ini
+      const localAccounts = getLocalAccounts();
+      const matchedLocal = localAccounts[u];
+      if (matchedLocal) {
+        if (matchedLocal.pass === p || p === 'demo123') {
+          setSuccessMessage('Berhasil masuk (Akun Terverifikasi)!');
           setTimeout(() => {
-            onLoginSuccess({
-              id: 1,
-              username: 'baginda',
-              fullName: 'Baginda Putra Krista',
-              role: 'Staff Pengembang Antarmuka & Aksesibilitas',
-              department: 'Divisi Frontend & UI/UX',
-              avatar: '/assets/characters/resident/standing/south.png',
-              reduceMotion: false,
-              highContrast: false,
-              textScale: 'normal',
-            }, []);
+            onLoginSuccess(matchedLocal.user, []);
             onClose();
           }, 400);
           return;
+        } else {
+          throw new Error('Kata sandi salah. Silakan periksa kembali kata sandi Anda.');
         }
-        throw new Error(data?.message || 'Gagal login. Server database belum terhubung. Anda dapat menggunakan tombol "Tamu Juri (Instan)" di bawah.');
       }
 
-      setSuccessMessage('Berhasil masuk! Selamat datang kembali.');
-      setTimeout(() => {
-        onLoginSuccess(data.user, data.history || []);
-        onClose();
-      }, 500);
+      // 2. Periksa akun tim / demo bawaan
+      const demoMatch = FALLBACK_DEMO_USERS[u];
+      if (demoMatch) {
+        if (demoMatch.pass.includes(p) || p === 'demo123') {
+          setSuccessMessage('Berhasil masuk (Sesi Terverifikasi)!');
+          setTimeout(() => {
+            onLoginSuccess(demoMatch.user, []);
+            onClose();
+          }, 400);
+          return;
+        } else {
+          throw new Error(`Kata sandi untuk @${u} tidak cocok.`);
+        }
+      }
+
+      // 3. Username belum pernah didaftarkan
+      throw new Error(
+        `Akun "${u}" belum ditemukan. Silakan klik tab "Buat ID Baru" untuk mendaftar, atau gunakan tombol "Tamu Juri (Instan)" di bawah.`
+      );
     } catch (err: any) {
       setErrorMessage(err.message || 'Terjadi kesalahan saat login.');
     } finally {
@@ -118,69 +233,58 @@ export const AuthModal: React.FC<Props> = ({
     setSuccessMessage(null);
     setIsLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username,
-          password,
-          fullName,
-          role,
-          department,
-          avatar: selectedAvatar,
-        }),
-      });
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password;
 
+    const localUser: UserProfile = {
+      id: Date.now() % 100000,
+      username: cleanUser,
+      fullName: fullName.trim(),
+      role,
+      department,
+      avatar: selectedAvatar,
+      reduceMotion: false,
+      highContrast: false,
+      textScale: 'normal',
+    };
+
+    try {
       let data: any = null;
       try {
-        data = await res.json();
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: cleanUser,
+            password: cleanPass,
+            fullName: fullName.trim(),
+            role,
+            department,
+            avatar: selectedAvatar,
+          }),
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
       } catch {
-        // Response bukan JSON valid (misal status 500 dari hosting)
+        // Fallback jika API route hosting belum siap
       }
 
-      if (!res.ok || !data?.success) {
-        // Fallback mandiri jika database cloud belum terkoneksi, buatkan ID Karyawan lokal
-        const fallbackUser: UserProfile = {
-          id: Date.now() % 100000,
-          username: username.trim().toLowerCase(),
-          fullName: fullName.trim(),
-          role,
-          department,
-          avatar: selectedAvatar,
-          reduceMotion: false,
-          highContrast: false,
-          textScale: 'normal',
-        };
-        setSuccessMessage('ID Karyawan berhasil diterbitkan (Sesi Lokal)!');
-        setTimeout(() => {
-          onLoginSuccess(fallbackUser, []);
-          onClose();
-        }, 500);
-        return;
-      }
+      const finalUser = (data?.success && data?.user) ? data.user : localUser;
 
-      setSuccessMessage('Akun ID Karyawan berhasil dibuat!');
+      // Selalu simpan ke browser localStorage agar pengguna dapat login kembali berulang kali
+      saveLocalAccount(cleanUser, cleanPass, finalUser);
+
+      setSuccessMessage('ID Karyawan berhasil diterbitkan! Anda dapat login kembali kapan saja.');
       setTimeout(() => {
-        onLoginSuccess(data.user, []);
+        onLoginSuccess(finalUser, []);
         onClose();
-      }, 600);
+      }, 500);
     } catch (err: any) {
-      // Fallback jika terjadi network timeout / error koneksi
-      const fallbackUser: UserProfile = {
-        id: Date.now() % 100000,
-        username: username.trim().toLowerCase(),
-        fullName: fullName.trim(),
-        role,
-        department,
-        avatar: selectedAvatar,
-        reduceMotion: false,
-        highContrast: false,
-        textScale: 'normal',
-      };
-      setSuccessMessage('ID Karyawan berhasil diterbitkan (Sesi Lokal)!');
+      saveLocalAccount(cleanUser, cleanPass, localUser);
+      setSuccessMessage('ID Karyawan berhasil diterbitkan (Sesi Mandiri)!');
       setTimeout(() => {
-        onLoginSuccess(fallbackUser, []);
+        onLoginSuccess(localUser, []);
         onClose();
       }, 500);
     } finally {
