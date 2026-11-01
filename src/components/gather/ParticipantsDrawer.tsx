@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { X, MessageSquare, MapPin, Building2, Copy, Check, Radio } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, MessageSquare, MapPin, Building2, Copy, Check, Radio, Settings, Wifi, WifiOff } from 'lucide-react';
 import { OfficeRoom } from '../../types/room';
+import { EventBus, GAME_EVENTS } from '../../game/EventBus';
+import { multiplayerService } from '../../services/multiplayer.service';
 
 export interface Participant {
   id: string;
@@ -31,6 +33,37 @@ export const ParticipantsDrawer: React.FC<Props> = ({
   onOpenRoomModal,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(() => multiplayerService.isSocketConnected());
+  const [socketUrl, setSocketUrl] = useState(() => multiplayerService.getServerUrl());
+  const [customSocketUrl, setCustomSocketUrl] = useState(() => {
+    return typeof window !== 'undefined' ? (localStorage.getItem('neurosim_socket_url') || '') : '';
+  });
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  useEffect(() => {
+    const handleStatus = (data: { isConnected: boolean; serverUrl?: string }) => {
+      setIsSocketConnected(data.isConnected);
+      if (data.serverUrl) setSocketUrl(data.serverUrl);
+    };
+    EventBus.on(GAME_EVENTS.REALTIME_CONNECTION_STATUS, handleStatus);
+    setIsSocketConnected(multiplayerService.isSocketConnected());
+    return () => {
+      EventBus.off(GAME_EVENTS.REALTIME_CONNECTION_STATUS, handleStatus);
+    };
+  }, []);
+
+  const handleSaveSocketUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = customSocketUrl.trim();
+    if (clean) {
+      localStorage.setItem('neurosim_socket_url', clean);
+      multiplayerService.reconnect(clean);
+    } else {
+      localStorage.removeItem('neurosim_socket_url');
+      multiplayerService.reconnect();
+    }
+    setIsConfigOpen(false);
+  };
 
   // WAJIB: Panggil semua hooks sebelum early return agar tidak terjadi "Rendered more hooks"
   const simulationNpcs = useMemo(() => participants.filter((p) => p.isNPC), [participants]);
@@ -138,6 +171,71 @@ export const ParticipantsDrawer: React.FC<Props> = ({
             <Radio className="w-3 h-3" />
             <span>Kelola Ruang</span>
           </button>
+        </div>
+
+        {/* Realtime Server Connection Status */}
+        <div className={`p-2 rounded text-[10.5px] border transition-colors ${
+          isSocketConnected
+            ? 'bg-emerald-50/90 border-emerald-300 text-emerald-900'
+            : 'bg-amber-50 border-amber-300 text-amber-950'
+        }`}>
+          <div className="flex items-center justify-between font-bold">
+            <span className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+              <span>{isSocketConnected ? 'Realtime Multiplayer: Aktif' : 'Realtime Multiplayer: Offline'}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsConfigOpen(!isConfigOpen)}
+              className="text-[10px] underline font-semibold text-teal hover:text-teal-dark cursor-pointer flex items-center gap-1"
+            >
+              <Settings className="w-2.5 h-2.5" />
+              <span>{isConfigOpen ? 'Tutup' : 'Atur Server'}</span>
+            </button>
+          </div>
+
+          {!isSocketConnected && (
+            <p className="text-[9.5px] text-amber-800/90 mt-1 leading-snug">
+              Hosting serverless Vercel tidak menjalankan WebSocket permanen. Masukkan URL server realtime untuk terhubung dengan teman.
+            </p>
+          )}
+
+          {isConfigOpen && (
+            <form onSubmit={handleSaveSocketUrl} className="mt-2 space-y-1.5 pt-1.5 border-t border-amber-200">
+              <label className="block text-[10px] font-bold text-ink">
+                URL Server Socket.IO:
+              </label>
+              <input
+                type="text"
+                value={customSocketUrl}
+                onChange={(e) => setCustomSocketUrl(e.target.value)}
+                placeholder="misal: https://neurosim-socket.loca.lt"
+                className="w-full px-2 py-1 text-[10.5px] rounded bg-white border border-amber-300 font-mono text-ink placeholder:text-ink-muted/50"
+              />
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  type="submit"
+                  className="flex-1 py-1 text-[10.5px] font-bold rounded bg-teal text-soft hover:bg-teal-dark transition-colors cursor-pointer"
+                >
+                  Hubungkan
+                </button>
+                {customSocketUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomSocketUrl('');
+                      localStorage.removeItem('neurosim_socket_url');
+                      multiplayerService.reconnect();
+                      setIsConfigOpen(false);
+                    }}
+                    className="py-1 px-2 text-[10px] font-medium rounded bg-cream border border-muted/40 text-ink-muted hover:bg-parchment transition-colors cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
         </div>
       </div>
 
