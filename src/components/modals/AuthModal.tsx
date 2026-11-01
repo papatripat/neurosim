@@ -20,6 +20,7 @@ interface Props {
   onLoginSuccess: (user: UserProfile, history?: any[]) => void;
   onLogout: () => void;
   userHistory?: any[];
+  userAvatar?: string;
 }
 
 const AVATAR_OPTIONS = [
@@ -35,6 +36,7 @@ export const AuthModal: React.FC<Props> = ({
   onLoginSuccess,
   onLogout,
   userHistory = [],
+  userAvatar,
 }) => {
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [isLoading, setIsLoading] = useState(false);
@@ -121,12 +123,6 @@ export const AuthModal: React.FC<Props> = ({
     }
   };
 
-  // Quick Demo Login untuk Juri Hackathon
-  const handleQuickDemo = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-    handleLogin(undefined, user, pass);
-  };
 
   return (
     <div
@@ -161,9 +157,9 @@ export const AuthModal: React.FC<Props> = ({
             <div className="p-4 bg-parchment border-2 border-teal/40 rounded-lg shadow-sm flex items-center gap-4">
               <div className="w-16 h-16 rounded border-2 border-teal overflow-hidden bg-sand flex-shrink-0">
                 <img
-                  src={currentUser?.avatar || '/assets/characters/resident/standing/south.png'}
+                  src={userAvatar || currentUser?.avatar || '/assets/characters/resident/standing/south.png'}
                   alt={currentUser?.fullName || currentUser?.username || 'Pegawai'}
-                  className="w-full h-full object-contain scale-[1.9] pixelated"
+                  className="w-full h-full object-contain scale-[1.35] origin-center pixelated"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -186,7 +182,7 @@ export const AuthModal: React.FC<Props> = ({
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
                   <History className="w-3.5 h-3.5 text-teal" />
-                  Riwayat Simulasi Tersimpan (MySQL):
+                  Riwayat Sesi Simulasi & Evaluasi AI:
                 </h4>
                 <span className="text-[11px] text-ink-muted">
                   {userHistory.length} Sesi Terdata
@@ -195,7 +191,7 @@ export const AuthModal: React.FC<Props> = ({
 
               {userHistory.length === 0 ? (
                 <div className="p-3 bg-sand/50 rounded border border-[#d1c7b5] text-center text-xs text-ink-muted">
-                  Belum ada riwayat simulasi yang tersimpan di database. Mulai latihan dengan Bu Rina atau Dimas!
+                  Belum ada riwayat simulasi tersimpan. Selesaikan sesi latihan mandiri untuk merekam evaluasi kompetensi.
                 </div>
               ) : (
                 <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 text-xs">
@@ -318,16 +314,9 @@ export const AuthModal: React.FC<Props> = ({
                 {/* Quick Access untuk Juri Hackathon */}
                 <div className="pt-3 border-t border-[#d1c7b5] space-y-1.5">
                   <p className="text-[11px] text-ink-muted text-center font-medium">
-                    ⚡ Masuk Cepat untuk Juri & Tim:
+                    ⚡ Masuk Cepat untuk Juri:
                   </p>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo('rifat_lead', 'password123')}
-                      className="flex-1 py-1 px-2 rounded bg-sand hover:bg-sand/80 border border-[#d1c7b5] text-[11px] font-semibold text-ink transition-colors"
-                    >
-                      Rifat (Lead)
-                    </button>
+                  <div>
                     <button
                       type="button"
                       onClick={() => {
@@ -345,9 +334,9 @@ export const AuthModal: React.FC<Props> = ({
                         }, []);
                         onClose();
                       }}
-                      className="flex-1 py-1 px-2 rounded bg-teal/15 hover:bg-teal/25 border border-teal text-[11px] font-semibold text-teal transition-colors"
+                      className="w-full py-1.5 px-3 rounded-lg bg-teal/15 hover:bg-teal/25 border border-teal text-xs font-semibold text-teal transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      Tamu Juri (Instan)
+                      <span>Tamu Juri (Instan)</span>
                     </button>
                   </div>
                 </div>

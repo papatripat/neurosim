@@ -53,7 +53,7 @@ export const TodoListModal: React.FC<Props> = ({
             type="button"
             onClick={onClose}
             aria-label="Tutup Papan Agenda"
-            className="text-soft/80 hover:text-soft text-lg leading-none px-1.5 py-0.5 rounded transition-colors"
+            className="text-soft/80 hover:text-soft text-lg leading-none px-1.5 py-0.5 rounded transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -99,7 +99,7 @@ export const TodoListModal: React.FC<Props> = ({
                   onSelectTask(task.scenarioId);
                   onClose();
                 }}
-                className="px-3 py-1.5 text-xs font-semibold rounded bg-teal text-soft hover:bg-teal-dark transition-colors flex-shrink-0"
+                className="px-3 py-1.5 text-xs font-semibold rounded bg-teal text-soft hover:bg-teal-dark transition-colors flex-shrink-0 cursor-pointer shadow-xs"
               >
                 {task.completed ? 'Latih Ulang' : 'Mulai'}
               </button>
@@ -113,7 +113,7 @@ export const TodoListModal: React.FC<Props> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1 rounded border border-muted/30 bg-sand text-ink font-medium hover:bg-cream transition-colors"
+            className="px-3 py-1 rounded border border-muted/30 bg-sand text-ink font-medium hover:bg-cream transition-colors cursor-pointer shadow-2xs"
           >
             Tutup Papan
           </button>

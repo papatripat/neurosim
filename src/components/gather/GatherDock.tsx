@@ -99,8 +99,8 @@ export const GatherDock: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Main Gather Bar */}
-      <div className="app-gather-dock bg-cream/95 backdrop-blur-xs border-2 border-teal rounded-lg shadow-xl px-2.5 py-1.5 flex items-center gap-1 sm:gap-2 text-ink">
+      {/* Main Virtual Office Action Dock */}
+      <div className="app-office-dock bg-cream/95 backdrop-blur-xs border-2 border-teal rounded-lg shadow-xl px-2.5 py-1.5 flex items-center gap-1 sm:gap-2 text-ink">
         {/* User Identity & Status */}
         <div className="relative">
           <button
@@ -112,7 +112,7 @@ export const GatherDock: React.FC<Props> = ({
               <img
                 src={userAvatar || '/assets/characters/resident/standing/south.png'}
                 alt={userName || 'Avatar Pengguna'}
-                className="w-full h-full object-contain scale-[1.8] pixelated"
+                className="w-full h-full object-contain scale-[1.35] origin-center pixelated"
               />
               <span
                 className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${getStatusColor()}`}
@@ -120,7 +120,7 @@ export const GatherDock: React.FC<Props> = ({
             </div>
             <div className="hidden md:block">
               <span className="font-bold text-xs leading-none block text-ink truncate max-w-[90px]">
-                {userName || 'Baginda'}
+                {userName || 'Rifat'}
               </span>
               <span className="text-[10px] text-ink-muted leading-tight block">
                 {getStatusLabel()}
@@ -255,7 +255,7 @@ export const GatherDock: React.FC<Props> = ({
           type="button"
           onClick={onOpenCustomizer}
           aria-label="Kustomisasi Karakter & Pakaian"
-          title="Kustomisasi Pakaian (Universal LPC)"
+          title="Kustomisasi Karakter & Pakaian"
           className="p-2 rounded border bg-soft border-muted/30 text-ink hover:bg-sand hover:text-teal transition-colors"
         >
           <Shirt className="w-4 h-4" />

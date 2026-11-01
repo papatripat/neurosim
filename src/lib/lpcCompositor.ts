@@ -3,9 +3,12 @@ import { CharacterCustomization, CharacterDirection } from '../types/character';
 export interface LayerSpec {
   id: string;
   url: string;
-  paletteType?: 'body' | 'hair' | 'cloth';
+  paletteType?: 'body' | 'hair' | 'cloth' | 'eye';
   sourceVariant?: string;
   targetVariant?: string;
+  secondaryPaletteType?: 'eye';
+  secondarySourceVariant?: string;
+  secondaryTargetVariant?: string;
   zPos: number;
 }
 
@@ -15,26 +18,30 @@ const imageCache = new Map<string, HTMLImageElement>();
 let bodyPalettes: Record<string, string[]> | null = null;
 let hairPalettes: Record<string, string[]> | null = null;
 let clothPalettes: Record<string, string[]> | null = null;
+let eyePalettes: Record<string, string[]> | null = null;
 
 export async function loadPalettes(): Promise<{
   body: Record<string, string[]>;
   hair: Record<string, string[]>;
   cloth: Record<string, string[]>;
+  eye: Record<string, string[]>;
 }> {
-  if (bodyPalettes && hairPalettes && clothPalettes) {
-    return { body: bodyPalettes, hair: hairPalettes, cloth: clothPalettes };
+  if (bodyPalettes && hairPalettes && clothPalettes && eyePalettes) {
+    return { body: bodyPalettes, hair: hairPalettes, cloth: clothPalettes, eye: eyePalettes };
   }
 
-  const [bRes, hRes, cRes] = await Promise.all([
+  const [bRes, hRes, cRes, eRes] = await Promise.all([
     fetch('/assets/lpc/palettes/body.json').then((r) => r.json()),
     fetch('/assets/lpc/palettes/hair.json').then((r) => r.json()),
     fetch('/assets/lpc/palettes/cloth.json').then((r) => r.json()),
+    fetch('/assets/lpc/palettes/eye.json').then((r) => r.json()),
   ]);
 
   bodyPalettes = bRes;
   hairPalettes = hRes;
   clothPalettes = cRes;
-  return { body: bRes, hair: hRes, cloth: cRes };
+  eyePalettes = eRes;
+  return { body: bRes, hair: hRes, cloth: cRes, eye: eRes };
 }
 
 export function loadImage(url: string): Promise<HTMLImageElement> {
@@ -110,6 +117,23 @@ export function recolorImageData(
   }
 }
 
+export function mapEyeColorToLpc(id: string): string {
+  switch (id) {
+    case 'ocean-blue':
+      return 'blue';
+    case 'forest-green':
+      return 'green';
+    case 'hazel':
+      return 'orange';
+    case 'slate-gray':
+      return 'gray';
+    case 'black':
+    case 'dark-brown':
+    default:
+      return 'brown';
+  }
+}
+
 // Maps application config to LPC palette keys
 export function mapSkinToneToLpc(id: string): string {
   switch (id) {
@@ -156,9 +180,9 @@ export function mapHairColorToLpc(id: string): string {
 export function mapClothColorToLpc(id: string): string {
   switch (id) {
     case 'white':
+    case 'white-sneaker':
       return 'white';
     case 'sky-blue':
-      return 'sky';
     case 'light-blue':
       return 'sky';
     case 'deep-navy':
@@ -173,16 +197,37 @@ export function mapClothColorToLpc(id: string): string {
     case 'black-leather':
       return 'black';
     case 'khaki':
+    case 'beige-suit':
       return 'tan';
     case 'dark-brown':
+    case 'brown-suit':
       return 'brown';
+    case 'cognac-tan':
+      return 'leather';
+    case 'gray-suede':
+    case 'slate-suit':
+      return 'slate';
     case 'slate-teal':
-      return 'teal';
+    case 'slate':
+      return 'slate';
     case 'forest-green':
+    case 'forest':
       return 'forest';
+    case 'sage':
+      return 'green';
     case 'crimson':
     case 'wine':
       return 'maroon';
+    case 'cream':
+      return 'tan';
+    case 'terracotta':
+      return 'orange';
+    case 'dark-denim':
+      return 'blue';
+    case 'gold':
+      return 'yellow';
+    case 'silver':
+      return 'gray';
     default:
       return 'white';
   }
@@ -201,12 +246,21 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     zPos: 0,
   });
 
-  // 2. Hair Background (if hairstyle has back layer, like ponytail)
+  // 2. Hair Background (if hairstyle has back layer, like ponytail or shoulder waves)
   const hairKey = config.hairStyle || 'short-parted';
   if (hairKey === 'ponytail') {
     layers.push({
       id: 'hair-bg',
       url: '/assets/lpc/hair/ponytail/adult/bg/walk.png',
+      paletteType: 'hair',
+      sourceVariant: 'orange',
+      targetVariant: mapHairColorToLpc(config.hairColor),
+      zPos: 5,
+    });
+  } else if (hairKey === 'shoulder-waves') {
+    layers.push({
+      id: 'hair-bg',
+      url: '/assets/lpc/hair/wavy/adult/bg/walk.png',
       paletteType: 'hair',
       sourceVariant: 'orange',
       targetVariant: mapHairColorToLpc(config.hairColor),
@@ -231,7 +285,7 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     zPos: 10,
   });
 
-  // 3b. Human Head & Face base (Aligned with neck and body skin tone)
+  // 3b. Human Head & Face base (Aligned with neck and body skin tone + eye iris color)
   const headGender = gender === 'female' ? 'female' : 'male';
   layers.push({
     id: 'head',
@@ -239,8 +293,23 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     paletteType: 'body',
     sourceVariant: 'light',
     targetVariant: mapSkinToneToLpc(config.skinTone),
+    secondaryPaletteType: 'eye',
+    secondarySourceVariant: 'blue',
+    secondaryTargetVariant: mapEyeColorToLpc(config.eyeColor),
     zPos: 12,
   });
+
+  // 3c. Feminine Blush & Expression (Soft rosy tone for female character distinction)
+  if (gender === 'female') {
+    layers.push({
+      id: 'head-blush',
+      url: '/assets/lpc/head/faces/female/blush/walk.png',
+      paletteType: 'body',
+      sourceVariant: 'light',
+      targetVariant: mapSkinToneToLpc(config.skinTone),
+      zPos: 14,
+    });
+  }
 
   // 4. Eyebrows (Facial Expression & Tone)
   layers.push({
@@ -252,15 +321,19 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     zPos: 15,
   });
 
-  // 5. Pants / Legs
+  // 5. Pants / Skirts / Legs
   const pants = config.pantsType || 'slacks-formal';
   let pantsUrl = '/assets/lpc/legs/formal/male/walk.png';
   if (pants === 'chinos-neat') {
     pantsUrl = '/assets/lpc/legs/pants/male/walk.png';
   } else if (pants === 'dark-jeans') {
     pantsUrl = '/assets/lpc/legs/cuffed/male/walk.png';
-  } else if (pants === 'pencil-skirt' || pants === 'a-line-skirt') {
+  } else if (pants === 'slacks-striped') {
     pantsUrl = '/assets/lpc/legs/formal_striped/male/walk.png';
+  } else if (pants === 'pencil-skirt') {
+    pantsUrl = '/assets/lpc/legs/skirts/straight/thin/walk.png';
+  } else if (pants === 'a-line-skirt') {
+    pantsUrl = '/assets/lpc/legs/skirts/plain/thin/walk.png';
   }
 
   layers.push({
@@ -292,11 +365,12 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     zPos: 35,
   });
 
-  // 7. Shirt / Top
+  // 7. Shirt / Top / Suit (Full torso shirt coverage)
   const shirt = config.shirtType || 'collared-formal';
   let shirtUrl = '/assets/lpc/torso/clothes/longsleeve/formal/male/walk.png';
   if (shirt === 'rolled-sleeves') {
-    shirtUrl = '/assets/lpc/torso/clothes/longsleeve/longsleeves_cuffed/male/walk.png';
+    // Rolled/short sleeves shirt using standard shortsleeve base with white source palette
+    shirtUrl = '/assets/lpc/torso/clothes/shortsleeve/shortsleeve/male/walk.png';
   } else if (shirt === 'casual-polo') {
     shirtUrl = '/assets/lpc/torso/clothes/longsleeve/longsleeve2_polo/male/walk.png';
   } else if (shirt === 'cardigan-knit') {
@@ -305,17 +379,112 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     shirtUrl = '/assets/lpc/torso/clothes/longsleeve/longsleeve2_buttoned/male/walk.png';
   }
 
-  layers.push({
-    id: 'torso',
-    url: shirtUrl,
-    paletteType: 'cloth',
-    sourceVariant: 'white',
-    targetVariant: mapClothColorToLpc(config.shirtColor),
-    zPos: 45,
-  });
+  // If formal suit/blazer is selected
+  if (config.suitType && config.suitType !== 'none') {
+    const isStriped = config.suitType === 'smart-blazer';
+    const suitTorsoUrl = isStriped
+      ? '/assets/lpc/torso/clothes/longsleeve/formal_striped/male/walk.png'
+      : '/assets/lpc/torso/clothes/longsleeve/formal/male/walk.png';
+    layers.push({
+      id: 'torso',
+      url: suitTorsoUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.suitColor || 'navy-suit'),
+      zPos: 45,
+    });
+  } else {
+    layers.push({
+      id: 'torso',
+      url: shirtUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.shirtColor),
+      zPos: 45,
+    });
+  }
 
-  // 8. Facial Hair (Beard & Mustache)
-  const facial = config.facialHair || 'none';
+  // 7b. Tie (Formal Necktie & Bowtie)
+  const tie = config.tieType || 'none';
+  if (tie !== 'none') {
+    let tieUrl = '/assets/lpc/neck/tie/necktie/male/walk.png';
+    if (tie === 'necktie-silk' || tie === 'striped-tie') {
+      tieUrl = '/assets/lpc/neck/tie/necktie/male/walk.png';
+    } else if (tie === 'bowtie') {
+      tieUrl = '/assets/lpc/neck/tie/bowtie/adult/walk.png';
+    }
+
+    layers.push({
+      id: 'tie',
+      url: tieUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.tieColor || 'crimson'),
+      zPos: 50,
+    });
+  }
+
+  // 7c. Suit / Blazer / Vest Luaran
+  const suit = config.suitType || 'none';
+  if (suit !== 'none') {
+    let suitUrl = '/assets/lpc/torso/jacket/collared/male/walk/white.png';
+    if (suit === 'single-breasted') {
+      suitUrl = '/assets/lpc/torso/jacket/collared/male/walk/white.png';
+    } else if (suit === 'smart-blazer') {
+      suitUrl = '/assets/lpc/torso/clothes/vest_open/male/walk/white.png';
+    } else if (suit === 'formal-vest') {
+      suitUrl = '/assets/lpc/torso/clothes/vest/male/walk/white.png';
+    }
+
+    layers.push({
+      id: 'suit',
+      url: suitUrl,
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: mapClothColorToLpc(config.suitColor || 'navy-suit'),
+      zPos: 60,
+    });
+  }
+
+  // 7d. Accessories & Office Equipment
+  const acc = config.accessory || 'none';
+  if (acc === 'leather-watch') {
+    layers.push({
+      id: 'watch',
+      url: '/assets/lpc/arms/wrists/cuffs/male/walk.png',
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: 'brown',
+      zPos: 65,
+    });
+  } else if (acc === 'belt-leather') {
+    layers.push({
+      id: 'belt',
+      url: '/assets/lpc/torso/waist/belt_leather/male/walk.png',
+      paletteType: 'cloth',
+      sourceVariant: 'brown',
+      targetVariant: 'leather',
+      zPos: 70,
+    });
+  } else if (acc === 'scarf') {
+    layers.push({
+      id: 'scarf',
+      url: '/assets/lpc/neck/scarf/walk.png',
+      paletteType: 'cloth',
+      sourceVariant: 'white',
+      targetVariant: 'teal',
+      zPos: 75,
+    });
+  } else if (acc === 'earrings') {
+    layers.push({
+      id: 'earrings',
+      url: '/assets/lpc/facial/earrings/stud/male/walk.png',
+      zPos: 116,
+    });
+  }
+
+  // 8. Facial Hair (Beard & Mustache) - only for male
+  const facial = gender === 'female' ? 'none' : (config.facialHair || 'none');
   if (facial === 'stubble') {
     layers.push({
       id: 'beard',
@@ -355,8 +524,10 @@ export function getLpcLayers(config: CharacterCustomization): LayerSpec[] {
     hairUrl = '/assets/lpc/hair/afro/adult/walk.png';
   } else if (hairKey === 'pixie-cut') {
     hairUrl = '/assets/lpc/hair/pixie/adult/walk.png';
-  } else if (hairKey === 'office-bun' || hairKey === 'shoulder-waves') {
-    hairUrl = '/assets/lpc/hair/bob/adult/walk.png';
+  } else if (hairKey === 'office-bun') {
+    hairUrl = '/assets/lpc/hair/bangs_bun/adult/walk.png';
+  } else if (hairKey === 'shoulder-waves') {
+    hairUrl = '/assets/lpc/hair/wavy/adult/fg/walk.png';
   } else if (hairKey === 'ponytail') {
     hairUrl = '/assets/lpc/hair/ponytail/adult/fg/walk.png';
   } else if (hairKey === 'messy-crop') {
@@ -446,6 +617,7 @@ export async function generateFullLpcSpritesheet(
         if (layer.paletteType === 'body') palGroup = palettes.body;
         else if (layer.paletteType === 'hair') palGroup = palettes.hair;
         else if (layer.paletteType === 'cloth') palGroup = palettes.cloth;
+        else if (layer.paletteType === 'eye') palGroup = palettes.eye;
 
         if (palGroup) {
           const srcPal = palGroup[layer.sourceVariant];
@@ -453,6 +625,25 @@ export async function generateFullLpcSpritesheet(
           if (srcPal && tgtPal) {
             const imgData = tempCtx.getImageData(0, 0, 576, 256);
             recolorImageData(imgData, srcPal, tgtPal);
+            tempCtx.putImageData(imgData, 0, 0);
+          }
+        }
+      }
+
+      // Secondary palette recoloring (e.g. eye iris recolor on head layer)
+      if (
+        layer.secondaryPaletteType &&
+        layer.secondarySourceVariant &&
+        layer.secondaryTargetVariant
+      ) {
+        let secPalGroup: Record<string, string[]> | null = null;
+        if (layer.secondaryPaletteType === 'eye') secPalGroup = palettes.eye;
+        if (secPalGroup) {
+          const sSrcPal = secPalGroup[layer.secondarySourceVariant];
+          const sTgtPal = secPalGroup[layer.secondaryTargetVariant];
+          if (sSrcPal && sTgtPal) {
+            const imgData = tempCtx.getImageData(0, 0, 576, 256);
+            recolorImageData(imgData, sSrcPal, sTgtPal);
             tempCtx.putImageData(imgData, 0, 0);
           }
         }

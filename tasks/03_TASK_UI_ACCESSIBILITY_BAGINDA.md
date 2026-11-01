@@ -1,5 +1,5 @@
 # PANDUAN TEKNIS: FRONTEND UI/UX, AKSESIBILITAS & KONTEN SKENARIO
-**Penanggung Jawab:** Baginda Putra Krista (didukung Frontend UI & A11y Companion Agent)  
+**Penanggung Jawab:** Baginda Putra Krista (didukung Frontend UI & Accessibility Companion Agent)  
 **Tujuan Utama:** Membangun seluruh antarmuka HTML React di atas canvas, panel obrolan ramah sensorik (bebas efek typewriter lambat), tombol kendali wajib (*Jeda, Lewati, Keluar, Petunjuk*), layar rubrik evaluasi 4 dimensi dengan komparasi coba lagi, dan fitur *Dual-Mode UX* (Jelajah 2D vs Daftar Skenario Langsung).
 
 ---
