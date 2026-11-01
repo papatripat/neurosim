@@ -6,7 +6,7 @@ export const DEFAULT_ROOMS: OfficeRoom[] = [
     code: 'NEURO-HQ-88',
     name: 'Kantor Pusat NeuroSim (Ruang Kerja Utama)',
     description: 'Ruang kerja kolaboratif divisi UI/UX, Backend, dan AI. Denah kantor 2D lengkap dengan meeting room & pantry.',
-    hostName: 'Baginda Putra Krista',
+    hostName: 'Rifat Abhista',
     isPrivate: false,
     capacity: 30,
     activeCount: 1,

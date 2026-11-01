@@ -131,6 +131,7 @@ class MultiplayerService {
         existing.direction = data.direction;
         existing.anim = data.anim;
         existing.isMoving = data.isMoving;
+        existing.isSitting = data.isSitting;
         if (data.zone) existing.zone = data.zone;
       }
       EventBus.emit(GAME_EVENTS.REMOTE_PLAYER_MOVED, data);
@@ -197,8 +198,8 @@ class MultiplayerService {
     if (!this.socket || !this.isConnected || !this.currentRoomId) return;
 
     const now = Date.now();
-    // Throttle pergerakan kecuali jika berhenti (isMoving: false) agar update berhenti segera dikirim
-    if (data.isMoving && now - this.lastMoveSentTime < this.MOVE_THROTTLE_MS) {
+    // Throttle pergerakan kecuali jika berhenti (isMoving: false) atau sedang transisi duduk/berdiri
+    if (data.isMoving && !data.isSitting && now - this.lastMoveSentTime < this.MOVE_THROTTLE_MS) {
       return;
     }
 

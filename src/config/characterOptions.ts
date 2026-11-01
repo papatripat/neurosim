@@ -239,7 +239,7 @@ export const ACCESSORIES_OPTIONS: SelectOption[] = [
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CHARACTER: CharacterCustomization = {
-  name: 'Baginda Putra Krista',
+  name: 'Rifat Abhista',
   archetype: 'resident',
   gender: 'male',
   bodyType: 'standard',

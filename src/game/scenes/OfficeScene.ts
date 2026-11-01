@@ -49,6 +49,8 @@ interface RemotePlayerRecord {
   targetY: number;
   direction: 'north' | 'south' | 'east' | 'west';
   isMoving: boolean;
+  isSitting?: boolean;
+  sitAnim?: string;
   archetypeKey: string;
   activeChatBubble?: {
     container: Phaser.GameObjects.Container;
@@ -454,10 +456,9 @@ export class OfficeScene extends Phaser.Scene {
       } else {
         this.showPrompt(this.player.x, this.player.y - 56, 'Tekan [SPASI / WASD] Berdiri');
       }
-      return;
+    } else {
+      this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
     }
-
-    this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
 
     // Update active reaction emote positions so they strictly track the player sprite
     for (let i = this.activeEmotes.length - 1; i >= 0; i--) {
@@ -489,7 +490,7 @@ export class OfficeScene extends Phaser.Scene {
     }
 
     // -------------------------------------------------------------------------
-    // Update Remote Multiplayer Players (Lerp movement, animations, nametags, emotes)
+    // Update Remote Multiplayer Players (Lerp movement, animations, nametags, emotes, sitting)
     // -------------------------------------------------------------------------
     for (const [, record] of this.remotePlayers.entries()) {
       if (!record.container || !record.container.active) continue;
@@ -498,29 +499,59 @@ export class OfficeScene extends Phaser.Scene {
       const dy = record.targetY - record.container.y;
       const dist = Math.hypot(dx, dy);
 
-      // Smooth lerp towards network target position
-      if (dist > 1.2) {
-        record.container.x = Phaser.Math.Linear(record.container.x, record.targetX, 0.22);
-        record.container.y = Phaser.Math.Linear(record.container.y, record.targetY, 0.22);
-      } else {
+      if (record.isSitting) {
+        // Pemain remote sedang duduk di kursi/sofa
         record.container.x = record.targetX;
         record.container.y = record.targetY;
-      }
 
-      // Dynamic Y-depth sorting based on player position on floor
-      record.container.setDepth(record.container.y);
+        // Depth sorting saat duduk presisi mengikuti dekorasi kursi
+        if (record.direction === 'north') {
+          record.container.setDepth(record.targetY + 45);
+        } else {
+          record.container.setDepth(record.targetY + 55);
+        }
 
-      // Animation handling: play walking if actively moving or converging towards target
-      const isMoving = record.isMoving || dist > 2.5;
-      if (isMoving) {
-        const walkAnim = `${record.archetypeKey}-walk-${record.direction}`;
-        if (this.anims.exists(walkAnim)) {
-          record.sprite.play(walkAnim, true);
+        // Animasi duduk remote player
+        const sitAnim = record.sitAnim || `${record.archetypeKey}-sit-${record.direction}`;
+        if (this.anims.exists(sitAnim)) {
+          record.sprite.play(sitAnim, true);
+        } else {
+          const fallbackSit = `${record.archetypeKey}-sit-south`;
+          if (this.anims.exists(fallbackSit)) {
+            record.sprite.play(fallbackSit, true);
+          } else {
+            record.sprite.play(`${record.archetypeKey}-idle-${record.direction}`, true);
+          }
         }
       } else {
-        const idleAnim = `${record.archetypeKey}-idle-${record.direction}`;
-        if (this.anims.exists(idleAnim)) {
-          record.sprite.play(idleAnim, true);
+        // Pemain remote sedang berjalan atau berdiri (idle)
+        if (dist > 150) {
+          // Snap teleport jika jarak melebihi 150px (mencegah pemain meluncur tembus ruangan saat spawn)
+          record.container.x = record.targetX;
+          record.container.y = record.targetY;
+        } else if (dist > 1.2) {
+          record.container.x = Phaser.Math.Linear(record.container.x, record.targetX, 0.22);
+          record.container.y = Phaser.Math.Linear(record.container.y, record.targetY, 0.22);
+        } else {
+          record.container.x = record.targetX;
+          record.container.y = record.targetY;
+        }
+
+        // Dynamic Y-depth sorting based on player position on floor
+        record.container.setDepth(record.container.y);
+
+        // Animation handling: play walking if actively moving or converging towards target
+        const isMoving = record.isMoving || dist > 2.5;
+        if (isMoving) {
+          const walkAnim = `${record.archetypeKey}-walk-${record.direction}`;
+          if (this.anims.exists(walkAnim)) {
+            record.sprite.play(walkAnim, true);
+          }
+        } else {
+          const idleAnim = `${record.archetypeKey}-idle-${record.direction}`;
+          if (this.anims.exists(idleAnim)) {
+            record.sprite.play(idleAnim, true);
+          }
         }
       }
 
@@ -546,6 +577,11 @@ export class OfficeScene extends Phaser.Scene {
         );
         record.activeChatBubble.container.setDepth(record.container.y + 1050);
       }
+    }
+
+    // Jika pemain lokal sedang duduk, jangan jalankan kalkulasi gerak berjalan di bawah
+    if (this.isSitting) {
+      return;
     }
 
     // Guard: ignore game movement while typing in HTML inputs or when any modal dialog is active
@@ -1611,6 +1647,17 @@ export class OfficeScene extends Phaser.Scene {
       this.player.setDepth(seat.y + 55);
     }
     this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [SPASI / WASD] Berdiri');
+
+    // Broadcast status duduk ke pemain lain di room online secara realtime
+    multiplayerService.sendMovement({
+      x: Math.round(seat.sitX),
+      y: Math.round(seat.sitY),
+      direction: seat.facing,
+      anim: sitAnim,
+      isMoving: false,
+      isSitting: true,
+      zone: this.currentZoneId || 'koridor',
+    });
   }
 
   private standUp(): void {
@@ -1657,6 +1704,17 @@ export class OfficeScene extends Phaser.Scene {
       this.player.play(idleAnim, true);
     }
     this.promptContainer.setVisible(false);
+
+    // Broadcast status berdiri ke pemain lain di room online secara realtime
+    multiplayerService.sendMovement({
+      x: Math.round(exitX),
+      y: Math.round(exitY),
+      direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
+      anim: idleAnim,
+      isMoving: false,
+      isSitting: false,
+      zone: this.currentZoneId || 'koridor',
+    });
   }
 
   private showPrompt(x: number, y: number, text: string): void {
@@ -1817,9 +1875,20 @@ export class OfficeScene extends Phaser.Scene {
 
     const sprite = this.add.sprite(0, 0, archetypeKey);
     sprite.setScale(CHAR_SCALE);
-    const idleAnim = `${archetypeKey}-idle-${presence.direction || 'south'}`;
-    if (this.anims.exists(idleAnim)) {
-      sprite.play(idleAnim);
+    const isSitting = Boolean(presence.isSitting);
+    const initialAnim = isSitting
+      ? `${archetypeKey}-sit-${presence.direction || 'south'}`
+      : `${archetypeKey}-idle-${presence.direction || 'south'}`;
+    if (this.anims.exists(initialAnim)) {
+      sprite.play(initialAnim);
+    }
+
+    if (isSitting) {
+      if (presence.direction === 'north') {
+        container.setDepth(presence.y + 45);
+      } else {
+        container.setDepth(presence.y + 55);
+      }
     }
 
     // Nametag & Status indicator
@@ -1873,6 +1942,8 @@ export class OfficeScene extends Phaser.Scene {
       targetY: presence.y,
       direction: presence.direction || 'south',
       isMoving: Boolean(presence.isMoving),
+      isSitting,
+      sitAnim: presence.anim,
       archetypeKey,
       activeEmotes: [],
       activeChatBubble: null,
@@ -1890,6 +1961,8 @@ export class OfficeScene extends Phaser.Scene {
     record.targetY = data.y;
     record.direction = data.direction;
     record.isMoving = data.isMoving;
+    record.isSitting = Boolean(data.isSitting);
+    record.sitAnim = data.anim;
   };
 
   private handleRemotePlayerLeft = ({ socketId }: { socketId: string }): void => {

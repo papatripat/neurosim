@@ -43,7 +43,7 @@ export const mapZoneToRoomId = (zoneId?: string): string => {
 
 export const getOfficeRooms = (userName: string, activeZoneId: string = 'room-workspace'): OfficeRoom[] => {
   const currentRoomId = mapZoneToRoomId(activeZoneId);
-  const selfLabel = userName ? `${userName} (Kamu)` : 'Baginda (Kamu)';
+  const selfLabel = userName ? `${userName} (Kamu)` : 'Rifat (Kamu)';
 
   return [
     {
@@ -99,7 +99,7 @@ export const getOfficeRooms = (userName: string, activeZoneId: string = 'room-wo
   ];
 };
 
-export const OFFICE_ROOMS: OfficeRoom[] = getOfficeRooms('Baginda Putra Krista');
+export const OFFICE_ROOMS: OfficeRoom[] = getOfficeRooms('Rifat Abhista');
 
 interface Props {
   currentUser: UserProfile | null;
@@ -132,7 +132,7 @@ export const DashboardView: React.FC<Props> = ({
   const completedTasks = tasks.filter((t) => t.completed).length;
   const progressPercent = Math.round((completedTasks / tasks.length) * 100);
   const currentRoomId = mapZoneToRoomId(currentZoneId);
-  const officeRooms = React.useMemo(() => getOfficeRooms(currentUser?.fullName || 'Baginda Putra Krista', currentZoneId), [currentUser?.fullName, currentZoneId]);
+  const officeRooms = React.useMemo(() => getOfficeRooms(currentUser?.fullName || 'Rifat Abhista', currentZoneId), [currentUser?.fullName, currentZoneId]);
 
   return (
     <div className="w-full h-full overflow-y-auto bg-sand/30 text-ink select-none flex flex-col">
@@ -247,7 +247,7 @@ export const DashboardView: React.FC<Props> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="font-bold text-sm sm:text-base text-ink truncate font-serif">
-                  {currentUser?.fullName || 'Baginda Putra Krista'}
+                  {currentUser?.fullName || 'Rifat Abhista'}
                 </h2>
                 <p className="text-xs text-teal font-semibold mt-0.5 truncate">
                   {currentUser?.role || 'Staff Pengembang Antarmuka'}

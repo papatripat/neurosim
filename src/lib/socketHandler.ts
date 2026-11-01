@@ -73,6 +73,7 @@ export function setupRealtimeSocketIO(httpServer: HTTPServer): SocketIOServer {
       playerData.direction = data.direction;
       playerData.anim = data.anim;
       playerData.isMoving = Boolean(data.isMoving);
+      playerData.isSitting = Boolean(data.isSitting);
       if (data.zone) playerData.zone = data.zone;
       playerData.lastSeen = Date.now();
 
@@ -83,6 +84,7 @@ export function setupRealtimeSocketIO(httpServer: HTTPServer): SocketIOServer {
         direction: data.direction,
         anim: data.anim,
         isMoving: playerData.isMoving,
+        isSitting: playerData.isSitting,
         zone: playerData.zone,
       });
     });

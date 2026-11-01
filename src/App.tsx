@@ -72,7 +72,7 @@ const NPC_PARTICIPANTS: Participant[] = [
 // Obrolan kantor dimulai dalam kondisi kosong bersih (dinamis)
 const getInitialChatMessages = (): OfficeChatMessage[] => [];
 
-const getUserDisplayName = (user: UserProfile | null, fallback = 'Baginda'): string => {
+const getUserDisplayName = (user: UserProfile | null, fallback = 'Rifat'): string => {
   if (!user) return fallback;
   if (user.fullName && typeof user.fullName === 'string' && user.fullName.trim().length > 0) {
     const first = user.fullName.trim().split(' ')[0];
@@ -134,7 +134,16 @@ export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('neurosim_current_user');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.fullName === 'string' && parsed.fullName.includes('Baginda')) {
+          parsed.fullName = 'Rifat Abhista';
+          parsed.username = 'rifat';
+          localStorage.setItem('neurosim_current_user', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -241,7 +250,15 @@ export const App: React.FC = () => {
   const [characterConfig, setCharacterConfig] = useState<CharacterCustomization>(() => {
     try {
       const saved = localStorage.getItem('neurosim_character_config');
-      return saved ? JSON.parse(saved) : DEFAULT_CHARACTER;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.name === 'string' && (parsed.name.includes('Baginda') || !parsed.name.trim())) {
+          parsed.name = 'Rifat Abhista';
+          localStorage.setItem('neurosim_character_config', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      return DEFAULT_CHARACTER;
     } catch {
       return DEFAULT_CHARACTER;
     }

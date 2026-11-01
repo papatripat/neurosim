@@ -16,6 +16,7 @@ export interface PlayerPresence {
   direction: 'north' | 'south' | 'east' | 'west';
   anim?: string;
   isMoving?: boolean;
+  isSitting?: boolean;
   status: UserStatus;
   zone: string;
   lastSeen?: number;
@@ -28,6 +29,7 @@ export interface PlayerMovementPacket {
   direction: 'north' | 'south' | 'east' | 'west';
   anim: string;
   isMoving: boolean;
+  isSitting?: boolean;
   zone: string;
 }
 

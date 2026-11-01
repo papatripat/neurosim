@@ -85,6 +85,7 @@ io.on('connection', (socket) => {
     playerData.direction = data.direction;
     playerData.anim = data.anim;
     playerData.isMoving = Boolean(data.isMoving);
+    playerData.isSitting = Boolean(data.isSitting);
     if (data.zone) playerData.zone = data.zone;
     playerData.lastSeen = Date.now();
 
@@ -95,6 +96,7 @@ io.on('connection', (socket) => {
       direction: data.direction,
       anim: data.anim,
       isMoving: playerData.isMoving,
+      isSitting: playerData.isSitting,
       zone: playerData.zone,
     });
   });

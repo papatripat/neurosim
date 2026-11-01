@@ -281,7 +281,7 @@ export const LandingView: React.FC<Props> = ({
             <span>·</span>
             <span>Rifat Abhista (Backend & AI)</span>
             <span>·</span>
-            <span>Baginda Putra Krista (UI/UX & Accessibility)</span>
+            <span>Tim Pengembang NeuroSim (UI/UX & Accessibility)</span>
           </div>
         </div>
       </footer>

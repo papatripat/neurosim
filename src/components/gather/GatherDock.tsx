@@ -120,7 +120,7 @@ export const GatherDock: React.FC<Props> = ({
             </div>
             <div className="hidden md:block">
               <span className="font-bold text-xs leading-none block text-ink truncate max-w-[90px]">
-                {userName || 'Baginda'}
+                {userName || 'Rifat'}
               </span>
               <span className="text-[10px] text-ink-muted leading-tight block">
                 {getStatusLabel()}

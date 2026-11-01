@@ -49,7 +49,7 @@ export const getRoomColleagues = (
 ): Participant[] => {
   const selfParticipant: Participant = {
     id: 'user-self',
-    name: userName || 'Baginda Putra Krista',
+    name: userName || 'Rifat Abhista',
     role: userRole || 'Frontend UI/UX & Aksesibilitas',
     zone: 'Workstation Utama',
     status: 'online',
@@ -67,7 +67,7 @@ export const OnlineRoomModal: React.FC<Props> = ({
   availableRooms,
   onJoinRoom,
   onCreateRoom,
-  userName = 'Baginda Putra Krista',
+  userName = 'Rifat Abhista',
   userRole,
   userAvatar,
   participants,
@@ -112,7 +112,7 @@ export const OnlineRoomModal: React.FC<Props> = ({
     code: 'NEURO-HQ-88',
     name: 'Kantor Pusat NeuroSim (Ruang Kerja Utama)',
     description: 'Ruang kerja kolaboratif divisi UI/UX, Backend, dan AI. Denah kantor 2D lengkap dengan meeting room & pantry.',
-    hostName: userName || 'Baginda Putra Krista',
+    hostName: userName || 'Rifat Abhista',
     isPrivate: false,
     capacity: 30,
     activeCount: 1,
@@ -324,7 +324,7 @@ export const OnlineRoomModal: React.FC<Props> = ({
                         </span>
                       )}
                       <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-cream border border-[#d1c7b5] text-ink-muted">
-                        Host: <strong className="text-teal">{activeRoom.code === 'NEURO-HQ-88' ? (userName || 'Baginda Putra Krista') : (activeRoom.hostName || userName)}</strong>
+                        Host: <strong className="text-teal">{activeRoom.code === 'NEURO-HQ-88' ? (userName || 'Rifat Abhista') : (activeRoom.hostName || userName)}</strong>
                       </span>
                       {activeRoom.tags?.map((tag) => (
                         <span key={tag} className="px-1.5 py-0.5 text-[9.5px] rounded bg-cream/80 border border-teal/20 text-wood-dark font-medium">

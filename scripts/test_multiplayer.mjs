@@ -35,22 +35,25 @@ socket.on('connect', () => {
     });
 
     setTimeout(() => {
+      // 3. Send sitting state (duduk di sofa/kursi breakout)
+      console.log('[TestClient] Sending sitting state (isSitting: true)...');
       socket.emit('c:move', {
         x: 1790,
         y: 840,
-        direction: 'east',
-        anim: 'char-office-worker-idle-east',
+        direction: 'south',
+        anim: 'char-office-worker-sit-south',
         isMoving: false,
+        isSitting: true,
         zone: 'Workstation Utama',
       });
 
-      // 3. Send chat message
+      // 4. Send chat message
       console.log('[TestClient] Sending chat message...');
       socket.emit('c:chat', {
-        text: 'Halo Baginda! Arsitektur multiplayer realtime sukses aktif!',
+        text: 'Halo tim! Arsitektur multiplayer realtime dan sistem duduk online sukses aktif!',
       });
 
-      // 4. Send reaction
+      // 5. Send reaction
       console.log('[TestClient] Sending emoji reaction...');
       socket.emit('c:reaction', {
         emoji: '🔥',
