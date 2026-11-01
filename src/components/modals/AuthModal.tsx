@@ -92,7 +92,7 @@ const FALLBACK_DEMO_USERS: Record<string, { pass: string[]; user: UserProfile }>
     user: {
       id: 2,
       username: 'baginda',
-      fullName: 'Baginda Putra Krista',
+      fullName: 'Karyawan Baru',
       role: 'Staff Pengembang Antarmuka & Aksesibilitas',
       department: 'Divisi Frontend & UI/UX',
       avatar: '/assets/characters/resident/standing/south.png',

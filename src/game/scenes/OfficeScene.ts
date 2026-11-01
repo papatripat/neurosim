@@ -41,6 +41,7 @@ export interface OfficeZone {
 interface RemotePlayerRecord {
   presence: PlayerPresence;
   container: Phaser.GameObjects.Container;
+  nametagContainer: Phaser.GameObjects.Container;
   sprite: Phaser.GameObjects.Sprite;
   nameBg: Phaser.GameObjects.Graphics;
   nameText: Phaser.GameObjects.Text;
@@ -454,7 +455,7 @@ export class OfficeScene extends Phaser.Scene {
       if (wantsStandUp) {
         this.standUp();
       } else {
-        this.showPrompt(this.player.x, this.player.y - 56, 'Tekan [SPASI / WASD] Berdiri');
+        this.showPrompt(this.player.x, this.player.y - 78, '[SPASI] Berdiri');
       }
     } else {
       this.player.setDepth((this.player.body as Phaser.Physics.Arcade.Body).bottom);
@@ -504,12 +505,8 @@ export class OfficeScene extends Phaser.Scene {
         record.container.x = record.targetX;
         record.container.y = record.targetY;
 
-        // Depth sorting saat duduk presisi mengikuti dekorasi kursi
-        if (record.direction === 'north') {
-          record.container.setDepth(record.targetY + 45);
-        } else {
-          record.container.setDepth(record.targetY + 55);
-        }
+        // Depth sorting saat duduk presisi seragam dengan local player
+        record.container.setDepth(record.targetY + 33);
 
         // Animasi duduk remote player
         const sitAnim = record.sitAnim || `${record.archetypeKey}-sit-${record.direction}`;
@@ -539,7 +536,15 @@ export class OfficeScene extends Phaser.Scene {
 
         // Dynamic Y-depth sorting based on player position on floor
         record.container.setDepth(record.container.y);
+      }
 
+      // Sync floating nametag HUD position and depth so it floats cleanly above furniture
+      if (record.nametagContainer && record.nametagContainer.active) {
+        record.nametagContainer.setPosition(record.container.x, record.container.y);
+        record.nametagContainer.setDepth(record.container.y + 1000);
+      }
+
+      if (!record.isSitting) {
         // Animation handling: play walking if actively moving or converging towards target
         const isMoving = record.isMoving || dist > 2.5;
         if (isMoving) {
@@ -1015,29 +1020,30 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('rug', 585, 720);
 
     // Impenetrable Boardroom Table (Solid 4 Desks Cluster)
-    this.addSolidDesk(450, 720);
-    this.addSolidDesk(540, 720);
-    this.addSolidDesk(630, 720);
-    this.addSolidDesk(720, 720);
+    this.addSolidDesk(450, 720, 825);
+    this.addSolidDesk(540, 720, 825);
+    this.addSolidDesk(630, 720, 825);
+    this.addSolidDesk(720, 720, 825);
 
     // Meeting room center accent — NO COMPUTERS in meeting room as requested!
-    this.addDecorativeProp('plant-small', 630, 695);
+    this.addDecorativeProp('plant-small', 630, 695).setDepth(826);
 
     // Executive Meeting Chairs around table (Comfortable, uncrowded spacing with solid barriers)
-    this.addSolidChair('office-chair', 470, 645, 42, 38);
-    this.addSolidChair('office-chair', 585, 645, 42, 38);
-    this.addSolidChair('office-chair', 700, 645, 42, 38);
-    this.addSolidChair('office-chair-north', 470, 795, 42, 38);
-    this.addSolidChair('office-chair-north', 585, 795, 42, 38);
-    this.addSolidChair('office-chair-north', 700, 795, 42, 38);
-    this.addSolidChair('office-chair-east', 360, 720, 38, 42); // Head of table facing East towards table
+    this.addSolidChair('office-chair', 470, 645, 42, 38, 665);
+    this.addSolidChair('office-chair', 585, 645, 42, 38, 665);
+    this.addSolidChair('office-chair', 700, 645, 42, 38, 665);
+    this.addSolidChair('office-chair-north', 470, 795, 42, 38, 815);
+    this.addSolidChair('office-chair-north', 585, 795, 42, 38, 815);
+    this.addSolidChair('office-chair-north', 700, 795, 42, 38, 815);
+    this.addSolidChair('office-chair-east', 360, 720, 38, 42, 740); // Head of table facing East towards table
 
     // Register interactive seats in Meeting Room
     this.addSeat('Kursi Rapat', 470, 645, 'south', 'chair', 0, 4);
+    this.addSeat('Kursi Rapat', 585, 645, 'south', 'chair', 0, 4);
     this.addSeat('Kursi Rapat', 700, 645, 'south', 'chair', 0, 4);
-    this.addSeat('Kursi Rapat', 470, 795, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Rapat', 585, 795, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Rapat', 700, 795, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Rapat', 470, 795, 'north', 'chair', 0, -8);
+    this.addSeat('Kursi Rapat', 585, 795, 'north', 'chair', 0, -8);
+    this.addSeat('Kursi Rapat', 700, 795, 'north', 'chair', 0, -8);
     this.addSeat('Kursi Utama Rapat', 360, 720, 'east', 'chair', -6, 0);
 
     // Credenza & Storage against top wall
@@ -1104,11 +1110,11 @@ export class OfficeScene extends Phaser.Scene {
     this.addSolidProp('coffee-table', 800, 1270, 64, 34);
     this.addSolidProp('armchair-east', 690, 1270, 36, 32);
     this.addSolidProp('armchair-west', 910, 1270, 36, 32);
-    this.addSolidProp('sofa-north', 800, 1330, 104, 48);
+    this.addSolidProp('sofa-north', 800, 1330, 104, 48, 1350);
     this.addSeat('Armchair Santai Seberang Kiri', 690, 1270, 'east', 'armchair', -4, 0);
     this.addSeat('Armchair Santai Seberang Kanan', 910, 1270, 'west', 'armchair', 4, 0);
-    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -22);
-    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -22);
+    this.addSeat('Sofa Santai Seberang', 765, 1330, 'north', 'sofa', 0, -10);
+    this.addSeat('Sofa Santai Seberang', 835, 1330, 'north', 'sofa', 0, -10);
     this.addSolidProp('plant-large', 1090, 1315, 50, 50);
     this.addDecorativeProp('floor-lamp', 1000, 1315);
 
@@ -1119,23 +1125,23 @@ export class OfficeScene extends Phaser.Scene {
     this.addDecorativeProp('rug', 2150, 245);
 
     // Grand Executive Desk Suite (Meja utama luas tanpa meja sayap yang menghalangi)
-    this.addSolidDesk(2105, 235); // Meja eksekutif kiri
-    this.addSolidDesk(2195, 235); // Meja eksekutif kanan
+    this.addSolidDesk(2105, 235, 365); // Meja eksekutif kiri
+    this.addSolidDesk(2195, 235, 365); // Meja eksekutif kanan
 
     // PC menghadap ke arah bos (screen faces North toward Bu Rina, casing back faces visitors)
-    this.addDecorativeProp('computer-north', 2150, 225);
-    this.addDecorativeProp('plant-small', 2225, 215);
+    this.addDecorativeProp('computer-north', 2150, 225).setDepth(366);
+    this.addDecorativeProp('plant-small', 2225, 215).setDepth(366);
 
     // Kursi Eksekutif Bu Rina di belakang meja utama menghadap South
     this.addDecorativeProp('office-chair', 2150, 155).setDepth(150);
 
     // Kursi Tamu di depan meja utama menghadap ke Bu Rina
-    this.addSolidProp('armchair-north', 2105, 335, 58, 52);  // Guest Chair 1
-    this.addSolidProp('armchair-north', 2195, 335, 58, 52);  // Guest Chair 2
+    this.addSolidProp('armchair-north', 2105, 335, 58, 52, 355);  // Guest Chair 1
+    this.addSolidProp('armchair-north', 2195, 335, 58, 52, 355);  // Guest Chair 2
 
     // Register interactive seats in Executive Suite
-    this.addSeat('Armchair Tamu Kiri', 2105, 335, 'north', 'armchair', 0, -4);
-    this.addSeat('Armchair Tamu Kanan', 2195, 335, 'north', 'armchair', 0, -4);
+    this.addSeat('Armchair Tamu Kiri', 2105, 335, 'north', 'armchair', 0, -8);
+    this.addSeat('Armchair Tamu Kanan', 2195, 335, 'north', 'armchair', 0, -8);
 
     // Executive Library Wall
     this.addSolidProp('bookcase', 1850, 140, 75, 58);
@@ -1207,12 +1213,12 @@ export class OfficeScene extends Phaser.Scene {
   /**
    * Helper: Add a 100% Solid Desk (Cannot be penetrated from any angle!)
    */
-  private addSolidDesk(x: number, y: number): void {
+  private addSolidDesk(x: number, y: number, customDepth?: number): void {
     // Render visual desk with baseline depth sorting at base
     this.add
       .image(x, y, 'prop-desk')
       .setScale(PROP_SCALE)
-      .setDepth(y + 44);
+      .setDepth(customDepth !== undefined ? customDepth : y + 44);
 
     // Precise solid barrier covering full desk surface and floor contact (no clipping!)
     const col = this.add.rectangle(x, y + 19, 90, 50, 0x000000, 0);
@@ -1234,11 +1240,13 @@ export class OfficeScene extends Phaser.Scene {
     const southDeskY = podY + 36;
 
     // 1. Desks Sprites (4 desks joined back-to-back in a pod)
-    // Depth sorting strictly at desk foot contact line (y + 44) to prevent any reverse overlap
+    // North desks: user sits facing South -> depth northDeskY + 44
     this.add.image(leftDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 44);
     this.add.image(rightDeskX, northDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(northDeskY + 44);
-    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 44);
-    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 44);
+    // South desks: user sits facing North at southDeskY + 68 -> desk must cover seated player's body from front!
+    // Seated player depth is sitY + 33 = southDeskY + 68 - 8 + 33 = southDeskY + 93. Desk is southDeskY + 99!
+    this.add.image(leftDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 99);
+    this.add.image(rightDeskX, southDeskY, 'prop-desk').setScale(PROP_SCALE).setDepth(southDeskY + 99);
 
     // 2. Computers & Monitors (Screen 'yang bergambar' strictly faces toward the chair!)
     // North desks: user sits at northDeskY - 56 facing South -> screen must face North toward chair!
@@ -1255,23 +1263,23 @@ export class OfficeScene extends Phaser.Scene {
     this.add
       .image(leftDeskX, southDeskY - 12, 'prop-computer')
       .setScale(PROP_SCALE)
-      .setDepth(southDeskY + 46);
+      .setDepth(southDeskY + 100);
     this.add
       .image(rightDeskX, southDeskY - 12, 'prop-computer')
       .setScale(PROP_SCALE)
-      .setDepth(southDeskY + 46);
+      .setDepth(southDeskY + 100);
 
     // 3. Ergonomic Office Chairs (Solid props — cannot be stepped onto or walked through)
-    this.addSolidChair('office-chair', leftDeskX, northDeskY - 56, 42, 38);
-    this.addSolidChair('office-chair', rightDeskX, northDeskY - 56, 42, 38);
-    this.addSolidChair('office-chair-north', leftDeskX, southDeskY + 68, 42, 38);
-    this.addSolidChair('office-chair-north', rightDeskX, southDeskY + 68, 42, 38);
+    this.addSolidChair('office-chair', leftDeskX, northDeskY - 56, 42, 38, northDeskY - 56 + 20);
+    this.addSolidChair('office-chair', rightDeskX, northDeskY - 56, 42, 38, northDeskY - 56 + 20);
+    this.addSolidChair('office-chair-north', leftDeskX, southDeskY + 68, 42, 38, southDeskY + 68 + 20);
+    this.addSolidChair('office-chair-north', rightDeskX, southDeskY + 68, 42, 38, southDeskY + 68 + 20);
 
     // Register interactive seats for workstation
     this.addSeat('Kursi Kerja', leftDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
     this.addSeat('Kursi Kerja', rightDeskX, northDeskY - 56, 'south', 'chair', 0, 4);
-    this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 68, 'north', 'chair', 0, -4);
-    this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 68, 'north', 'chair', 0, -4);
+    this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 68, 'north', 'chair', 0, -8);
+    this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 68, 'north', 'chair', 0, -8);
 
     // 4. 100% Solid Physics Island Collider:
     // Seals entire 4-desk pod and chair perimeter so player cannot walk through or wedge onto furniture
@@ -1292,7 +1300,7 @@ export class OfficeScene extends Phaser.Scene {
       this.add
         .rectangle(pX, pY - 32, 80, 18, 0x1e293b, 0.95)
         .setStrokeStyle(1.5, 0xe0b65d)
-        .setDepth(pY + 50);
+        .setDepth(southDeskY + 101);
       this.add
         .text(pX, pY - 32, 'MEJA KAMU', {
           fontFamily: 'monospace',
@@ -1301,7 +1309,7 @@ export class OfficeScene extends Phaser.Scene {
           fontStyle: 'bold',
         })
         .setOrigin(0.5)
-        .setDepth(pY + 51);
+        .setDepth(southDeskY + 102);
     }
   }
 
@@ -1314,12 +1322,14 @@ export class OfficeScene extends Phaser.Scene {
     x: number,
     y: number,
     bodyW: number = 42,
-    bodyH: number = 38
+    bodyH: number = 38,
+    customDepth?: number
   ): Phaser.GameObjects.Image {
+    const defaultDepth = name.includes('north') ? y + 20 : y + 44;
     const img = this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(y + 44);
+      .setDepth(customDepth !== undefined ? customDepth : defaultDepth);
 
     const col = this.add.rectangle(x, y + 14, bodyW, bodyH, 0x000000, 0);
     this.physics.add.existing(col, true);
@@ -1337,13 +1347,15 @@ export class OfficeScene extends Phaser.Scene {
     x: number,
     y: number,
     bodyW: number,
-    bodyH: number
+    bodyH: number,
+    customDepth?: number
   ): Phaser.GameObjects.Image {
     // Baseline depth sorting at base of sprite
+    const defaultDepth = name.includes('north') ? y + 20 : y + 52;
     const img = this.add
       .image(x, y, `prop-${name}`)
       .setScale(PROP_SCALE)
-      .setDepth(y + 52);
+      .setDepth(customDepth !== undefined ? customDepth : defaultDepth);
 
     // Ground contact collider aligned with floor contact (no ghost offside barrier!)
     const colH = Math.max(Math.min(bodyH, 48), 30);
@@ -1669,18 +1681,9 @@ export class OfficeScene extends Phaser.Scene {
     this.lastDirection = seat.facing;
 
     // Depth sorting when seated:
-    // Chair/sofa decorative prop depth is (y + 50).
-    // Facing South: player sits in front of the chair backrest -> player depth must be GREATER than chair depth!
-    if (seat.facing === 'south') {
-      this.player.setDepth(seat.y + 55);
-    } else if (seat.facing === 'north') {
-      // Facing North: backrest is in front of player -> player depth is slightly below chair depth
-      this.player.setDepth(seat.y + 45);
-    } else {
-      // Facing East or West: player sits in the cushion between the flanks -> depth must be > chair depth (y + 52)
-      this.player.setDepth(seat.y + 55);
-    }
-    this.showPrompt(seat.sitX, seat.sitY - 56, 'Tekan [SPASI / WASD] Berdiri');
+    // Seated depth strictly at sitY + 33 for ALL directions, guaranteeing character renders above chair cushion
+    this.player.setDepth(seat.sitY + 33);
+    this.showPrompt(seat.sitX, seat.sitY - 78, '[SPASI] Berdiri');
 
     // Broadcast status duduk ke pemain lain di room online secara realtime
     multiplayerService.sendMovement({
@@ -1923,11 +1926,7 @@ export class OfficeScene extends Phaser.Scene {
     }
 
     if (isSitting) {
-      if (presence.direction === 'north') {
-        container.setDepth(presence.y + 45);
-      } else {
-        container.setDepth(presence.y + 55);
-      }
+      container.setDepth(presence.y + 33);
     }
 
     // Nametag & Status indicator
@@ -1957,13 +1956,18 @@ export class OfficeScene extends Phaser.Scene {
 
     nameText.setPosition(-halfW + 16, pillY);
 
-    container.add([sprite, nameBg, statusDot, nameText]);
+    const nametagContainer = this.add.container(presence.x, presence.y).setDepth(presence.y + 1000);
+    nametagContainer.add([nameBg, statusDot, nameText]);
+
+    container.add([sprite]);
 
     // Entrance pop-in animation
     container.setScale(0);
     container.setAlpha(0);
+    nametagContainer.setScale(0);
+    nametagContainer.setAlpha(0);
     this.tweens.add({
-      targets: container,
+      targets: [container, nametagContainer],
       scale: 1,
       alpha: 1,
       duration: 250,
@@ -1973,6 +1977,7 @@ export class OfficeScene extends Phaser.Scene {
     const record: RemotePlayerRecord = {
       presence,
       container,
+      nametagContainer,
       sprite,
       nameBg,
       nameText,
@@ -2008,6 +2013,9 @@ export class OfficeScene extends Phaser.Scene {
     const record = this.remotePlayers.get(socketId);
     if (!record) return;
 
+    if (record.nametagContainer && record.nametagContainer.active) {
+      record.nametagContainer.destroy();
+    }
     if (record.activeChatBubble && record.activeChatBubble.container.active) {
       record.activeChatBubble.container.destroy();
     }
