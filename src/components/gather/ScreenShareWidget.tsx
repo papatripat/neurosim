@@ -42,6 +42,7 @@ export const ScreenShareWidget: React.FC<Props> = ({
       setIsStreaming(false);
       setIsExpanded(false);
       EventBus.emit(GAME_EVENTS.SCREEN_SHARE_CHANGED, { isSharing: false });
+      EventBus.emit(GAME_EVENTS.RESUME_INPUT);
       return;
     }
 
@@ -69,16 +70,61 @@ export const ScreenShareWidget: React.FC<Props> = ({
     let isMounted = true;
 
     if (navigator.mediaDevices?.getDisplayMedia) {
+      // Kunci pergerakan dan reset tombol WASD sebelum dialog izin browser terbuka
+      EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
+
+      // Inisialisasi CaptureController untuk Conditional Focus (Chrome/Edge 107+)
+      let controller: any = null;
+      if (typeof (window as any).CaptureController !== 'undefined') {
+        try {
+          controller = new (window as any).CaptureController();
+        } catch (e) {
+          console.debug('CaptureController not supported:', e);
+        }
+      }
+
+      const displayOptions: any = {
+        video: {
+          cursor: 'always',
+        },
+        audio: false,
+        selfBrowserSurface: 'include',
+        surfaceSwitching: 'exclude',
+      };
+      if (controller) {
+        displayOptions.controller = controller;
+      }
+
       navigator.mediaDevices
-        .getDisplayMedia({
-          video: true,
-          audio: false,
-        })
+        .getDisplayMedia(displayOptions)
         .then((s) => {
           if (!isMounted) {
             s.getTracks().forEach((track) => track.stop());
             return;
           }
+
+          // CONDITIONAL FOCUS:
+          // Mencegah peramban otomatis mengalihkan fokus ke tab atau jendela yang dibagikan
+          if (controller && typeof controller.setFocusBehavior === 'function') {
+            try {
+              const [videoTrack] = s.getVideoTracks();
+              const surface = videoTrack?.getSettings()?.displaySurface;
+              if (surface !== 'monitor') {
+                controller.setFocusBehavior('no-focus-change');
+              }
+            } catch (focusErr) {
+              console.debug('Conditional focus suppression ignored:', focusErr);
+            }
+          }
+
+          // Pastikan jendela aplikasi NeuroSim tetap fokus
+          try {
+            window.focus();
+          } catch {}
+
+          // Buka kembali kendali pemain di 2D setelah dialog selesai
+          EventBus.emit(GAME_EVENTS.RESUME_INPUT);
+
           streamRef.current = s;
           if (videoRef.current) {
             videoRef.current.srcObject = s;
@@ -102,6 +148,7 @@ export const ScreenShareWidget: React.FC<Props> = ({
         })
         .catch((err) => {
           console.warn('[ScreenShareWidget] Berbagi layar dibatalkan atau ditolak:', err);
+          EventBus.emit(GAME_EVENTS.RESUME_INPUT);
           if (streamRef.current) {
             streamRef.current.getTracks().forEach((t) => t.stop());
             streamRef.current = null;
@@ -133,7 +180,7 @@ export const ScreenShareWidget: React.FC<Props> = ({
   if (isViewerMode) {
     return (
       <div
-        className={`fixed z-50 transition-all duration-200 bg-[#0b0e14] border-2 border-brass rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 select-none ${
+        className={`fixed z-50 bg-[#0b0e14] border-2 border-brass rounded-xl shadow-2xl overflow-hidden flex flex-col select-none ${
           isExpanded
             ? 'inset-3 sm:inset-6'
             : 'bottom-20 right-4 w-[92vw] sm:w-[500px] md:w-[620px] aspect-video max-h-[75vh]'
@@ -170,7 +217,11 @@ export const ScreenShareWidget: React.FC<Props> = ({
         </div>
 
         {/* Gambar Slide Presentasi Orang Lain */}
-        <div className="relative flex-1 w-full h-full p-5 flex flex-col justify-between bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0a0f1d] text-soft overflow-hidden">
+        <div
+          className={`relative w-full p-4 sm:p-5 flex flex-col justify-between bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0a0f1d] text-soft overflow-hidden ${
+            isExpanded ? 'flex-1 min-h-0' : 'aspect-video'
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-brass" />
@@ -216,17 +267,17 @@ export const ScreenShareWidget: React.FC<Props> = ({
     );
   }
 
-  // KONDISI 2: KETIKA KITA SENDIRI YANG LIVE ("dibikin seperti awal kalau kita yang live")
+  // KONDISI 2: KETIKA KITA SENDIRI YANG LIVE (Versi solid clean PIP seperti commit 7b6b31d tanpa efek ketarik)
   return (
     <div
-      className={`fixed z-40 transition-all duration-200 bg-black rounded-xl border-2 border-brass shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 select-none ${
+      className={`fixed z-40 bg-black rounded-xl border-2 border-brass shadow-2xl overflow-hidden flex flex-col select-none ${
         isExpanded
           ? 'inset-4 sm:inset-8 z-50'
           : 'bottom-20 right-4 w-72 sm:w-96 aspect-video'
       }`}
       style={{ filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.5))' }}
     >
-      {/* Widget Header Asli Seperti Awal */}
+      {/* Widget Header Asli */}
       <div className="px-3 py-1.5 bg-[#242a38] text-soft flex items-center justify-between text-xs font-semibold border-b border-[#355c5a]/40 flex-shrink-0">
         <div className="flex items-center gap-2 truncate">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
@@ -254,7 +305,7 @@ export const ScreenShareWidget: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Real Live Screen Video Stream Seperti Awal */}
+      {/* Real Live Screen Video Stream */}
       <div className="relative flex-1 w-full h-full bg-[#0b0e14] flex items-center justify-center overflow-hidden">
         <video
           ref={videoRef}

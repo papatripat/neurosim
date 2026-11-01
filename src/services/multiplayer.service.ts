@@ -46,7 +46,7 @@ class MultiplayerService {
       console.log(`[Multiplayer] Terhubung ke server realtime. Socket ID: ${this.currentSocketId}`);
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', (reason: any) => {
       this.isConnected = false;
       this.onlinePlayers.clear();
       EventBus.emit(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, []);

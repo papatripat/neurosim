@@ -527,6 +527,11 @@ export const App: React.FC = () => {
     setIsScreenSharing(false);
   }, []);
 
+  const handleToggleScreenShare = useCallback(() => {
+    EventBus.emit(GAME_EVENTS.PAUSE_INPUT);
+    setIsScreenSharing((s) => !s);
+  }, []);
+
   // Online Multiplayer Room Management Handlers
   const handleJoinRoom = useCallback(
     (roomCode: string, passcode?: string) => {
@@ -772,7 +777,7 @@ export const App: React.FC = () => {
                 isCamOn={isCamOn}
                 onToggleCam={() => setIsCamOn((c) => !c)}
                 isScreenSharing={isScreenSharing}
-                onToggleScreenShare={() => setIsScreenSharing((s) => !s)}
+                onToggleScreenShare={handleToggleScreenShare}
                 onOpenParticipants={() => {
                   setIsParticipantsOpen((p) => {
                     if (!p) setIsOfficeChatOpen(false);

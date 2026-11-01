@@ -362,6 +362,8 @@ export class OfficeScene extends Phaser.Scene {
     if (typeof window !== 'undefined') {
       window.addEventListener('focusin', this.handleWindowFocusIn);
       window.addEventListener('focusout', this.handleWindowFocusOut);
+      window.addEventListener('blur', this.handleWindowBlur);
+      window.addEventListener('focus', this.handleWindowFocus);
     }
 
     // 16. Notify React UI
@@ -468,7 +470,7 @@ export class OfficeScene extends Phaser.Scene {
         this.player.x + item.offsetX,
         this.player.y - item.offsetY
       );
-      item.container.setDepth(this.player.y + 1000);
+      item.container.setDepth(this.player.y + 1040);
     }
 
     // Update active chat speech bubble so it strictly tracks the player sprite
@@ -483,7 +485,7 @@ export class OfficeScene extends Phaser.Scene {
     // Update screen share live badge position so it follows player
     if (this.screenShareBadgeContainer && this.screenShareBadgeContainer.active) {
       this.screenShareBadgeContainer.setPosition(this.player.x, this.player.y - 48);
-      this.screenShareBadgeContainer.setDepth(this.player.y + 1030);
+      this.screenShareBadgeContainer.setDepth(this.player.y + 1020);
     }
 
     // -------------------------------------------------------------------------
@@ -556,28 +558,13 @@ export class OfficeScene extends Phaser.Scene {
           (activeEl as HTMLElement).isContentEditable)
     );
 
-    if (this.isPlayerLocked || isModalOpen || isUserTyping) {
-      if (this.wasMovingLocally) {
-        this.wasMovingLocally = false;
-        multiplayerService.sendMovement({
-          x: Math.round(this.player.x),
-          y: Math.round(this.player.y),
-          direction: (this.lastDirection === 'north' || this.lastDirection === 'south' || this.lastDirection === 'east' || this.lastDirection === 'west') ? this.lastDirection : 'south',
-          anim: `${this.playerArchetypeKey}-idle-${this.lastDirection}`,
-          isMoving: false,
-          zone: this.currentZoneId || 'koridor',
-        });
-      }
-      this.player.setVelocity(0, 0);
-      this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
-      this.safeDisableCapture();
-      this.input.keyboard?.resetKeys();
-      if (this.wasd) {
-        this.wasd.W?.reset();
-        this.wasd.A?.reset();
-        this.wasd.S?.reset();
-        this.wasd.D?.reset();
-      }
+    const hasFocus =
+      typeof document !== 'undefined' && typeof document.hasFocus === 'function'
+        ? document.hasFocus()
+        : true;
+
+    if (this.isPlayerLocked || isModalOpen || isUserTyping || !hasFocus) {
+      this.resetMovementKeys();
       return;
     }
 
@@ -1683,21 +1670,37 @@ export class OfficeScene extends Phaser.Scene {
   // PLAYER CONTROLS LOCK & UNLOCK
   // =========================================================================
 
-  private lockPlayer = (): void => {
-    this.isPlayerLocked = true;
+  private resetMovementKeys = (): void => {
     if (this.player && this.player.body) {
       this.player.setVelocity(0, 0);
       this.player.play(`${this.playerArchetypeKey}-idle-${this.lastDirection}`, true);
     }
-    if (this.promptContainer) {
-      this.promptContainer.setVisible(false);
-    }
     this.safeDisableCapture();
+    if (this.input?.keyboard) {
+      this.input.keyboard.resetKeys();
+    }
     if (this.wasd) {
       this.wasd.W?.reset();
       this.wasd.A?.reset();
       this.wasd.S?.reset();
       this.wasd.D?.reset();
+    }
+    if (this.cursors) {
+      this.cursors.up?.reset();
+      this.cursors.down?.reset();
+      this.cursors.left?.reset();
+      this.cursors.right?.reset();
+    }
+    if (this.keyE) {
+      this.keyE.reset();
+    }
+  };
+
+  private lockPlayer = (): void => {
+    this.isPlayerLocked = true;
+    this.resetMovementKeys();
+    if (this.promptContainer) {
+      this.promptContainer.setVisible(false);
     }
   };
 
@@ -1713,8 +1716,19 @@ export class OfficeScene extends Phaser.Scene {
 
     if (!isTyping) {
       this.isPlayerLocked = false;
+      this.resetMovementKeys();
       this.safeEnableCapture();
     }
+  };
+
+  private handleWindowBlur = (): void => {
+    if (!this.sys || !this.sys.isActive()) return;
+    this.resetMovementKeys();
+  };
+
+  private handleWindowFocus = (): void => {
+    if (!this.sys || !this.sys.isActive()) return;
+    this.resetMovementKeys();
   };
 
   private handleWindowFocusIn = (e: FocusEvent): void => {
@@ -1931,11 +1945,17 @@ export class OfficeScene extends Phaser.Scene {
       }
     }
 
+    // 2. Spawn offset directly above player head with slight horizontal jitter
+    // Proporsional: tidak kedeketan saat tanpa bubblechat, dan tidak kejauhan saat ada bubblechat
     const offsetX = Phaser.Math.Between(-8, 8);
-    const startOffsetY = 56;
+    const baseEmoteY = this.isScreenSharingActive ? 64 : 54;
+    let startOffsetY = baseEmoteY;
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      startOffsetY = Math.max(baseEmoteY, this.activeChatBubble.offsetY + 8);
+    }
 
     const container = this.add.container(targetX + offsetX, targetY - startOffsetY);
-    container.setDepth(targetY + 1000);
+    container.setDepth(targetY + 1040);
 
     const radius = 14;
     const bg = this.add.graphics();
@@ -1967,11 +1987,12 @@ export class OfficeScene extends Phaser.Scene {
       duration: 160,
       ease: 'Back.easeOut',
       onComplete: () => {
+        // Float up smoothly and fade out (melayang lembut setinggi 22px agar proporsional dan tidak terbang kejauhan)
         this.tweens.addCounter({
           from: startOffsetY,
-          to: startOffsetY + 40,
-          duration: 1500,
-          delay: 400,
+          to: startOffsetY + 22,
+          duration: 1400,
+          delay: 350,
           ease: 'Cubic.easeOut',
           onUpdate: (tw) => {
             emoteRecord.offsetY = tw.getValue() ?? startOffsetY;
@@ -2060,7 +2081,10 @@ export class OfficeScene extends Phaser.Scene {
 
     container.add([bg, cover, txt]);
 
-    const offsetY = 54 + halfH;
+    // Position above avatar head: avatar top is ~48px above feet, tail length 5px
+    // Pas di atas kepala saat normal (46px), dan pas di atas badge saat live screen aktif (62px)
+    const baseOffset = this.isScreenSharingActive ? 62 : 46;
+    const offsetY = baseOffset + halfH;
     container.setPosition(targetX, targetY - offsetY);
 
     container.setScale(0.5);
@@ -2139,6 +2163,8 @@ export class OfficeScene extends Phaser.Scene {
     if (typeof window !== 'undefined') {
       window.removeEventListener('focusin', this.handleWindowFocusIn);
       window.removeEventListener('focusout', this.handleWindowFocusOut);
+      window.removeEventListener('blur', this.handleWindowBlur);
+      window.removeEventListener('focus', this.handleWindowFocus);
     }
     EventBus.off(GAME_EVENTS.TRIGGER_REACTION, this.handleTriggerReaction, this);
     EventBus.off(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, this.handleTriggerChatBubble, this);
@@ -2361,8 +2387,15 @@ export class OfficeScene extends Phaser.Scene {
     isSharing: boolean;
     sharerName?: string;
   }): void => {
+    this.resetMovementKeys();
     this.isScreenSharingActive = Boolean(isSharing);
     this.screenSharerName = sharerName || 'Rekan';
+
+    // Sesuaikan ketinggian balon chat aktif jika sedang terbuka agar tetap proporsional
+    if (this.activeChatBubble && this.activeChatBubble.container.active) {
+      const baseOffset = this.isScreenSharingActive ? 62 : 46;
+      this.activeChatBubble.offsetY = baseOffset + 14;
+    }
 
     if (this.screenShareBadgeContainer && this.screenShareBadgeContainer.active) {
       this.screenShareBadgeContainer.destroy();
@@ -2371,7 +2404,7 @@ export class OfficeScene extends Phaser.Scene {
 
     if (this.isScreenSharingActive && this.player && this.player.active) {
       const container = this.add.container(this.player.x, this.player.y - 48);
-      container.setDepth(this.player.y + 1030);
+      container.setDepth(this.player.y + 1020);
 
       const bg = this.add.graphics();
       bg.fillStyle(0x131722, 0.95);
