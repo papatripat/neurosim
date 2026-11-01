@@ -17,13 +17,28 @@ class MultiplayerService {
   private onlinePlayers: Map<string, PlayerPresence> = new Map();
   private lastMoveSentTime: number = 0;
   private readonly MOVE_THROTTLE_MS = 40; // 25 fps network update
+  private activeServerUrl: string = '';
+  private lastJoinPayload: JoinRoomPayload | null = null;
 
   public connect(url?: string): Socket {
-    if (this.socket && this.isConnected) {
+    if (this.socket && this.isConnected && (!url || url === this.activeServerUrl)) {
       return this.socket;
     }
 
-    const serverUrl = url || (typeof window !== 'undefined' ? (import.meta.env.VITE_SOCKET_URL || window.location.origin) : '');
+    // Prioritas URL:
+    // 1. Parameter eksplisit
+    // 2. Custom socket URL dari localStorage (pengaturan pengguna di UI)
+    // 3. VITE_SOCKET_URL dari environment variable
+    // 4. window.location.origin (default lokal)
+    const customUrl = typeof window !== 'undefined' ? localStorage.getItem('neurosim_socket_url') : null;
+    const serverUrl = url || customUrl || (typeof window !== 'undefined' ? (import.meta.env.VITE_SOCKET_URL || window.location.origin) : '');
+
+    this.activeServerUrl = serverUrl;
+
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
 
     this.socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
@@ -31,10 +46,29 @@ class MultiplayerService {
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      timeout: 8000,
     });
 
     this.setupListeners();
     return this.socket;
+  }
+
+  public reconnect(newUrl?: string): void {
+    if (newUrl) {
+      this.activeServerUrl = newUrl;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('neurosim_socket_url', newUrl);
+      }
+    }
+    this.connect(this.activeServerUrl);
+  }
+
+  public isSocketConnected(): boolean {
+    return this.isConnected;
+  }
+
+  public getServerUrl(): string {
+    return this.activeServerUrl;
   }
 
   private setupListeners(): void {
@@ -43,13 +77,26 @@ class MultiplayerService {
     this.socket.on('connect', () => {
       this.isConnected = true;
       this.currentSocketId = this.socket?.id || '';
-      console.log(`[Multiplayer] Terhubung ke server realtime. Socket ID: ${this.currentSocketId}`);
+      console.log(`[Multiplayer] Terhubung ke server realtime (${this.activeServerUrl}). Socket ID: ${this.currentSocketId}`);
+      EventBus.emit(GAME_EVENTS.REALTIME_CONNECTION_STATUS, { isConnected: true, serverUrl: this.activeServerUrl });
+
+      // Jika sebelumnya sudah ada room yang ingin digabung, kirim join ulang
+      if (this.lastJoinPayload) {
+        this.socket?.emit('c:join_room', this.lastJoinPayload);
+      }
+    });
+
+    this.socket.on('connect_error', (err: any) => {
+      this.isConnected = false;
+      console.warn(`[Multiplayer] Tidak dapat terhubung ke server realtime (${this.activeServerUrl}): ${err.message}`);
+      EventBus.emit(GAME_EVENTS.REALTIME_CONNECTION_STATUS, { isConnected: false, error: err.message, serverUrl: this.activeServerUrl });
     });
 
     this.socket.on('disconnect', (reason: any) => {
       this.isConnected = false;
       this.onlinePlayers.clear();
       EventBus.emit(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, []);
+      EventBus.emit(GAME_EVENTS.REALTIME_CONNECTION_STATUS, { isConnected: false, reason, serverUrl: this.activeServerUrl });
       console.log(`[Multiplayer] Terputus dari server: ${reason}`);
     });
 
@@ -138,11 +185,13 @@ class MultiplayerService {
   }
 
   public joinRoom(payload: JoinRoomPayload): void {
+    this.lastJoinPayload = payload;
+    this.currentRoomId = payload.roomId;
     if (!this.socket) {
       this.connect();
+    } else if (this.isConnected) {
+      this.socket.emit('c:join_room', payload);
     }
-    this.currentRoomId = payload.roomId;
-    this.socket?.emit('c:join_room', payload);
   }
 
   public sendMovement(data: PlayerMovementPacket): void {

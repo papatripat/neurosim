@@ -53,4 +53,6 @@ export const GAME_EVENTS = {
   REMOTE_PLAYER_STATUS: 'remote-player-status',
   /** Full list of connected online players in current room updated */
   ONLINE_PLAYERS_UPDATED: 'online-players-updated',
+  /** Multiplayer socket connection status changed (connected/disconnected/error) */
+  REALTIME_CONNECTION_STATUS: 'realtime-connection-status',
 } as const;
