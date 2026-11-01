@@ -59,3 +59,4 @@ if old_print in html:
     print("Successfully replaced print CSS!")
 else:
     print("Old print CSS not found directly, checking...")
+

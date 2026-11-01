@@ -8,9 +8,10 @@ import path from 'path';
   });
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
-  console.log('Opening pitch deck in Chrome...');
-  await page.goto('http://localhost:3000/demo/pitch_deck.html', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1500);
+  const htmlPath = 'file:///' + path.resolve('public/demo/pitch_deck.html').replace(/\\/g, '/');
+  console.log('Opening pitch deck from:', htmlPath);
+  await page.goto(htmlPath, { waitUntil: 'load' });
+  await page.waitForTimeout(2000);
 
   const outPdf = path.resolve('public/demo/pitch_deck_neurosim_inception2026.pdf');
   console.log('Generating vector PDF slide deck to:', outPdf);

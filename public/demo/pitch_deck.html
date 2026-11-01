@@ -10,11 +10,10 @@
   <style>
     :root {
       --bg: #0b1120;
-      --card-bg: rgba(30, 41, 59, 0.7);
-      --card-border: rgba(255, 255, 255, 0.1);
+      --card-bg: rgba(30, 41, 59, 0.75);
+      --card-border: rgba(255, 255, 255, 0.12);
       --teal: #2dd4bf;
       --teal-dark: #0f766e;
-      --teal-glow: rgba(45, 212, 191, 0.25);
       --ochre: #e0b65d;
       --text: #f8fafc;
       --text-muted: #94a3b8;
@@ -38,20 +37,19 @@
       user-select: none;
     }
 
-    /* Ambient Glow Background */
+    /* Ambient background accents */
     .glow-circle {
       position: absolute;
       width: 600px;
       height: 600px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(45, 212, 191, 0.12) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(45, 212, 191, 0.1) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
     .glow-1 { top: -200px; left: -200px; }
-    .glow-2 { bottom: -200px; right: -200px; background: radial-gradient(circle, rgba(224, 182, 93, 0.1) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; right: -200px; background: radial-gradient(circle, rgba(224, 182, 93, 0.08) 0%, transparent 70%); }
 
-    /* Deck Viewport */
     #deck-container {
       position: relative;
       flex: 1;
@@ -64,14 +62,14 @@
     .slide {
       position: absolute;
       inset: 0;
-      padding: 60px 80px 90px 80px;
+      padding: 45px 80px 85px 80px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       opacity: 0;
       visibility: hidden;
       transform: translateX(40px) scale(0.98);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .slide.active {
@@ -85,116 +83,108 @@
       opacity: 0;
     }
 
-    /* Header & Tag */
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 16px;
+      padding: 5px 14px;
       border-radius: 9999px;
-      background: rgba(45, 212, 191, 0.1);
-      border: 1px solid rgba(45, 212, 191, 0.25);
+      background: rgba(45, 212, 191, 0.12);
+      border: 1px solid rgba(45, 212, 191, 0.3);
       color: var(--teal);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       width: fit-content;
     }
 
     .badge.ochre {
-      background: rgba(224, 182, 93, 0.1);
-      border-color: rgba(224, 182, 93, 0.3);
+      background: rgba(224, 182, 93, 0.12);
+      border-color: rgba(224, 182, 93, 0.35);
       color: var(--ochre);
     }
 
     h1.title {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 64px;
+      font-size: 58px;
       font-weight: 900;
       line-height: 1.1;
       letter-spacing: -0.02em;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     h2.slide-heading {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 42px;
+      font-size: 38px;
       font-weight: 800;
       line-height: 1.2;
       letter-spacing: -0.01em;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .subtitle {
-      font-size: 20px;
+      font-size: 18px;
       color: var(--text-muted);
       line-height: 1.5;
-      max-width: 900px;
-      margin-bottom: 32px;
+      max-width: 960px;
+      margin-bottom: 24px;
     }
 
-    /* Content Grids */
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
-      margin-top: 10px;
+      gap: 20px;
+      margin-top: 8px;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-top: 10px;
+      gap: 18px;
+      margin-top: 8px;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 24px 28px;
+      border-radius: 14px;
+      padding: 20px 24px;
       backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(45, 212, 191, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
 
     .card h3 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 800;
       color: #ffffff;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .card p, .card li {
-      font-size: 15px;
+      font-size: 14px;
       color: #cbd5e1;
-      line-height: 1.6;
+      line-height: 1.55;
     }
 
     .card ul {
-      padding-left: 20px;
-      margin-top: 8px;
+      padding-left: 18px;
+      margin-top: 6px;
     }
 
     .card li {
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .highlight-pill {
@@ -204,46 +194,45 @@
       background: rgba(45, 212, 191, 0.15);
       color: var(--teal);
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .quote-box {
       border-left: 4px solid var(--teal);
-      padding: 18px 24px;
+      padding: 16px 20px;
       background: rgba(45, 212, 191, 0.06);
-      border-radius: 0 12px 12px 0;
-      margin: 20px 0;
+      border-radius: 0 10px 10px 0;
+      margin: 16px 0;
       font-style: italic;
       color: #e2e8f0;
-      font-size: 17px;
-      line-height: 1.6;
+      font-size: 16px;
+      line-height: 1.55;
     }
 
-    /* Comparison Table */
     table.compare-table {
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
-      margin-top: 16px;
+      margin-top: 14px;
       border: 1px solid var(--card-border);
     }
 
     table.compare-table th {
-      background: rgba(15, 118, 110, 0.3);
+      background: rgba(15, 118, 110, 0.35);
       color: var(--teal);
       font-weight: 700;
-      padding: 16px 20px;
+      padding: 14px 18px;
       text-align: left;
-      font-size: 15px;
+      font-size: 14px;
       border-bottom: 1px solid var(--card-border);
     }
 
     table.compare-table td {
-      background: rgba(30, 41, 59, 0.5);
-      padding: 16px 20px;
-      font-size: 15px;
+      background: rgba(30, 41, 59, 0.55);
+      padding: 14px 18px;
+      font-size: 14px;
       color: #cbd5e1;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       line-height: 1.5;
@@ -253,10 +242,58 @@
       border-bottom: none;
     }
 
+    /* Presenter Notes Modal / Drawer */
+    #notes-drawer {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 60px;
+      width: 440px;
+      background: rgba(15, 23, 42, 0.96);
+      border-left: 1px solid rgba(45, 212, 191, 0.3);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    #notes-drawer.open {
+      transform: translateX(0);
+    }
+
+    .notes-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--ochre);
+      letter-spacing: 0.08em;
+    }
+
+    .notes-section {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .notes-section strong {
+      color: var(--teal);
+      display: block;
+      margin-bottom: 4px;
+    }
+
     /* Bottom Control Bar */
     #bottom-bar {
       height: 60px;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.9);
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
@@ -271,22 +308,31 @@
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+    }
+
+    .meta-info a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .meta-info a:hover {
+      text-decoration: underline;
     }
 
     .nav-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: #ffffff;
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
@@ -301,12 +347,18 @@
       color: var(--teal);
     }
 
+    .btn.active-notes {
+      background: rgba(224, 182, 93, 0.2);
+      border-color: var(--ochre);
+      color: var(--ochre);
+    }
+
     .slide-counter {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--teal);
-      min-width: 80px;
+      min-width: 70px;
       text-align: center;
     }
 
@@ -320,7 +372,7 @@
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
-      #bottom-bar { display: none !important; }
+      #bottom-bar, #notes-drawer { display: none !important; }
       #deck-container {
         position: static !important;
         height: auto !important;
@@ -338,7 +390,7 @@
         break-inside: avoid !important;
         min-height: 100vh !important;
         height: 100vh !important;
-        padding: 50px 70px !important;
+        padding: 45px 65px !important;
         box-sizing: border-box !important;
       }
     }
@@ -350,335 +402,379 @@
 
   <div id="deck-container">
     <!-- SLIDE 1: COVER -->
-    <div class="slide active" id="slide-1">
-      <div class="badge">🏆 Hackathon INCEPTION 2026 · Education & Inclusive Future Skills</div>
+    <div class="slide active" id="slide-1" data-notes="Buka presentasi dengan percaya diri. Sampaikan judul dan masalah inti dalam 20 detik: NeuroSim membantu talenta neurodivergen memahami aturan tak tertulis (hidden curriculum) di kantor melalui simulasi AI yang bebas penghakiman. Tunjukkan tautan live di indonesiax.duckdns.org:9004.">
+      <div class="badge">🏆 INCEPTION 2026 · Education & Inclusive Future Skills</div>
       <h1 class="title">Neuro<span style="color: var(--teal);">Sim</span></h1>
-      <p class="subtitle" style="font-size: 24px; color: #f1f5f9; font-weight: 600;">
+      <p class="subtitle" style="font-size: 22px; color: #f1f5f9; font-weight: 600;">
         Virtual Office AI Simulator — Mengubah Kecemasan Sosial Menjadi Kesiapan Profesional
       </p>
 
-      <div class="grid-2" style="max-width: 900px; margin-top: 20px;">
+      <div class="grid-2" style="max-width: 920px; margin-top: 14px;">
         <div class="card" style="border-left: 4px solid var(--teal);">
-          <div style="font-size: 12px; text-transform: uppercase; color: var(--ochre); font-weight: 800; letter-spacing: 0.08em; margin-bottom: 6px;">Tim Pengembang</div>
-          <div style="font-size: 20px; font-weight: 800; color: #ffffff;">"mamah doain aku lolos final"</div>
-          <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Universitas Pembangunan Nasional "Veteran" Jawa Timur</div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--ochre); font-weight: 800; letter-spacing: 0.08em; margin-bottom: 4px;">Tim Pengembang</div>
+          <div style="font-size: 19px; font-weight: 800; color: #ffffff;">"mamah doain aku lolos final"</div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">Universitas Pembangunan Nasional "Veteran" Jawa Timur</div>
         </div>
 
         <div class="card" style="border-left: 4px solid var(--ochre);">
-          <div style="font-size: 12px; text-transform: uppercase; color: var(--teal); font-weight: 800; letter-spacing: 0.08em; margin-bottom: 6px;">Tautan Aplikasi & Video</div>
-          <div style="font-size: 18px; font-weight: 700; color: var(--teal);">neurosim-demo.vercel.app</div>
-          <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Phaser 3 · Gemini AI · WCAG AA Certified</div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--teal); font-weight: 800; letter-spacing: 0.08em; margin-bottom: 4px;">Tautan Aplikasi Uji Coba Langsung</div>
+          <div style="font-size: 17px; font-weight: 700; color: var(--teal);">
+            <a href="https://indonesiax.duckdns.org:9004/" target="_blank" style="color: inherit; text-decoration: none;">https://indonesiax.duckdns.org:9004/</a>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 3px;">Phaser 3 Game Engine · Gemini AI · WCAG 2.1 AA</div>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 2: THE PROBLEM -->
-    <div class="slide" id="slide-2">
+    <div class="slide" id="slide-2" data-notes="Jelaskan bahwa masalahnya bukan kemampuan teknis (coding, data, desain mereka sering kali di atas rata-rata), tetapi 'kurikulum tersembunyi' kantor: instruksi ambigu dan sindrom masking yang memicu burnout. Tekankan angka 80%+ underemployment.">
       <div class="badge ochre">⚠️ The Problem</div>
       <h2 class="slide-heading">Kesenjangan Kerja Talenta Neurodivergen</h2>
       <p class="subtitle">Bukan kurangnya keahlian teknis, melainkan jurang <strong>"Kurikulum Tersembunyi"</strong> dunia kerja.</p>
 
       <div class="grid-3">
         <div class="card">
-          <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
+          <div style="font-size: 28px; margin-bottom: 8px;">📊</div>
           <h3>80%+ Pengangguran</h3>
-          <p>Mayoritas sarjana neurodivergen (Autisme, ADHD, dll.) mengalami <em>underemployment</em> atau kesulitan menembus lingkungan kantor konvensional.</p>
+          <p>Lulusan neurodivergen (Autisme, ADHD) kerap mengalami pengangguran atau penempatan kerja di bawah kompetensinya (*underemployment*).</p>
         </div>
         <div class="card">
-          <div style="font-size: 32px; margin-bottom: 12px;">🌫️</div>
+          <div style="font-size: 28px; margin-bottom: 8px;">🌫️</div>
           <h3>Instruksi Ambigu</h3>
-          <p>Instruksi atasan seperti <em>"Tolong dirapikan besok pagi"</em> memicu kelumpuhan analisis (*analysis paralysis*) karena ketiadaan parameter batas yang jelas.</p>
+          <p>Kalimat seperti <em>"Dirapikan ya, besok pagi saya lihat"</em> menyisakan ruang tafsir yang membingungkan bagi pekerja yang terbiasa berpikir eksplisit.</p>
         </div>
         <div class="card">
-          <div style="font-size: 32px; margin-bottom: 12px;">💔</div>
+          <div style="font-size: 28px; margin-bottom: 8px;">💔</div>
           <h3>Trauma Masking</h3>
-          <p>Memaksa diri berpura-pura normal (*masking*) demi menghindari kritik sosial memicu kecemasan hebat, depresi, dan <em>burnout</em> dini.</p>
+          <p>Memaksa diri meniru basa-basi tanpa pemahaman logis memicu kelelahan mental, kecemasan kerja, dan pengunduran diri dini.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 3: ROOT CAUSE & THEORY -->
-    <div class="slide" id="slide-3">
-      <div class="badge">🧠 Landasan Ilmiah</div>
+    <div class="slide" id="slide-3" data-notes="Kunci juri: gunakan Double Empathy Theory (Milton 2012). Katakan dengan tegas: NeuroSim menolak anggapan bahwa autisme/ADHD adalah cacat komunikasi. Ini adalah perbedaan gaya pemrosesan konteks sosial. Solusinya adalah penerjemahan maksud, bukan pemaksaan norma sosial semata.">
+      <div class="badge">🧠 Landasan Teori</div>
       <h2 class="slide-heading">Double Empathy Theory (Milton, 2012)</h2>
       <p class="subtitle">Hambatan komunikasi bukan cacat sepihak, melainkan <strong>jurang pemahaman dua arah</strong>.</p>
 
       <div class="quote-box">
-        "Kesulitan interaksi antara individu neurodivergen dan neurotipikal terjadi karena perbedaan cara memproses konteks sosial—bukan karena defisit empati."
+        "Kesulitan komunikasi antara individu neurodivergen dan neurotipikal terjadi karena perbedaan cara memproses konteks sosial—bukan defisit empati."
       </div>
 
       <table class="compare-table">
         <thead>
           <tr>
-            <th style="width: 50%;">Paradigma Konvensional (Deficit Model)</th>
+            <th style="width: 50%;">Pendekatan Lama (Deficit Model)</th>
             <th style="width: 50%; color: var(--ochre);">Pendekatan NeuroSim (Double Empathy Model)</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>Memaksa neurodivergen meniru basa-basi tanpa memahami tujuannya.</td>
-            <td><strong>Menerjemahkan maksud implisit</strong> menjadi rincian instruksi eksplisit yang logis.</td>
+            <td>Memaksa pekerja neurodivergen berpura-pura normal (*masking*).</td>
+            <td><strong>Menerjemahkan maksud implisit</strong> menjadi rincian objektif dan terukur.</td>
           </tr>
           <tr>
-            <td>Evaluasi subjektif berdasarkan keramahan sosial semata.</td>
-            <td><strong>Rubrik Objektif 4 Dimensi:</strong> Kejelasan, Konteks, Tujuan, dan Batasan Sehat.</td>
+            <td>Penilaian subyektif berdasarkan basa-basi sosial.</td>
+            <td><strong>Rubrik 4 Dimensi:</strong> Kejelasan, Konteks, Tujuan, dan Batasan Sehat.</td>
           </tr>
           <tr>
-            <td>Trial-and-error berisiko tinggi di kantor nyata (risiko PHK/sanksi).</td>
-            <td><strong>Simulator aman bebas penghakiman</strong> ditenagai agen AI yang suportif.</td>
+            <td>Latihan langsung di kantor nyata berisiko PHK dan sanksi.</td>
+            <td><strong>Simulasi bebas penghakiman</strong> bersama agen AI terlatih.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <!-- SLIDE 4: THE SOLUTION -->
-    <div class="slide" id="slide-4">
+    <div class="slide" id="slide-4" data-notes="Jelaskan 3 pilar solusi: Ruang 2D interaktif (familiar dan ramah sensorik), Roleplay AI berbasis Gemini (tegas tapi tidak toksik), dan Dekoder Maksud Tersembunyi (membongkar pikiran atasan secara transparan).">
       <div class="badge">💡 Solusi NeuroSim</div>
       <h2 class="slide-heading">Simulator Kantor Virtual 2D Berbasis Agen AI</h2>
-      <p class="subtitle">Platform simulasi mandiri untuk melatih dinamika komunikasi kerja secara adaptif & terukur.</p>
+      <p class="subtitle">Platform latihan mandiri untuk menghadapi dinamika komunikasi kantor secara aman dan terukur.</p>
 
       <div class="grid-3">
         <div class="card" style="border-top: 3px solid var(--teal);">
-          <div style="font-size: 28px; margin-bottom: 10px;">🏢</div>
-          <h3>Ruang Kerja 2D Interaktif</h3>
-          <p>Denah kantor berbasis Phaser 3: area workstation, ruang rapat, pantry, dan ruang manajemen untuk latihan navigasi spasial.</p>
+          <div style="font-size: 26px; margin-bottom: 8px;">🏢</div>
+          <h3>Kantor 2D Ramah Sensorik</h3>
+          <p>Denah kantor berbasis Phaser 3: area workstation, ruang manajemen, pantry, dan ruang rapat untuk melatih navigasi spasial.</p>
         </div>
         <div class="card" style="border-top: 3px solid var(--ochre);">
-          <div style="font-size: 28px; margin-bottom: 10px;">🤖</div>
+          <div style="font-size: 26px; margin-bottom: 8px;">🤖</div>
           <h3>Roleplay Gemini AI Adaptif</h3>
-          <p>Simulasi percakapan dengan kepribadian atasan & rekan kantor yang tegas, profesional, dan <strong>tidak pernah merendahkan</strong>.</p>
+          <p>Dialog interaktif dengan atasan dan rekan kerja yang diprogram dengan batasan psikologis: tegas dan profesional, tanpa perendahan.</p>
         </div>
         <div class="card" style="border-top: 3px solid #60a5fa);">
-          <div style="font-size: 28px; margin-bottom: 10px;">🔍</div>
+          <div style="font-size: 26px; margin-bottom: 8px;">🔍</div>
           <h3>Hidden Intent Decoder</h3>
-          <p>Membongkar apa yang sebenarnya dipikirkan oleh atasan di balik kata-katanya, menghapus kabut tebak-tebakan sosial.</p>
+          <p>Menjelaskan maksud tersembunyi atasan secara tertulis, menghapus kabut tebak-tebakan sosial bagi pekerja yang berpikir literal.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 5: KEY FEATURES -->
-    <div class="slide" id="slide-5">
-      <div class="badge ochre">⚡ Fitur Unggulan</div>
-      <h2 class="slide-heading">Inovasi Keamanan Psikologis & Evaluasi</h2>
-      <p class="subtitle">Teknologi yang dirancang berpusat pada kenyamanan pengguna neurodivergen.</p>
+    <div class="slide" id="slide-5" data-notes="Sorot tombol keselamatan psikologis (Jeda, Petunjuk) yang jarang ada di aplikasi lain. Ini bukti bahwa NeuroSim dibuat khusus untuk neurodivergen, bukan sekadar chatbot biasa.">
+      <div class="badge ochre">⚡ Fitur Utama</div>
+      <h2 class="slide-heading">Keamanan Psikologis & Evaluasi Terstruktur</h2>
+      <p class="subtitle">Mekanisme pendampingan yang menjaga sesi latihan tetap aman dari trauma.</p>
 
       <div class="grid-4">
         <div class="card">
-          <span class="highlight-pill">Safety First</span>
-          <h3 style="margin-top: 8px;">Kendali Jeda & Hint</h3>
-          <p>Tombol <strong>Jeda</strong> saat merasa panik dan <strong>Petunjuk</strong> strategi respon instan di tengah percakapan.</p>
+          <span class="highlight-pill">Kendali Mandiri</span>
+          <h3 style="margin-top: 6px;">Tombol Jeda & Hint</h3>
+          <p>Pengguna dapat menghentikan sesi saat panik dan membuka petunjuk strategi komunikasi kapan saja.</p>
         </div>
         <div class="card">
-          <span class="highlight-pill">Bongkar Maksud</span>
-          <h3 style="margin-top: 8px;">Hidden Intent</h3>
-          <p>Menjelaskan motif asli atasan secara gamblang agar pengguna memahami konteks di balik instruksi.</p>
+          <span class="highlight-pill">Dekoder Maksud</span>
+          <h3 style="margin-top: 6px;">Hidden Intent</h3>
+          <p>Menampilkan apa yang sebenarnya dipikirkan lawan bicara, membedah motif di balik instruksi singkat.</p>
         </div>
         <div class="card">
-          <span class="highlight-pill">Bebas Bias</span>
-          <h3 style="margin-top: 8px;">Rubrik 4 Dimensi</h3>
-          <p>Skor objektif: Kejelasan Pesan, Pemahaman Konteks, Ketercapaian Tujuan, dan Batasan Sehat.</p>
+          <span class="highlight-pill">Objektif</span>
+          <h3 style="margin-top: 6px;">Rubrik 4 Dimensi</h3>
+          <p>Menilai kejelasan pesan, pemahaman konteks, ketercapaian tujuan, serta penegasan batas kerja.</p>
         </div>
         <div class="card">
-          <span class="highlight-pill">Solutif</span>
-          <h3 style="margin-top: 8px;">2 Alternatif Respon</h3>
-          <p>Diberikan contoh jawaban: <strong>Versi Ringkas (Lugas)</strong> dan <strong>Versi Rinci (Eksplisit)</strong> untuk dicoba kembali.</p>
+          <span class="highlight-pill">Praktis</span>
+          <h3 style="margin-top: 6px;">2 Alternatif Respon</h3>
+          <p>Menyajikan opsi jawaban <strong>Versi Ringkas</strong> (lugas) dan <strong>Versi Rinci</strong> (eksplisit) untuk dipelajari.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 6: PRODUCT DEMO WALKTHROUGH -->
-    <div class="slide" id="slide-6">
-      <div class="badge">🎬 Alur Demo Simulasi</div>
-      <h2 class="slide-heading">Pengalaman Latihan 4 Langkah Interaktif</h2>
-      <p class="subtitle">Bagaimana pengguna mengasah kemampuan komunikasi kerja di NeuroSim.</p>
+    <div class="slide" id="slide-6" data-notes="Arahkan juri ke demo yang sudah siap di https://indonesiax.duckdns.org:9004/. Ceritakan alurnya secara ringkas: masuk instan, jalan ke meja, hadapi Bu Rina, dapat evaluasi.">
+      <div class="badge">🎬 Alur Simulasi</div>
+      <h2 class="slide-heading">Alur Kerja Pengguna dalam 4 Tahap</h2>
+      <p class="subtitle">Desain pengalaman yang dapat langsung dicoba dewan juri tanpa registrasi berbelit.</p>
 
       <div class="grid-4">
         <div class="card" style="border-left: 3px solid var(--teal);">
-          <div style="font-size: 13px; font-weight: 800; color: var(--teal); margin-bottom: 6px;">LANGKAH 1</div>
-          <h3>Eksplorasi Kantor</h3>
-          <p>Masuk instan via <strong>Tamu Juri</strong>, pilih peran kerja, sesuaikan avatar, dan duduk di meja kerja workstation.</p>
+          <div style="font-size: 11px; font-weight: 800; color: var(--teal); margin-bottom: 4px;">TAHAP 1</div>
+          <h3>Masuk Cepat</h3>
+          <p>Klik <strong>Tamu Juri (Instan)</strong>, pilih peran dan avatar, lalu masuk langsung ke denah kantor 2D.</p>
         </div>
         <div class="card" style="border-left: 3px solid var(--ochre);">
-          <div style="font-size: 13px; font-weight: 800; color: var(--ochre); margin-bottom: 6px;">LANGKAH 2</div>
-          <h3>Menghadap Atasan</h3>
-          <p>Berjalan ke ruang eksekutif, berinteraksi dengan <strong>Bu Rina (Skenario 1: Instruksi Ambigu)</strong>.</p>
+          <div style="font-size: 11px; font-weight: 800; color: var(--ochre); margin-bottom: 4px;">TAHAP 2</div>
+          <h3>Skenario Kerja</h3>
+          <p>Berjalan ke ruang pimpinan menghadap <strong>Bu Rina (Skenario 1: Menghadapi Instruksi Ambigu)</strong>.</p>
         </div>
         <div class="card" style="border-left: 3px solid #60a5fa);">
-          <div style="font-size: 13px; font-weight: 800; color: #60a5fa; margin-bottom: 6px;">LANGKAH 3</div>
-          <h3>Klarifikasi Aktif</h3>
-          <p>Mengetik pertanyaan klarifikasi spesifik mengenai objek dan batas waktu; AI membalas secara profesional.</p>
+          <div style="font-size: 11px; font-weight: 800; color: #60a5fa; margin-bottom: 4px;">TAHAP 3</div>
+          <h3>Klarifikasi Dialog</h3>
+          <p>Mengetik pertanyaan klarifikasi; AI memberikan respon realistis dengan batas maksimal 6 giliran.</p>
         </div>
         <div class="card" style="border-left: 3px solid #4ade80);">
-          <div style="font-size: 13px; font-weight: 800; color: #4ade80; margin-bottom: 6px;">LANGKAH 4</div>
-          <h3>Evaluasi Terukur</h3>
-          <p>Lembar evaluasi terbuka: skor 4 dimensi, rahasia maksud atasan terbongkar, dan alternatif jawaban dipelajari.</p>
+          <div style="font-size: 11px; font-weight: 800; color: #4ade80; margin-bottom: 4px;">TAHAP 4</div>
+          <h3>Lembar Evaluasi</h3>
+          <p>Menerima skor rubrik, membaca maksud tersembunyi atasan, dan membandingkan alternatif respons.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 7: ACCESSIBILITY WCAG AA -->
-    <div class="slide" id="slide-7">
-      <div class="badge">♿ Inklusivitas Penuh</div>
-      <h2 class="slide-heading">Standar Aksesibilitas WCAG 2.1 Level AA</h2>
-      <p class="subtitle">Inklusivitas bukan fitur tambahan, melainkan pondasi utama arsitektur NeuroSim.</p>
+    <div class="slide" id="slide-7" data-notes="Tekankan pemenuhan standar WCAG 2.1 Level AA. Rasio kontras 4.5:1, reduce motion, full keyboard (WASD/E/Space), dan mode ringkas Direct Mode. Ini bukti nyata inklusivitas.">
+      <div class="badge">♿ Aksesibilitas Teruji</div>
+      <h2 class="slide-heading">Kepatuhan Standar WCAG 2.1 Level AA</h2>
+      <p class="subtitle">Aksesibilitas dirancang sebagai fondasi arsitektur, bukan tempelan di akhir.</p>
 
       <div class="grid-2">
         <div class="card">
           <h3>🎨 High Contrast & Sensory Comfort</h3>
           <ul>
-            <li>Rasio kontras warna terjamin minimal <strong>4.5:1</strong> untuk keterbacaan teks maksimal.</li>
-            <li>Palet warna hangat bergaya <em>organic calm</em> untuk meredam kelelahan mata (*eye-strain*).</li>
+            <li>Rasio kontras warna teks terhadap latar minimal <strong>4.5:1</strong> sesuai standar AA.</li>
+            <li>Palet warna organik lembut untuk mengurangi kelelahan visual (*sensory overload*).</li>
           </ul>
         </div>
         <div class="card">
           <h3>⚡ Reduce Motion & Direct Mode</h3>
           <ul>
-            <li>Opsi mematikan animasi transisi yang berlebihan bagi pengguna rentan sensorik vestibular.</li>
-            <li><strong>Direct Mode:</strong> Mode bebas grafis untuk latihan percakapan langsung berbasis kartu teks.</li>
+            <li>Opsi mematikan animasi gerak untuk pengguna dengan sensitivitas vestibular.</li>
+            <li><strong>Direct Mode:</strong> Mode bebas grafis untuk latihan percakapan langsung berbasis teks.</li>
           </ul>
         </div>
         <div class="card">
-          <h3>⌨️ Navigasi Papan Tik Penuh (Full Keyboard)</h3>
+          <h3>⌨️ Kendali Papan Tik Lengkap</h3>
           <ul>
-            <li>Dapat dijelajahi sepenuhnya menggunakan panah arah, WASD, tombol `[E]`, dan `[SPASI]`.</li>
-            <li>Focus trap dan ARIA labels lengkap untuk pembaca layar (*screen reader*).</li>
+            <li>Navigasi penuh tanpa mouse via panah arah, WASD, tombol `[E]`, dan `[SPASI]`.</li>
+            <li>Label ARIA dan manajemen fokus yang kompatibel dengan pembaca layar (*screen reader*).</li>
           </ul>
         </div>
         <div class="card">
-          <h3>🌐 Multiplayer & Low Latency</h3>
+          <h3>🌐 Multiplayer & Realtime Hub</h3>
           <ul>
-            <li>Realtime peer status (*Tersedia, Sibuk, Di Pantry*) via Socket.io.</li>
-            <li>Dirancang ringan dan dapat diakses lancar bahkan pada koneksi internet terbatas.</li>
+            <li>Sinkronisasi status rekan kantor (*Tersedia, Sibuk, Di Pantry*) via Socket.io.</li>
+            <li>Infrastruktur ringan yang dapat berjalan stabil pada peramban web standar tanpa instalasi.</li>
           </ul>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 8: TECH STACK & ARCHITECTURE -->
-    <div class="slide" id="slide-8">
-      <div class="badge ochre">⚙️ Arsitektur Teknologi</div>
-      <h2 class="slide-heading">Modern Full-Stack & Skalabilitas Tinggi</h2>
-      <p class="subtitle">Dibangun dengan fondasi teknologi teruji untuk performa 60 FPS dan latensi AI instan.</p>
+    <div class="slide" id="slide-8" data-notes="Jelaskan tech stack yang solid: React 18 + Phaser 3 (game 60fps), Google Gemini API (roleplay & evaluasi), Socket.io (multiplayer presence). Semua berjalan di browser.">
+      <div class="badge ochre">⚙️ Arsitektur Sistem</div>
+      <h2 class="slide-heading">Stack Teknologi Produksi</h2>
+      <p class="subtitle">Komposisi teknologi yang dirancang untuk performa visual 60 FPS dan inferensi AI terstruktur.</p>
 
       <div class="grid-3">
         <div class="card">
-          <div style="font-size: 12px; color: var(--teal); font-weight: 800; text-transform: uppercase;">Frontend & Virtual Game</div>
-          <h3 style="margin-top: 6px;">React 18 & Phaser 3</h3>
-          <p>TypeScript, Tailwind CSS, Phaser 3 WebGL Game Engine dengan depth sorting presisi dan physics collider solid.</p>
+          <div style="font-size: 11px; color: var(--teal); font-weight: 800; text-transform: uppercase;">Antarmuka & Game Engine</div>
+          <h3 style="margin-top: 5px;">React 18 & Phaser 3</h3>
+          <p>TypeScript, Tailwind CSS, Phaser 3 WebGL dengan depth sorting dinamis dan sistem collider barrier presisi.</p>
         </div>
         <div class="card">
-          <div style="font-size: 12px; color: var(--ochre); font-weight: 800; text-transform: uppercase;">AI & Intelligence</div>
-          <h3 style="margin-top: 6px;">Google Gemini API</h3>
-          <p>Multi-turn roleplay adaptif, prompt guardrails psikologis anti-toksik, dan evaluator rubrik 4 dimensi terstruktur.</p>
+          <div style="font-size: 11px; color: var(--ochre); font-weight: 800; text-transform: uppercase;">Agen AI & Evaluator</div>
+          <h3 style="margin-top: 5px;">Google Gemini API</h3>
+          <p>Multi-turn roleplay adaptif, prompt guardrails psikologis anti-toksik, dan penilaian terstruktur 4 dimensi.</p>
         </div>
         <div class="card">
-          <div style="font-size: 12px; color: #60a5fa; font-weight: 800; text-transform: uppercase;">Realtime & Deployment</div>
-          <h3 style="margin-top: 6px;">Socket.io & Vercel Edge</h3>
-          <p>Realtime room synchronization, multi-player state broadcast, dan serverless global CDN edge deployment.</p>
+          <div style="font-size: 11px; color: #60a5fa; font-weight: 800; text-transform: uppercase;">Realtime & Deployment</div>
+          <h3 style="margin-top: 5px;">Socket.io & Production Port</h3>
+          <p>Sinkronisasi kehadiran rekan kerja, siaran status, dan deployment siap akses di server live.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 9: BUSINESS MODEL & IMPACT -->
-    <div class="slide" id="slide-9">
-      <div class="badge">📈 Dampak & Keberlanjutan</div>
-      <h2 class="slide-heading">Model Bisnis & Potensi Adopsi Pasar</h2>
-      <p class="subtitle">Menghubungkan pencari kerja neurodivergen dengan dunia industri secara berkelanjutan.</p>
+    <div class="slide" id="slide-9" data-notes="Jelaskan keberlanjutan produk: B2C freemium untuk jobseeker (skenario dasar gratis, sertifikasi berbayar), B2B untuk HR kantor (modul manajer inklusif), dan B2G untuk BLK dan kampus.">
+      <div class="badge">📈 Keberlanjutan & Model Bisnis</div>
+      <h2 class="slide-heading">Skalabilitas & Saluran Nilai</h2>
+      <p class="subtitle">Menghubungkan pencari kerja neurodivergen dan dunia industri secara berkelanjutan.</p>
 
       <div class="grid-3">
         <div class="card" style="border-top: 3px solid var(--teal);">
-          <div style="font-size: 13px; font-weight: 800; color: var(--teal); margin-bottom: 6px;">B2C (JOBSEEKERS)</div>
+          <div style="font-size: 11px; font-weight: 800; color: var(--teal); margin-bottom: 4px;">B2C (JOBSEEKERS)</div>
           <h3>Freemium Subscription</h3>
-          <p>Akses gratis untuk 3 skenario kantor inti. Paket Pro untuk skenario wawancara kerja, negosiasi gaji, dan sertifikat kesiapan kerja.</p>
+          <p>Akses gratis untuk 3 skenario kantor dasar. Akses berbayar untuk simulasi wawancara lanjutan dan sertifikat kesiapan kerja.</p>
         </div>
         <div class="card" style="border-top: 3px solid var(--ochre);">
-          <div style="font-size: 13px; font-weight: 800; color: var(--ochre); margin-bottom: 6px;">B2B (ENTERPRISE / HR)</div>
-          <h3>Inclusive Workplace Kit</h3>
-          <p>Pelatihan manajer neurotipikal agar mampu memberikan instruksi yang jelas, terstruktur, dan inklusif bagi seluruh tim.</p>
+          <div style="font-size: 11px; font-weight: 800; color: var(--ochre); margin-bottom: 4px;">B2B (ENTERPRISE / HR)</div>
+          <h3>Pelatihan Manajer Inklusif</h3>
+          <p>Paket edukasi untuk manajer perusahaan agar mampu menyusun instruksi kerja yang jelas, terukur, dan inklusif.</p>
         </div>
         <div class="card" style="border-top: 3px solid #60a5fa);">
-          <div style="font-size: 13px; font-weight: 800; color: #60a5fa; margin-bottom: 6px;">B2G & EDUKASI</div>
-          <h3>Kemitraan Kampus & BLK</h3>
-          <p>Integrasi kurikulum ke Balai Latihan Kerja (BLK), pusat karir universitas, dan yayasan advokasi autisme di Indonesia.</p>
+          <div style="font-size: 11px; font-weight: 800; color: #60a5fa; margin-bottom: 4px;">B2G & EDUKASI</div>
+          <h3>Integrasi Kampus & BLK</h3>
+          <p>Adopsi kurikulum persiapan magang di universitas, Balai Latihan Kerja (BLK), dan pusat advokasi disabilitas.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 10: ROADMAP -->
-    <div class="slide" id="slide-10">
+    <div class="slide" id="slide-10" data-notes="Tunjukkan visi jangka panjang yang realistis: validasi komunitas di Q1-Q2, voice roleplay di Q3, dan integrasi enterprise HR di Q4.">
       <div class="badge ochre">🗺️ Rencana Pengembangan</div>
-      <h2 class="slide-heading">Roadmap 2026: Ekosistem Kerja Inklusif</h2>
-      <p class="subtitle">Langkah strategis pasca-Hackathon INCEPTION 2026.</p>
+      <h2 class="slide-heading">Roadmap Strategis 2026</h2>
+      <p class="subtitle">Tahapan pengembangan terukur dari prototipe hingga ekosistem kemitraan industri.</p>
 
       <div class="grid-4">
         <div class="card">
-          <div style="font-size: 12px; font-weight: 800; color: var(--teal);">Q1 2026</div>
-          <h3>MVP & Piloting</h3>
-          <p>Peluncuran simulator kantor 2D, validasi 3 skenario inti, dan uji coba komunitas (100+ pengguna).</p>
+          <div style="font-size: 11px; font-weight: 800; color: var(--teal);">Q1 2026</div>
+          <h3>Validasi MVP</h3>
+          <p>Peluncuran simulator 2D, validasi 3 skenario kantor inti, dan piloting bersama komunitas autisme/ADHD.</p>
         </div>
         <div class="card">
-          <div style="font-size: 12px; font-weight: 800; color: var(--ochre);">Q2 2026</div>
+          <div style="font-size: 11px; font-weight: 800; color: var(--ochre);">Q2 2026</div>
           <h3>Ekspansi Skenario</h3>
-          <p>Penambahan skenario: wawancara kerja, mediasi konflik tim, dan negosiasi batas beban kerja.</p>
+          <p>Penambahan skenario: negosiasi gaji, manajemen beban kerja berlebih, dan komunikasi lintas departemen.</p>
         </div>
         <div class="card">
-          <div style="font-size: 12px; font-weight: 800; color: #60a5fa);">Q3 2026</div>
-          <h3>Gemini Live Voice</h3>
-          <p>Integrasi interaksi suara lisan real-time dengan analisis intonasi ramah sensorik.</p>
+          <div style="font-size: 11px; font-weight: 800; color: #60a5fa);">Q3 2026</div>
+          <h3>Roleplay Suara Interaktif</h3>
+          <p>Dukungan interaksi suara lisan dengan deteksi intonasi kalimat ramah sensorik.</p>
         </div>
         <div class="card">
-          <div style="font-size: 12px; font-weight: 800; color: #4ade80);">Q4 2026</div>
-          <h3>HR Enterprise Hub</h3>
-          <p>Dashboard analitik kesiapan kerja untuk penempatan magang inklusif di perusahaan mitra.</p>
+          <div style="font-size: 11px; font-weight: 800; color: #4ade80);">Q4 2026</div>
+          <h3>Portal Mitra Industri</h3>
+          <p>Dashboard kesiapan kompetensi bagi perusahaan penyedia lowongan magang inklusif.</p>
         </div>
       </div>
     </div>
 
     <!-- SLIDE 11: CLOSING -->
-    <div class="slide" id="slide-11">
-      <div class="badge">🤝 Terima Kasih</div>
-      <h1 class="title">Bersama Mewujudkan Dunia Kerja yang <span style="color: var(--teal);">Inklusif</span></h1>
+    <div class="slide" id="slide-11" data-notes="Tutup dengan kuat. Ulangi tautan https://indonesiax.duckdns.org:9004/ dan ajak juri mencoba langsung. Sampaikan terima kasih atas nama tim 'mamah doain aku lolos final' dari UPN Veteran Jawa Timur.">
+      <div class="badge">🤝 Penutup</div>
+      <h1 class="title">Mewujudkan Lingkungan Kerja yang <span style="color: var(--teal);">Inklusif</span></h1>
 
-      <div class="quote-box" style="max-width: 900px; font-size: 19px;">
-        "Teknologi terbaik bukan teknologi yang memaksa manusia menyesuaikan diri, melainkan teknologi yang merangkul keberagaman cara berpikir agar setiap talenta dapat bersinar."
+      <div class="quote-box" style="max-width: 920px; font-size: 17px;">
+        "Teknologi terbaik bukan teknologi yang menuntut manusia menyeragamkan cara berpikirnya, melainkan teknologi yang merangkul keberagaman kognitif agar setiap talenta dapat berkontribusi secara bermartabat."
       </div>
 
-      <div class="grid-2" style="max-width: 900px; margin-top: 10px;">
+      <div class="grid-2" style="max-width: 920px; margin-top: 10px;">
         <div class="card">
-          <div style="font-size: 12px; color: var(--ochre); font-weight: 800; text-transform: uppercase;">Tim Pengembang</div>
-          <div style="font-size: 20px; font-weight: 800; color: #ffffff; margin-top: 4px;">"mamah doain aku lolos final"</div>
-          <div style="font-size: 14px; color: var(--text-muted);">UPN "Veteran" Jawa Timur</div>
+          <div style="font-size: 11px; color: var(--ochre); font-weight: 800; text-transform: uppercase;">Tim Pengembang</div>
+          <div style="font-size: 19px; font-weight: 800; color: #ffffff; margin-top: 3px;">"mamah doain aku lolos final"</div>
+          <div style="font-size: 13px; color: var(--text-muted);">Universitas Pembangunan Nasional "Veteran" Jawa Timur</div>
         </div>
 
         <div class="card">
-          <div style="font-size: 12px; color: var(--teal); font-weight: 800; text-transform: uppercase;">Tautan Uji Coba Langsung</div>
-          <div style="font-size: 18px; font-weight: 700; color: var(--teal); margin-top: 4px;">neurosim-demo.vercel.app</div>
-          <div style="font-size: 13px; color: var(--text-muted);">Video Demo: 02:48 1080p 60 FPS</div>
+          <div style="font-size: 11px; color: var(--teal); font-weight: 800; text-transform: uppercase;">Aplikasi Siap Diuji Coba</div>
+          <div style="font-size: 16px; font-weight: 700; color: var(--teal); margin-top: 3px;">
+            <a href="https://indonesiax.duckdns.org:9004/" target="_blank" style="color: inherit; text-decoration: none;">https://indonesiax.duckdns.org:9004/</a>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">Video Demo: 02:48 (1080p 60 FPS) · Uji Coba Tamu Instan</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Presenter Notes Drawer (Press N or Click Button) -->
+  <div id="notes-drawer">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 12px;">
+      <span class="notes-title">🎙️ Catatan Presenter (Slide <span id="notes-slide-num">1</span>)</span>
+      <button onclick="toggleNotes()" style="background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer;">✕</button>
+    </div>
+
+    <div class="notes-section">
+      <strong>🎯 Inti Pesan Slide:</strong>
+      <div id="notes-content">Memuat catatan...</div>
+    </div>
+
+    <div class="notes-section">
+      <strong>⏱️ Estimasi Durasi:</strong>
+      <span>15 – 25 Detik per slide (Total ~3 Menit)</span>
+    </div>
+
+    <div class="notes-section" style="border-left: 3px solid var(--ochre);">
+      <strong style="color: var(--ochre);">🛡️ Tips Menghadapi Pertanyaan Juri:</strong>
+      <p id="notes-tips" style="color: #cbd5e1; font-size: 12px; margin-top: 4px;">Fokus pada kejelasan data, Double Empathy Theory, dan keamanan psikologis.</p>
     </div>
   </div>
 
   <!-- Bottom Navigation Bar -->
   <div id="bottom-bar">
     <div class="meta-info">
-      <span><strong>NeuroSim</strong> — Hackathon INCEPTION 2026</span>
+      <span><strong>NeuroSim</strong> — INCEPTION 2026</span>
       <span>•</span>
-      <span>Tim: <em>"mamah doain aku lolos final"</em> (UPN "Veteran" Jawa Timur)</span>
+      <span><a href="https://indonesiax.duckdns.org:9004/" target="_blank">indonesiax.duckdns.org:9004</a></span>
+      <span>•</span>
+      <span>Tim: <em>"mamah doain aku lolos final"</em></span>
     </div>
 
     <div class="nav-controls">
-      <button class="btn" id="btn-prev" onclick="prevSlide()">◀ Sebelumnya</button>
+      <button class="btn" id="btn-notes" onclick="toggleNotes()">🎙️ Catatan (N)</button>
+      <button class="btn" id="btn-prev" onclick="prevSlide()">◀</button>
       <span class="slide-counter" id="slide-counter">1 / 11</span>
-      <button class="btn" id="btn-next" onclick="nextSlide()">Berikutnya ▶</button>
+      <button class="btn" id="btn-next" onclick="nextSlide()">▶</button>
       <button class="btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
-      <button class="btn" onclick="window.print()" style="background: rgba(45, 212, 191, 0.15); border-color: var(--teal); color: var(--teal);">🖨️ Cetak / PDF</button>
+      <button class="btn" onclick="window.print()" style="background: rgba(45, 212, 191, 0.15); border-color: var(--teal); color: var(--teal);">🖨️ PDF</button>
     </div>
   </div>
 
   <script>
     let currentSlide = 1;
     const totalSlides = 11;
+
+    const slideTips = {
+      1: "Tunjukkan bahwa prototipe ini bukan mockup, melainkan sistem berjalan di https://indonesiax.duckdns.org:9004/.",
+      2: "Juri mungkin bertanya: 'Kenapa neurodivergen butuh ini?'. Jawab: Masalahnya di instruksi ambigu dan sindrom masking sosial, bukan keahlian teknis.",
+      3: "Pertanyaan: 'Apa bedanya dengan aplikasi soft skill umum?'. Jawab: Kami berlandaskan Double Empathy Theory—fokus pada penerjemahan eksplisit maksud atasan tanpa merendahkan.",
+      4: "Pertanyaan: 'Kenapa 2D Phaser 3 bukan 3D/VR?'. Jawab: 2D minim beban sensorik kognitif, ringan diakses di peramban apa pun tanpa headset mahal.",
+      5: "Sorot tombol Jeda dan Hint. Ini kontrol keselamatan psikologis nyata saat pengguna mengalami kelelahan mental.",
+      6: "Tekankan tombol Tamu Juri Instan. Dewan juri dapat mencoba dalam hitungan detik tanpa registrasi.",
+      7: "Sebutkan standar WCAG 2.1 AA rasio 4.5:1, reduce motion, dan Direct Mode.",
+      8: "Tegaskan arsitektur: React 18, Phaser 3 WebGL, Gemini API dengan guardrails teruji, dan Socket.io.",
+      9: "Tunjukkan monetisasi B2B: perusahaan membeli paket ini untuk melatih manajer mereka agar instruksi kerja lebih inklusif.",
+      10: "Roadmap realistis: Q1 uji komunitas, Q2 ekspansi skenario, Q3 voice live, Q4 kemitraan HR.",
+      11: "Tutup dengan tenang dan percaya diri. Ajak juri mencoba tautan https://indonesiax.duckdns.org:9004/."
+    };
 
     function showSlide(index) {
       if (index < 1) index = 1;
@@ -692,6 +788,10 @@
           slide.classList.add('prev');
         } else if (i === index) {
           slide.classList.add('active');
+          const noteText = slide.getAttribute('data-notes') || 'Tidak ada catatan khusus.';
+          document.getElementById('notes-content').innerText = noteText;
+          document.getElementById('notes-slide-num').innerText = i;
+          document.getElementById('notes-tips').innerText = slideTips[i] || 'Fokus pada kejelasan pesan dan bukti nyata.';
         }
       }
 
@@ -709,6 +809,13 @@
       if (currentSlide > 1) showSlide(currentSlide - 1);
     }
 
+    function toggleNotes() {
+      const drawer = document.getElementById('notes-drawer');
+      const btn = document.getElementById('btn-notes');
+      drawer.classList.toggle('open');
+      btn.classList.toggle('active-notes');
+    }
+
     function toggleFullScreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
@@ -717,7 +824,6 @@
       }
     }
 
-    // Keyboard Navigation
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
         e.preventDefault();
@@ -733,10 +839,12 @@
         showSlide(totalSlides);
       } else if (e.key === 'f' || e.key === 'F') {
         toggleFullScreen();
+      } else if (e.key === 'n' || e.key === 'N') {
+        toggleNotes();
       }
     });
 
-    // Touch swipe navigation
+    // Touch swipe
     let touchStartX = 0;
     document.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
@@ -747,7 +855,6 @@
       if (diff > 50) prevSlide();
     });
 
-    // Initialize
     showSlide(1);
   </script>
 </body>
