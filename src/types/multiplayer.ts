@@ -1,6 +1,13 @@
 import { UserStatus } from '../components/gather/GatherDock';
 import { CharacterCustomization } from './character';
 
+export interface PlayerMediaState {
+  isCamOn: boolean;
+  isMicOn: boolean;
+  isScreenSharing: boolean;
+  isSpeaking: boolean;
+}
+
 export interface PlayerPresence {
   socketId: string;
   userId?: number;
@@ -20,6 +27,7 @@ export interface PlayerPresence {
   status: UserStatus;
   zone: string;
   lastSeen?: number;
+  mediaState?: PlayerMediaState;
 }
 
 export interface PlayerMovementPacket {
@@ -47,6 +55,17 @@ export interface PlayerReactionPacket {
   emoji: string;
 }
 
+export interface PlayerMediaStatePacket {
+  socketId: string;
+  mediaState: PlayerMediaState;
+}
+
+export interface WebRTCSignalPacket {
+  targetSocketId: string;
+  senderSocketId?: string;
+  signal: any;
+}
+
 export interface JoinRoomPayload {
   roomId: string;
   user: {
@@ -58,4 +77,5 @@ export interface JoinRoomPayload {
   };
   characterConfig?: CharacterCustomization;
   spawnCoords?: { x: number; y: number };
+  mediaState?: PlayerMediaState;
 }

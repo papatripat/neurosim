@@ -55,4 +55,10 @@ export const GAME_EVENTS = {
   ONLINE_PLAYERS_UPDATED: 'online-players-updated',
   /** Multiplayer socket connection status changed (connected/disconnected/error) */
   REALTIME_CONNECTION_STATUS: 'realtime-connection-status',
+  /** Local media status changed (mic/cam/speaking) */
+  LOCAL_MEDIA_CHANGED: 'local-media-changed',
+  /** Remote player media status changed */
+  REMOTE_MEDIA_CHANGED: 'remote-media-changed',
+  /** Toggle Google Meet video conference UI */
+  TOGGLE_GOOGLE_MEET: 'toggle-google-meet',
 } as const;

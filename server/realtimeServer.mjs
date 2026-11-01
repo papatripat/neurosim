@@ -65,6 +65,12 @@ io.on('connection', (socket) => {
       status: 'available',
       zone: 'Workstation Utama',
       lastSeen: Date.now(),
+      mediaState: (payload && payload.mediaState) || {
+        isCamOn: false,
+        isMicOn: false,
+        isScreenSharing: false,
+        isSpeaking: false,
+      },
     };
 
     roomPlayers.set(socket.id, playerData);
@@ -130,6 +136,25 @@ io.on('connection', (socket) => {
     io.to(currentRoomId).emit('s:reaction_triggered', {
       socketId: socket.id,
       emoji: data.emoji,
+    });
+  });
+
+  // 5. Media State (Camera / Mic / Screen Share / Speaking status)
+  socket.on('c:media_state', (data) => {
+    if (!currentRoomId || !playerData || !data || !data.mediaState) return;
+    playerData.mediaState = data.mediaState;
+    socket.to(currentRoomId).emit('s:media_state', {
+      socketId: socket.id,
+      mediaState: data.mediaState,
+    });
+  });
+
+  // 6. WebRTC P2P Video/Audio Mesh Signaling
+  socket.on('c:webrtc_signal', (data) => {
+    if (!data || !data.targetSocketId || !data.signal) return;
+    io.to(data.targetSocketId).emit('s:webrtc_signal', {
+      senderSocketId: socket.id,
+      signal: data.signal,
     });
   });
 

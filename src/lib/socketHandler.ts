@@ -1,6 +1,13 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
-import { PlayerPresence, PlayerMovementPacket, PlayerChatPacket, JoinRoomPayload } from '../types/multiplayer';
+import {
+  PlayerPresence,
+  PlayerMovementPacket,
+  PlayerChatPacket,
+  JoinRoomPayload,
+  PlayerMediaState,
+  WebRTCSignalPacket,
+} from '../types/multiplayer';
 import { UserStatus } from '../components/gather/GatherDock';
 
 // In-Memory Room Registry: roomId -> Map<socketId, PlayerPresence>
@@ -53,6 +60,12 @@ export function setupRealtimeSocketIO(httpServer: HTTPServer): SocketIOServer {
         status: 'available',
         zone: 'Workstation Utama',
         lastSeen: Date.now(),
+        mediaState: payload?.mediaState || {
+          isCamOn: false,
+          isMicOn: false,
+          isScreenSharing: false,
+          isSpeaking: false,
+        },
       };
 
       roomPlayers.set(socket.id, playerData);
@@ -118,6 +131,25 @@ export function setupRealtimeSocketIO(httpServer: HTTPServer): SocketIOServer {
       io.to(currentRoomId).emit('s:reaction_triggered', {
         socketId: socket.id,
         emoji: data.emoji,
+      });
+    });
+
+    // 5. Realtime Camera / Mic / Speaking Media Sync (Google Meet style)
+    socket.on('c:media_state', (data: { mediaState: PlayerMediaState }) => {
+      if (!currentRoomId || !playerData || !data || !data.mediaState) return;
+      playerData.mediaState = data.mediaState;
+      socket.to(currentRoomId).emit('s:media_state', {
+        socketId: socket.id,
+        mediaState: data.mediaState,
+      });
+    });
+
+    // 6. WebRTC P2P Video/Audio Mesh Signaling
+    socket.on('c:webrtc_signal', (data: WebRTCSignalPacket) => {
+      if (!data || !data.targetSocketId || !data.signal) return;
+      io.to(data.targetSocketId).emit('s:webrtc_signal', {
+        senderSocketId: socket.id,
+        signal: data.signal,
       });
     });
 

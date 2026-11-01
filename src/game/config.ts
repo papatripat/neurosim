@@ -9,6 +9,21 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   pixelArt: true,
   roundPixels: true,
+  audio: {
+    noAudio: true, // Nonaktifkan sound engine Phaser internal untuk menghemat resource memori & CPU
+  },
+  render: {
+    antialias: false,
+    pixelArt: true,
+    roundPixels: true,
+    powerPreference: 'high-performance',
+    batchSize: 4096, // Optimasi batch rendering WebGL untuk mengurangi draw call
+  },
+  fps: {
+    target: 60,
+    min: 30,
+    smoothStep: true,
+  },
   physics: {
     default: 'arcade',
     arcade: {

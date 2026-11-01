@@ -1,11 +1,16 @@
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import dotenv from 'dotenv';
 
 import { setupRealtimeSocketIO } from './src/lib/socketHandler';
 
 // Muat variabel lingkungan dari .env
 dotenv.config();
+
+// SSL diaktifkan secara default untuk menjamin akses kamera & audio aman (HTTPS)
+// Dapat dinonaktifkan dengan menyetel VITE_SSL=false jika ingin menggunakan HTTP biasa
+const isSslEnabled = process.env.VITE_SSL !== 'false' && process.env.ENABLE_SSL !== 'false';
 
 /**
  * Plugin API Internal & Real-Time Multiplayer untuk Vite Dev Server
@@ -22,6 +27,11 @@ function neurosimApiPlugin(): Plugin {
 
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0];
+
+        // Optimasi Performa: Cache-Control agresif untuk aset statis game agar website sangat ringan
+        if (url?.startsWith('/assets/') || url?.endsWith('.webp') || url?.endsWith('.png')) {
+          res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        }
 
         // 1. Endpoint AI Chat
         if (req.method === 'POST' && url === '/api/chat') {
@@ -116,14 +126,50 @@ function parseJsonBody(req: any): Promise<any> {
   });
 }
 
+const plugins = [react(), neurosimApiPlugin()];
+if (isSslEnabled) {
+  plugins.unshift(basicSsl());
+}
+
 export default defineConfig({
-  plugins: [react(), neurosimApiPlugin()],
+  plugins,
   server: {
     port: 3000,
-    open: true,
+    host: '0.0.0.0', // Buka akses jaringan eksternal & remote domain (duckdns)
+    cors: true,
+  },
+  preview: {
+    port: 3000,
+    host: '0.0.0.0',
+    cors: true,
   },
   build: {
     target: 'esnext',
     outDir: 'dist',
+    chunkSizeWarningLimit: 1200,
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    // Optimasi Pemisahan Kode (Code Splitting) untuk meringankan beban transfer peramban
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/phaser')) {
+            return 'vendor-phaser';
+          }
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+          if (id.includes('node_modules/socket.io-client')) {
+            return 'vendor-socket';
+          }
+          if (id.includes('node_modules/@google/genai') || id.includes('node_modules/zod')) {
+            return 'vendor-ai';
+          }
+        },
+      },
+    },
   },
 });

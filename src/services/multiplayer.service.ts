@@ -6,8 +6,13 @@ import {
   PlayerChatPacket,
   PlayerReactionPacket,
   JoinRoomPayload,
+  PlayerMediaState,
+  PlayerMediaStatePacket,
+  WebRTCSignalPacket,
 } from '../types/multiplayer';
 import { UserStatus } from '../components/gather/GatherDock';
+
+export type WebRTCSignalHandler = (data: { senderSocketId: string; signal: any }) => void;
 
 class MultiplayerService {
   private socket: Socket | null = null;
@@ -19,6 +24,13 @@ class MultiplayerService {
   private readonly MOVE_THROTTLE_MS = 40; // 25 fps network update
   private activeServerUrl: string = '';
   private lastJoinPayload: JoinRoomPayload | null = null;
+  private signalHandlers: Set<WebRTCSignalHandler> = new Set();
+  private currentMediaState: PlayerMediaState = {
+    isCamOn: false,
+    isMicOn: false,
+    isScreenSharing: false,
+    isSpeaking: false,
+  };
 
   public connect(url?: string): Socket {
     if (this.socket && this.isConnected && (!url || url === this.activeServerUrl)) {
@@ -71,6 +83,13 @@ class MultiplayerService {
     return this.activeServerUrl;
   }
 
+  public onWebRTCSignal(handler: WebRTCSignalHandler): () => void {
+    this.signalHandlers.add(handler);
+    return () => {
+      this.signalHandlers.delete(handler);
+    };
+  }
+
   private setupListeners(): void {
     if (!this.socket) return;
 
@@ -82,7 +101,10 @@ class MultiplayerService {
 
       // Jika sebelumnya sudah ada room yang ingin digabung, kirim join ulang
       if (this.lastJoinPayload) {
-        this.socket?.emit('c:join_room', this.lastJoinPayload);
+        this.socket?.emit('c:join_room', {
+          ...this.lastJoinPayload,
+          mediaState: this.currentMediaState,
+        });
       }
     });
 
@@ -171,7 +193,30 @@ class MultiplayerService {
       }
     });
 
-    // 7. Pemain lain keluar dari room
+    // 7. Status media (Kamera, Mic, Speaking, Screen Share) pemain lain berubah
+    this.socket.on('s:media_state', (packet: PlayerMediaStatePacket) => {
+      if (!packet.socketId || packet.socketId === this.currentSocketId) return;
+      const existing = this.onlinePlayers.get(packet.socketId);
+      if (existing) {
+        existing.mediaState = packet.mediaState;
+      }
+      EventBus.emit(GAME_EVENTS.REMOTE_MEDIA_CHANGED, packet);
+      this.broadcastOnlinePlayersList();
+    });
+
+    // 8. Sinyal WebRTC masuk dari pemain lain
+    this.socket.on('s:webrtc_signal', (data: { senderSocketId: string; signal: any }) => {
+      if (!data || !data.senderSocketId) return;
+      for (const handler of this.signalHandlers) {
+        try {
+          handler(data);
+        } catch (e) {
+          console.warn('[Multiplayer] Error in WebRTC signal handler:', e);
+        }
+      }
+    });
+
+    // 9. Pemain lain keluar dari room
     this.socket.on('s:player_left', (data: { socketId: string }) => {
       this.onlinePlayers.delete(data.socketId);
       EventBus.emit(GAME_EVENTS.REMOTE_PLAYER_LEFT, data);
@@ -190,7 +235,10 @@ class MultiplayerService {
     if (!this.socket) {
       this.connect();
     } else if (this.isConnected) {
-      this.socket.emit('c:join_room', payload);
+      this.socket.emit('c:join_room', {
+        ...payload,
+        mediaState: this.currentMediaState,
+      });
     }
   }
 
@@ -220,6 +268,25 @@ class MultiplayerService {
   public sendReaction(emoji: string): void {
     if (!this.socket || !this.isConnected || !emoji) return;
     this.socket.emit('c:reaction', { emoji });
+  }
+
+  public sendMediaState(mediaState: Partial<PlayerMediaState>): void {
+    this.currentMediaState = {
+      ...this.currentMediaState,
+      ...mediaState,
+    };
+    EventBus.emit(GAME_EVENTS.LOCAL_MEDIA_CHANGED, this.currentMediaState);
+    if (!this.socket || !this.isConnected) return;
+    this.socket.emit('c:media_state', { mediaState: this.currentMediaState });
+  }
+
+  public sendWebRTCSignal(packet: WebRTCSignalPacket): void {
+    if (!this.socket || !this.isConnected) return;
+    this.socket.emit('c:webrtc_signal', packet);
+  }
+
+  public getCurrentMediaState(): PlayerMediaState {
+    return this.currentMediaState;
   }
 
   public leaveRoom(): void {

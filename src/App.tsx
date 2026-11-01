@@ -30,6 +30,7 @@ import { GatherDock, UserStatus } from './components/gather/GatherDock';
 import { ParticipantsDrawer, Participant } from './components/gather/ParticipantsDrawer';
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
+import { GoogleMeetWidget } from './components/gather/GoogleMeetWidget';
 import { ScreenShareWidget } from './components/gather/ScreenShareWidget';
 import { multiplayerService } from './services/multiplayer.service';
 import { PlayerPresence, PlayerChatPacket } from './types/multiplayer';
@@ -505,12 +506,20 @@ export const App: React.FC = () => {
       setOnlineRemotePlayers(players);
     };
 
+    const handleRemoteMedia = (packet: { socketId: string; mediaState: any }) => {
+      setOnlineRemotePlayers((prev) =>
+        prev.map((p) => (p.socketId === packet.socketId ? { ...p, mediaState: packet.mediaState } : p))
+      );
+    };
+
     EventBus.on(GAME_EVENTS.REMOTE_CHAT_RECEIVED, handleRemoteChat);
     EventBus.on(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, handleOnlinePlayers);
+    EventBus.on(GAME_EVENTS.REMOTE_MEDIA_CHANGED, handleRemoteMedia);
 
     return () => {
       EventBus.off(GAME_EVENTS.REMOTE_CHAT_RECEIVED, handleRemoteChat);
       EventBus.off(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, handleOnlinePlayers);
+      EventBus.off(GAME_EVENTS.REMOTE_MEDIA_CHANGED, handleRemoteMedia);
     };
   }, []);
 
@@ -768,16 +777,36 @@ export const App: React.FC = () => {
               {/* Phaser Game Canvas (Instantiated only when in simulation view with non-zero dimensions) */}
               {currentView === 'simulation' && <PhaserGame />}
 
-              {/* Multi-Camera Video Spasial Bar (Semua partisipan yang open camera) */}
-              <WebcamWidget
-                isOpen={isCamOn}
-                onClose={() => setIsCamOn(false)}
+              {/* Google Meet Video Conference Widget (Multi-Participant Realtime Video/Audio) */}
+              <GoogleMeetWidget
+                isOpen={isCamOn || onlineRemotePlayers.some((p) => p.mediaState?.isCamOn)}
+                onClose={() => {
+                  setIsCamOn(false);
+                  multiplayerService.sendMediaState({ isCamOn: false });
+                }}
                 isMicOn={isMicOn}
-                onToggleMic={() => setIsMicOn((m) => !m)}
+                onToggleMic={() => {
+                  setIsMicOn((m) => {
+                    const next = !m;
+                    multiplayerService.sendMediaState({ isMicOn: next });
+                    return next;
+                  });
+                }}
+                isCamOn={isCamOn}
+                onToggleCam={() => {
+                  setIsCamOn((c) => {
+                    const next = !c;
+                    multiplayerService.sendMediaState({ isCamOn: next });
+                    return next;
+                  });
+                }}
+                isScreenSharing={isScreenSharing}
+                onToggleScreenShare={handleToggleScreenShare}
                 userName={currentUser?.fullName || getUserDisplayName(currentUser)}
                 userAvatar={currentUser?.avatar}
                 userRole={currentUser?.role}
-                participants={liveParticipants}
+                roomCode={currentRoom?.code || 'NEURO-HQ-88'}
+                remotePlayers={onlineRemotePlayers}
               />
 
               {/* Screen Share Live Presentation Widget */}
@@ -790,9 +819,21 @@ export const App: React.FC = () => {
               {/* Bottom Virtual Office Action Dock */}
               <GatherDock
                 isMicOn={isMicOn}
-                onToggleMic={() => setIsMicOn((m) => !m)}
+                onToggleMic={() => {
+                  setIsMicOn((m) => {
+                    const next = !m;
+                    multiplayerService.sendMediaState({ isMicOn: next });
+                    return next;
+                  });
+                }}
                 isCamOn={isCamOn}
-                onToggleCam={() => setIsCamOn((c) => !c)}
+                onToggleCam={() => {
+                  setIsCamOn((c) => {
+                    const next = !c;
+                    multiplayerService.sendMediaState({ isCamOn: next });
+                    return next;
+                  });
+                }}
                 isScreenSharing={isScreenSharing}
                 onToggleScreenShare={handleToggleScreenShare}
                 onOpenParticipants={() => {
