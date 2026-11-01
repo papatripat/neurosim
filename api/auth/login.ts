@@ -222,9 +222,52 @@ export async function processLogin(body: LoginRequestBody): Promise<LoginRespons
   };
 }
 
+async function parseBody(req: any): Promise<any> {
+  if (req.body) {
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  }
+  if (typeof req.json === 'function') {
+    return await req.json();
+  }
+  return new Promise((resolve) => {
+    if (typeof req.on !== 'function') {
+      resolve({});
+      return;
+    }
+    let raw = '';
+    req.on('data', (chunk: any) => { raw += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+function sendJson(res: any, status: number, data: any) {
+  if (res) {
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(status).json(data);
+    }
+    if (typeof res.setHeader === 'function' && typeof res.end === 'function') {
+      res.statusCode = status;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+      return;
+    }
+  }
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function handleLogin(req: Request): Promise<Response> {
   try {
-    const body: LoginRequestBody = await req.json();
+    const body: LoginRequestBody = await parseBody(req);
     const result = await processLogin(body);
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 401,
@@ -240,14 +283,11 @@ export async function handleLogin(req: Request): Promise<Response> {
 
 // Universal Vercel Serverless Function Handler (Node.js & Edge compatible)
 export default async function handler(req: any, res?: any) {
-  if (res && typeof res.status === 'function') {
-    try {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-      const result = await processLogin(body);
-      return res.status(result.success ? 200 : 401).json(result);
-    } catch (err: any) {
-      return res.status(400).json({ success: false, message: 'Format request salah: ' + err.message });
-    }
+  try {
+    const body = await parseBody(req);
+    const result = await processLogin(body);
+    return sendJson(res, result.success ? 200 : 401, result);
+  } catch (err: any) {
+    return sendJson(res, 400, { success: false, message: 'Format request salah: ' + err.message });
   }
-  return handleLogin(req);
 }

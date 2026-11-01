@@ -390,9 +390,52 @@ export async function processEvaluate(body: EvaluateRequestBody): Promise<FullEv
   }
 }
 
+async function parseBody(req: any): Promise<any> {
+  if (req.body) {
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  }
+  if (typeof req.json === 'function') {
+    return await req.json();
+  }
+  return new Promise((resolve) => {
+    if (typeof req.on !== 'function') {
+      resolve({});
+      return;
+    }
+    let raw = '';
+    req.on('data', (chunk: any) => { raw += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+function sendJson(res: any, status: number, data: any) {
+  if (res) {
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(status).json(data);
+    }
+    if (typeof res.setHeader === 'function' && typeof res.end === 'function') {
+      res.statusCode = status;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+      return;
+    }
+  }
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function handleEvaluate(req: Request): Promise<Response> {
   try {
-    const body: EvaluateRequestBody = await req.json();
+    const body: EvaluateRequestBody = await parseBody(req);
     const result = await processEvaluate(body);
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -410,16 +453,13 @@ export async function handleEvaluate(req: Request): Promise<Response> {
 
 // Universal Vercel Serverless Function Handler (Node.js & Edge compatible)
 export default async function handler(req: any, res?: any) {
-  if (res && typeof res.status === 'function') {
-    try {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-      const result = await processEvaluate(body);
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('[API Evaluate Node Handler] Error:', error);
-      const fallback = getFallbackEvaluation('skenario-1');
-      return res.status(200).json(fallback);
-    }
+  try {
+    const body = await parseBody(req);
+    const result = await processEvaluate(body);
+    return sendJson(res, 200, result);
+  } catch (error) {
+    console.error('[API Evaluate Node Handler] Error:', error);
+    const fallback = getFallbackEvaluation('skenario-1');
+    return sendJson(res, 200, fallback);
   }
-  return handleEvaluate(req);
 }

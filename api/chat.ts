@@ -169,9 +169,52 @@ export async function processChat(body: ChatRequestBody): Promise<ChatResponseBo
   }
 }
 
+async function parseBody(req: any): Promise<any> {
+  if (req.body) {
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  }
+  if (typeof req.json === 'function') {
+    return await req.json();
+  }
+  return new Promise((resolve) => {
+    if (typeof req.on !== 'function') {
+      resolve({});
+      return;
+    }
+    let raw = '';
+    req.on('data', (chunk: any) => { raw += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+function sendJson(res: any, status: number, data: any) {
+  if (res) {
+    if (typeof res.status === 'function' && typeof res.json === 'function') {
+      return res.status(status).json(data);
+    }
+    if (typeof res.setHeader === 'function' && typeof res.end === 'function') {
+      res.statusCode = status;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+      return;
+    }
+  }
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function handleChat(req: Request): Promise<Response> {
   try {
-    const body: ChatRequestBody = await req.json();
+    const body: ChatRequestBody = await parseBody(req);
     const result = await processChat(body);
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -191,15 +234,12 @@ export async function handleChat(req: Request): Promise<Response> {
 
 // Universal Vercel Serverless Function Handler (Node.js & Edge compatible)
 export default async function handler(req: any, res?: any) {
-  if (res && typeof res.status === 'function') {
-    try {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-      const result = await processChat(body);
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error('[API Chat Node Handler] Error:', error);
-      return res.status(200).json({ reply: 'Baik, tolong lanjutkan tugasnya ya.' });
-    }
+  try {
+    const body = await parseBody(req);
+    const result = await processChat(body);
+    return sendJson(res, 200, result);
+  } catch (error) {
+    console.error('[API Chat Node Handler] Error:', error);
+    return sendJson(res, 200, { reply: 'Baik, tolong lanjutkan tugasnya ya.' });
   }
-  return handleChat(req);
 }
