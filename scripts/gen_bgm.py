@@ -88,3 +88,4 @@ def generate_lofi_bgm(output_path="demo_assets/audio/bgm_ambient.wav", duration=
 
 if __name__ == "__main__":
     generate_lofi_bgm()
+
