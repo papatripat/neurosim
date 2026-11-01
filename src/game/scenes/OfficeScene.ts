@@ -1214,8 +1214,8 @@ export class OfficeScene extends Phaser.Scene {
       .setScale(PROP_SCALE)
       .setDepth(y + 52);
 
-    // Precise physics collider placed at desk floor base (no phantom offside barrier!)
-    const col = this.add.rectangle(x, y + 26, 96, 36, 0x000000, 0);
+    // Precise solid barrier covering full desk surface and floor contact (no clipping!)
+    const col = this.add.rectangle(x, y + 16, 92, 54, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(col);
@@ -1267,8 +1267,8 @@ export class OfficeScene extends Phaser.Scene {
     this.addSeat('Kursi Kerja', leftDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
     this.addSeat('Kursi Kerja', rightDeskX, southDeskY + 56, 'north', 'chair', 0, -4);
 
-    // 4. 100% Solid Physics Collider covering entire 4-desk island
-    const podCollider = this.add.rectangle(podX, podY + 16, 216, 96, 0x000000, 0);
+    // 4. 100% Solid Physics Collider covering entire 4-desk island from top north edge to bottom south edge
+    const podCollider = this.add.rectangle(podX, podY + 12, 212, 120, 0x000000, 0);
     this.physics.add.existing(podCollider, true);
     (podCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
     this.obstacles.add(podCollider);
@@ -1315,8 +1315,8 @@ export class OfficeScene extends Phaser.Scene {
       .setDepth(y + 52);
 
     // Ground contact collider aligned with floor contact (no ghost offside barrier!)
-    const colH = Math.min(bodyH, 36);
-    const colY = y + 26;
+    const colH = Math.max(Math.min(bodyH, 48), 30);
+    const colY = y + (bodyH >= 50 ? 14 : 20);
     const col = this.add.rectangle(x, colY, bodyW, colH, 0x000000, 0);
     this.physics.add.existing(col, true);
     (col.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
