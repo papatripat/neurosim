@@ -1,5 +1,42 @@
 import bcrypt from 'bcryptjs';
-import { getDbPool } from '../../src/lib/db';
+import mysql from 'mysql2/promise';
+
+let pool: mysql.Pool | null = null;
+
+function getDbPool(): mysql.Pool | null {
+  const host = process.env.MYSQL_HOST;
+  const user = process.env.MYSQL_USER;
+  const password = process.env.MYSQL_PASSWORD;
+  const database = process.env.MYSQL_DATABASE || 'neurosim_db';
+  const port = Number(process.env.MYSQL_PORT) || 3306;
+
+  if (!host || !user) {
+    return null;
+  }
+
+  if (!pool) {
+    try {
+      pool = mysql.createPool({
+        host,
+        port,
+        user,
+        password,
+        database,
+        waitForConnections: true,
+        connectionLimit: 5,
+        queueLimit: 0,
+        connectTimeout: 5000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+      });
+    } catch (err) {
+      console.error('[DB] Gagal membuat pool MySQL:', err);
+      return null;
+    }
+  }
+
+  return pool;
+}
 
 export interface RegisterRequestBody {
   username: string;
