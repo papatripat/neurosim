@@ -123,12 +123,6 @@ export const AuthModal: React.FC<Props> = ({
     }
   };
 
-  // Quick Demo Login untuk Juri Hackathon
-  const handleQuickDemo = (user: string, pass: string) => {
-    setUsername(user);
-    setPassword(pass);
-    handleLogin(undefined, user, pass);
-  };
 
   return (
     <div
@@ -320,16 +314,9 @@ export const AuthModal: React.FC<Props> = ({
                 {/* Quick Access untuk Juri Hackathon */}
                 <div className="pt-3 border-t border-[#d1c7b5] space-y-1.5">
                   <p className="text-[11px] text-ink-muted text-center font-medium">
-                    ⚡ Masuk Cepat untuk Juri & Tim:
+                    ⚡ Masuk Cepat untuk Juri:
                   </p>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemo('rifat_lead', 'password123')}
-                      className="flex-1 py-1 px-2 rounded bg-sand hover:bg-sand/80 border border-[#d1c7b5] text-[11px] font-semibold text-ink transition-colors"
-                    >
-                      Rifat (Lead)
-                    </button>
+                  <div>
                     <button
                       type="button"
                       onClick={() => {
@@ -347,9 +334,9 @@ export const AuthModal: React.FC<Props> = ({
                         }, []);
                         onClose();
                       }}
-                      className="flex-1 py-1 px-2 rounded bg-teal/15 hover:bg-teal/25 border border-teal text-[11px] font-semibold text-teal transition-colors"
+                      className="w-full py-1.5 px-3 rounded-lg bg-teal/15 hover:bg-teal/25 border border-teal text-xs font-semibold text-teal transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      Tamu Juri (Instan)
+                      <span>Tamu Juri (Instan)</span>
                     </button>
                   </div>
                 </div>
