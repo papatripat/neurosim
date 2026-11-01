@@ -75,7 +75,7 @@ export function getScenarioConfig(scenarioId: string): ScenarioConfig {
 }
 
 let aiClient: GoogleGenAI | null = null;
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 
 function getGenAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -108,6 +108,7 @@ Tingkat kesulitan saat ini: Level ${level} (${scenario.levelRules[level]}).
 Batasan perilaku: ${scenario.behaviorLimits}.
 Jawab dalam 1-3 kalimat langsung layaknya percakapan chat singkat di kantor.
 Jangan gunakan format surat resmi atau pembuka/penutup email. Langsung jawab ke intinya.
+PENTING: Pastikan setiap kalimat selesai tuntas dan selalu diakhiri dengan tanda baca lengkap (titik, tanya, atau seru). Jangan sampai jawaban terpotong di tengah kalimat.
 `;
 
   const contents = limitedHistory.map((m) => ({
@@ -123,7 +124,7 @@ Jangan gunakan format surat resmi atau pembuka/penutup email. Langsung jawab ke 
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.3,
-          maxOutputTokens: 300,
+          maxOutputTokens: 600,
         },
       });
 

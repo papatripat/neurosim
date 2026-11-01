@@ -163,7 +163,7 @@ function getDbPool(): mysql.Pool | null {
 }
 
 let aiClient: GoogleGenAI | null = null;
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 
 function getGenAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;

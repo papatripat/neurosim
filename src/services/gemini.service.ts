@@ -6,7 +6,7 @@ import { RubricOutput, RubricOutputSchema } from '../schemas/evaluator.schema';
 let aiClient: GoogleGenAI | null = null;
 
 // Daftar model Gemini yang didukung (diurutkan berdasarkan kecepatan & ketersediaan)
-const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
+const GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
 
 function getGenAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
@@ -48,6 +48,7 @@ Tingkat kesulitan saat ini: Level ${level} (${scenario.levelRules[level]}).
 Batasan perilaku: ${scenario.behaviorLimits}.
 Jawab dalam 1-3 kalimat langsung layaknya percakapan chat singkat di kantor.
 Jangan gunakan format surat resmi atau pembuka/penutup email. Langsung jawab ke intinya.
+PENTING: Pastikan setiap kalimat selesai tuntas dan selalu diakhiri dengan tanda baca lengkap (titik, tanya, atau seru). Jangan sampai jawaban terpotong di tengah kalimat.
 `;
 
   // Format riwayat obrolan untuk Gemini API
@@ -65,7 +66,7 @@ Jangan gunakan format surat resmi atau pembuka/penutup email. Langsung jawab ke 
         config: {
           systemInstruction: systemInstruction,
           temperature: 0.3, // Rendah agar konsisten dengan persona
-          maxOutputTokens: 300,
+          maxOutputTokens: 600,
         },
       });
 
