@@ -4,8 +4,8 @@ import { Zap, ZapOff, Type, Contrast } from 'lucide-react';
 export type TextScale = 'normal' | 'medium' | 'large';
 
 interface Props {
-  reduceMotion: boolean;
-  onToggleReduceMotion: () => void;
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: () => void;
   textScale: TextScale;
   onChangeTextScale: (s: TextScale) => void;
   highContrast: boolean;
@@ -20,8 +20,8 @@ const SCALE_SHORT_LABEL: Record<TextScale, string> = {
   large: '130%',
 };
 
-export const A11yControls: React.FC<Props> = ({
-  reduceMotion,
+export const AccessibilityControls: React.FC<Props> = ({
+  reduceMotion = false,
   onToggleReduceMotion,
   textScale,
   onChangeTextScale,
@@ -40,26 +40,28 @@ export const A11yControls: React.FC<Props> = ({
       aria-label="Pengaturan Aksesibilitas"
       className={`flex items-center gap-0.5 bg-sand/70 p-0.5 rounded-md border border-[#d1c7b5] flex-nowrap ${className}`}
     >
-      {/* Reduce Motion Toggle */}
-      <button
-        type="button"
-        onClick={onToggleReduceMotion}
-        aria-pressed={reduceMotion}
-        aria-label="Kurangi animasi visual layar"
-        title={
-          reduceMotion
-            ? 'Animasi Diminimalkan (Klik untuk aktifkan gerak normal)'
-            : 'Animasi Normal (Klik untuk minimalkan gerak layar)'
-        }
-        className={`px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer ${
-          reduceMotion
-            ? 'bg-teal text-soft shadow-2xs'
-            : 'text-ink-muted hover:text-ink hover:bg-cream'
-        }`}
-      >
-        {reduceMotion ? <ZapOff className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-        <span className="hidden xl:inline">{reduceMotion ? 'Gerak: Min' : 'Animasi'}</span>
-      </button>
+      {/* Reduce Motion Toggle (if provided) */}
+      {onToggleReduceMotion && (
+        <button
+          type="button"
+          onClick={onToggleReduceMotion}
+          aria-pressed={reduceMotion}
+          aria-label="Kurangi animasi visual layar"
+          title={
+            reduceMotion
+              ? 'Animasi Diminimalkan (Klik untuk aktifkan gerak normal)'
+              : 'Animasi Normal (Klik untuk minimalkan gerak layar)'
+          }
+          className={`px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer ${
+            reduceMotion
+              ? 'bg-teal text-soft shadow-2xs'
+              : 'text-ink-muted hover:text-ink hover:bg-cream'
+          }`}
+        >
+          {reduceMotion ? <ZapOff className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
+          <span className="hidden xl:inline">{reduceMotion ? 'Gerak: Min' : 'Animasi'}</span>
+        </button>
+      )}
 
       {/* Font / Viewport Text Scaling Cycle */}
       <button
@@ -100,3 +102,6 @@ export const A11yControls: React.FC<Props> = ({
     </div>
   );
 };
+
+// Aliases for backward compatibility
+export const A11yControls = AccessibilityControls;

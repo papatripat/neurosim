@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CharacterCustomization, CharacterDirection } from '../../types/character';
-import { Play, Pause, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, Play, Pause } from 'lucide-react';
 import {
   loadPalettes,
   loadImage,
@@ -49,6 +49,12 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
   const handleDirectionChange = (newDir: CharacterDirection) => {
     setInternalDirection(newDir);
     onChangeDirection?.(newDir);
+  };
+
+  const handleRotate = () => {
+    const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
+    const nextIdx = (dirs.indexOf(currentDirection) + 1) % dirs.length;
+    handleDirectionChange(dirs[nextIdx]);
   };
 
   // Flag if current configuration is an official pre-baked character role
@@ -109,12 +115,13 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
             tempCtx.clearRect(0, 0, 576, 256);
             tempCtx.drawImage(img, 0, 0, 576, 256);
 
-            // Palette recolor swap
+            // Primary palette recolor swap
             if (layer.paletteType && layer.sourceVariant && layer.targetVariant) {
               let palGroup: Record<string, string[]> | null = null;
               if (layer.paletteType === 'body') palGroup = palettes.body;
               else if (layer.paletteType === 'hair') palGroup = palettes.hair;
               else if (layer.paletteType === 'cloth') palGroup = palettes.cloth;
+              else if (layer.paletteType === 'eye') palGroup = palettes.eye;
 
               if (palGroup) {
                 const srcPal = palGroup[layer.sourceVariant];
@@ -127,9 +134,30 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
               }
             }
 
+            // Secondary palette recoloring (e.g. eye iris recolor on head layer)
+            if (
+              layer.secondaryPaletteType &&
+              layer.secondarySourceVariant &&
+              layer.secondaryTargetVariant
+            ) {
+              let palGroup: Record<string, string[]> | null = null;
+              if (layer.secondaryPaletteType === 'eye') palGroup = palettes.eye;
+              else if (layer.secondaryPaletteType === 'cloth') palGroup = palettes.cloth;
+
+              if (palGroup) {
+                const srcPal = palGroup[layer.secondarySourceVariant];
+                const tgtPal = palGroup[layer.secondaryTargetVariant];
+                if (srcPal && tgtPal) {
+                  const imgData = tempCtx.getImageData(0, 0, 576, 256);
+                  recolorImageData(imgData, srcPal, tgtPal);
+                  tempCtx.putImageData(imgData, 0, 0);
+                }
+              }
+            }
+
             offCtx.drawImage(tempCanvas, 0, 0);
           } catch (err) {
-            console.warn(`Layer render failed: ${layer.id}`, err);
+            console.warn(`Layer render failed: ${layer.url}`, err);
           }
         }
 
@@ -138,7 +166,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('Failed to composite LPC preview:', err);
+        console.error('Composite build error:', err);
         if (active) setIsLoading(false);
       }
     };
@@ -150,12 +178,11 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     };
   }, [config, isOfficialArchetype]);
 
-  // Frame timing loop:
-  // Walk cycle: 8 frames
-  // Official idle animation: 9 frames (Row 0..3)
-  // LPC idle: 1 static frame (col 0)
-  const maxFrames = isWalking ? 8 : isOfficialArchetype ? 9 : 1;
-  const frameInterval = isWalking ? 120 : isOfficialArchetype ? 260 : 300;
+  // Frame timing loop for animation preview
+  // In aligned.png: 9 frames per row (idle = 9 frames, walk = 8 frames)
+  // In LPC: frame 0 = idle standing, frames 1..8 = walk cycle (8 frames)
+  const maxFrames = isOfficialArchetype ? (isWalking ? 8 : 9) : 8;
+  const frameInterval = isWalking ? 120 : 160;
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -260,19 +287,13 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
         Math.round(destH)
       );
     }
-  }, [currentDirection, isWalking, frameIndex, zoom, isLoading, isOfficialArchetype, config]);
-
-  const handleRotate = () => {
-    const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
-    const nextIdx = (dirs.indexOf(currentDirection) + 1) % dirs.length;
-    handleDirectionChange(dirs[nextIdx]);
-  };
+  }, [currentDirection, isWalking, frameIndex, zoom, isLoading, isOfficialArchetype, isPlaying, config]);
 
   return (
     <div className={`flex flex-col items-center select-none ${className}`}>
       {/* Canvas Viewport */}
       <div className="relative w-48 h-48 sm:w-56 sm:h-56 bg-[#161a23] rounded-lg border-2 border-[#384152] shadow-inner overflow-hidden flex items-center justify-center">
-        {/* Subtle grid pattern background like Universal LPC Generator */}
+        {/* Subtle grid pattern background */}
         <div
           className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
@@ -292,7 +313,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
         {isLoading && (
           <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-20">
             <span className="text-[10px] font-mono text-soft animate-pulse">
-              Memproses Layer LPC...
+              Memproses Layer Karakter...
             </span>
           </div>
         )}
@@ -311,7 +332,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
       {/* Interactive Controls Bar */}
       <div className="flex items-center justify-between w-full mt-2.5 px-1 gap-1.5">
-        {/* Direction Quick Switcher */}
+        {/* Direction Quick Switcher (S, E, N, W) */}
         <div className="flex items-center gap-1 bg-cream/90 border border-[#b5aa94] rounded p-0.5 shadow-2xs">
           {(['south', 'east', 'north', 'west'] as CharacterDirection[]).map((d) => (
             <button
@@ -319,7 +340,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
               type="button"
               onClick={() => handleDirectionChange(d)}
               title={`Arah ${d}`}
-              className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors uppercase ${
+              className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors uppercase cursor-pointer ${
                 currentDirection === d
                   ? 'bg-teal text-soft shadow-xs'
                   : 'text-ink-muted hover:text-ink hover:bg-sand'
@@ -332,7 +353,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
             type="button"
             onClick={handleRotate}
             title="Putar Arah Karakter (Rotate)"
-            className="p-1 hover:bg-sand rounded text-ink-muted hover:text-ink transition-colors"
+            className="p-1 hover:bg-sand rounded text-ink-muted hover:text-ink transition-colors cursor-pointer"
           >
             <RotateCw className="w-3 h-3" />
           </button>
@@ -340,11 +361,11 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
         {/* Animation & Zoom Controls */}
         <div className="flex items-center gap-1">
-          {/* Walk / Idle toggle */}
+          {/* Walk / Idle toggle with fixed width */}
           <button
             type="button"
             onClick={() => setIsWalking((w) => !w)}
-            className={`px-2 py-0.5 text-[10px] font-semibold rounded border transition-colors ${
+            className={`w-14 text-center py-0.5 text-[10px] font-semibold rounded border transition-colors cursor-pointer ${
               isWalking
                 ? 'bg-ochre/20 text-[#855700] border-ochre/50'
                 : 'bg-cream text-ink-muted border-[#b5aa94] hover:bg-sand'
@@ -357,7 +378,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setIsPlaying((p) => !p)}
-            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors cursor-pointer"
             title={isPlaying ? 'Jeda Animasi' : 'Putar Animasi'}
           >
             {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
@@ -367,7 +388,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(2, z - 0.4))}
-            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors cursor-pointer"
             title="Perkecil"
           >
             <ZoomOut className="w-3 h-3" />
@@ -375,7 +396,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
           <button
             type="button"
             onClick={() => setZoom((z) => Math.min(4.5, z + 0.4))}
-            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors"
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors cursor-pointer"
             title="Perbesar"
           >
             <ZoomIn className="w-3 h-3" />

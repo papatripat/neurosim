@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { SafetyBanner } from './components/layout/SafetyBanner';
 import { Header } from './components/layout/Header';
 import { ProposalModal } from './components/modals/ProposalModal';
@@ -69,26 +69,8 @@ const NPC_PARTICIPANTS: Participant[] = [
   },
 ];
 
-const INITIAL_CHAT_MESSAGES: OfficeChatMessage[] = [
-  {
-    id: 'm-1',
-    sender: 'Priyoga',
-    time: '14:30',
-    text: 'Viewport kantor 2D 2752x1536 dan sistem kamera sudah aktif lancar ya tim.',
-  },
-  {
-    id: 'm-2',
-    sender: 'Rifat',
-    time: '14:32',
-    text: 'Siap, database MySQL dan proxy Gemini 3.5 Flash sudah terhubung.',
-  },
-  {
-    id: 'm-3',
-    sender: 'Bu Rina',
-    time: '14:35',
-    text: 'Halo tim, tolong perhatikan instruksi kerja di meja saya ya.',
-  },
-];
+// Obrolan kantor dimulai dalam kondisi kosong bersih (dinamis)
+const getInitialChatMessages = (): OfficeChatMessage[] => [];
 
 const getUserDisplayName = (user: UserProfile | null, fallback = 'Baginda'): string => {
   if (!user) return fallback;
@@ -113,13 +95,19 @@ export const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
 
-  // Online Multiplayer Room State
+  // Online Multiplayer Room State (Dibersihkan agar count selalu sinkron dan dinamis)
   const [availableRooms, setAvailableRooms] = useState<OfficeRoom[]>(() => {
     try {
       const saved = localStorage.getItem('neurosim_available_rooms');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((r: any) => ({
+            ...r,
+            createdAt: r.createdAt && r.createdAt.includes('08:30') ? 'Sesi Aktif' : (r.createdAt || 'Sesi Aktif'),
+            activeCount: r.id === 'room-hq-01' ? 1 : 0,
+          }));
+        }
       }
     } catch (e) {
       console.warn('Failed to parse neurosim_available_rooms:', e);
@@ -134,7 +122,7 @@ export const App: React.FC = () => {
       const pool: OfficeRoom[] = savedRooms ? JSON.parse(savedRooms) : DEFAULT_ROOMS;
       if (savedCode && Array.isArray(pool)) {
         const found = pool.find((r) => r.code === savedCode);
-        if (found) return found;
+        if (found) return { ...found, activeCount: 1 };
       }
     } catch (e) {
       console.warn('Failed to parse current room:', e);
@@ -177,7 +165,7 @@ export const App: React.FC = () => {
     }
   });
 
-  // A11y States
+  // Accessibility States
   const [reduceMotion, setReduceMotion] = useState(false);
   const [textScale, setTextScale] = useState<TextScale>('normal');
   const [highContrast, setHighContrast] = useState(false);
@@ -220,7 +208,32 @@ export const App: React.FC = () => {
   const [isOfficeChatOpen, setIsOfficeChatOpen] = useState(false);
 
   const [userStatus, setUserStatus] = useState<UserStatus>('available');
-  const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(INITIAL_CHAT_MESSAGES);
+  const [currentZoneId, setCurrentZoneId] = useState<string>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const savedZone = localStorage.getItem('neurosim_current_zone_id');
+      if (savedZone) return savedZone;
+    }
+    return 'room-workspace';
+  });
+  const [currentZoneName, setCurrentZoneName] = useState<string>('Workstation Utama');
+
+  useEffect(() => {
+    const handleZoneChanged = (data: { zoneId: string; name: string }) => {
+      setCurrentZoneId(data.zoneId);
+      if (data.name) setCurrentZoneName(data.name);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('neurosim_current_zone_id', data.zoneId);
+      }
+    };
+
+    EventBus.on(GAME_EVENTS.ZONE_CHANGED, handleZoneChanged);
+    return () => {
+      EventBus.off(GAME_EVENTS.ZONE_CHANGED, handleZoneChanged);
+    };
+  }, []);
+
+  const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(getInitialChatMessages);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [onlineRemotePlayers, setOnlineRemotePlayers] = useState<PlayerPresence[]>([]);
 
   // Character Customizer State (Universal LPC Format)
@@ -239,7 +252,7 @@ export const App: React.FC = () => {
       id: `user-local-${currentUser?.id || 'me'}`,
       name: `${getUserDisplayName(currentUser)} (Anda)`,
       role: currentUser?.role || 'Staff Tim',
-      zone: 'Workstation Utama',
+      zone: currentZoneName || 'Workstation Utama',
       status: userStatus === 'available' ? 'online' : (userStatus as any),
       isNPC: false,
       portrait: currentUser?.avatar || `/assets/characters/${characterConfig.archetype || 'resident'}/standing/south.png`,
@@ -256,13 +269,29 @@ export const App: React.FC = () => {
     }));
 
     return [localPart, ...remotes, ...NPC_PARTICIPANTS];
-  }, [currentUser, userStatus, characterConfig.archetype, onlineRemotePlayers]);
+  }, [currentUser, userStatus, characterConfig.archetype, onlineRemotePlayers, currentZoneName]);
+
+  const liveParticipants = dynamicParticipants;
+  const totalOfficeParticipants = dynamicParticipants.length;
 
   // Simpan preferensi kustomisasi karakter ke localStorage
   useEffect(() => {
     localStorage.setItem('neurosim_character_config', JSON.stringify(characterConfig));
     localStorage.removeItem('neurosim_character_spritesheet');
   }, [characterConfig]);
+
+  // Sinkronkan nama profil akun pengguna yang aktif ke konfigurasi karakter
+  useEffect(() => {
+    if (currentUser?.fullName) {
+      setCharacterConfig((prev) => {
+        if (prev.name === currentUser.fullName) return prev;
+        return {
+          ...prev,
+          name: currentUser.fullName,
+        };
+      });
+    }
+  }, [currentUser]);
 
   // Check URL query param e.g. ?room=DEV-UIUX-26 on initial mount
   useEffect(() => {
@@ -494,6 +523,10 @@ export const App: React.FC = () => {
     multiplayerService.sendReaction(emoji);
   };
 
+  const handleCloseScreenShare = useCallback(() => {
+    setIsScreenSharing(false);
+  }, []);
+
   // Online Multiplayer Room Management Handlers
   const handleJoinRoom = useCallback(
     (roomCode: string, passcode?: string) => {
@@ -528,13 +561,14 @@ export const App: React.FC = () => {
       setCurrentRoom(targetRoom);
       EventBus.emit(GAME_EVENTS.ROOM_CHANGED, { room: targetRoom });
 
-      // Tambahkan count peserta aktif untuk simulasi
+      // Sinkronkan count peserta aktif tanpa akumulasi berlebihan
+      const updatedRoom = { ...targetRoom, activeCount: 1 };
+      setCurrentRoom(updatedRoom);
       setAvailableRooms((prev) =>
-        prev.map((r) =>
-          r.id === targetRoom.id
-            ? { ...r, activeCount: Math.min(r.capacity, r.activeCount + 1) }
-            : r
-        )
+        prev.map((r) => ({
+          ...r,
+          activeCount: r.id === targetRoom.id ? 1 : 0,
+        }))
       );
 
       return { success: true };
@@ -561,7 +595,7 @@ export const App: React.FC = () => {
         proximityAudio: input.proximityAudio,
         audioRadius: input.audioRadius,
         tags: ['Kustom', 'Online'],
-        createdAt: 'Hari ini, baru saja',
+        createdAt: `Hari ini, ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')} WIB`,
       };
 
       setAvailableRooms((prev) => [newRoom, ...prev]);
@@ -627,6 +661,7 @@ export const App: React.FC = () => {
           characterConfig={characterConfig}
           tasks={tasks}
           userHistory={userHistory}
+          currentZoneId={currentZoneId}
           onSelectRoom={(room) => {
             setSelectedRoom(room);
             setCurrentView('room-lobby');
@@ -655,7 +690,9 @@ export const App: React.FC = () => {
           room={selectedRoom}
           currentUser={currentUser}
           characterConfig={characterConfig}
-          onEnterRoom={(room) => {
+          onEnterRoom={(room, micState, camState) => {
+            if (micState !== undefined) setIsMicOn(micState);
+            if (camState !== undefined) setIsCamOn(camState);
             localStorage.setItem('neurosim_spawn_coords', JSON.stringify(room.spawnCoords));
             EventBus.emit(GAME_EVENTS.TELEPORT_TO_ROOM, room.spawnCoords);
             setCurrentView('simulation');
@@ -709,23 +746,26 @@ export const App: React.FC = () => {
               {/* Phaser Game Canvas (Instantiated only when in simulation view with non-zero dimensions) */}
               {currentView === 'simulation' && <PhaserGame />}
 
-              {/* Webcam / Video Preview Widget */}
+              {/* Multi-Camera Video Spasial Bar (Semua partisipan yang open camera) */}
               <WebcamWidget
                 isOpen={isCamOn}
                 onClose={() => setIsCamOn(false)}
                 isMicOn={isMicOn}
-                userName={getUserDisplayName(currentUser)}
+                onToggleMic={() => setIsMicOn((m) => !m)}
+                userName={currentUser?.fullName || getUserDisplayName(currentUser)}
                 userAvatar={currentUser?.avatar}
+                userRole={currentUser?.role}
+                participants={liveParticipants}
               />
 
               {/* Screen Share Live Presentation Widget */}
               <ScreenShareWidget
                 isOpen={isScreenSharing}
-                onClose={() => setIsScreenSharing(false)}
+                onClose={handleCloseScreenShare}
                 userName={getUserDisplayName(currentUser)}
               />
 
-              {/* Bottom Gather.town Action Dock */}
+              {/* Bottom Virtual Office Action Dock */}
               <GatherDock
                 isMicOn={isMicOn}
                 onToggleMic={() => setIsMicOn((m) => !m)}
@@ -741,13 +781,16 @@ export const App: React.FC = () => {
                 }}
                 onOpenOfficeChat={() => {
                   setIsOfficeChatOpen((c) => {
-                    if (!c) setIsParticipantsOpen(false);
+                    if (!c) {
+                      setIsParticipantsOpen(false);
+                      setUnreadChatCount(0);
+                    }
                     return !c;
                   });
                 }}
                 onSendReaction={handleSendReaction}
                 participantsCount={dynamicParticipants.length}
-                unreadChatCount={0}
+                unreadChatCount={unreadChatCount}
                 status={userStatus}
                 onChangeStatus={(newStatus) => {
                   setUserStatus(newStatus);
@@ -777,12 +820,14 @@ export const App: React.FC = () => {
                 onClose={() => setIsOfficeChatOpen(false)}
                 messages={chatMessages}
                 onSendMessage={handleSendOfficeChat}
+                onMarkAllRead={() => setUnreadChatCount(0)}
               />
             </div>
           ) : (
             <div className="w-full h-full overflow-y-auto py-6 bg-sand">
               <ScenarioList
                 scenarios={SCENARIOS}
+                tasks={tasks}
                 onStartScenario={(scId, lvl, goal) => {
                   setMode('2d');
                   handleStartScenario(scId, lvl, goal);
@@ -854,6 +899,7 @@ export const App: React.FC = () => {
         onLoginSuccess={handleLoginSuccess}
         onLogout={handleLogout}
         userHistory={userHistory}
+        userAvatar={currentUser?.avatar}
       />
 
       {/* Character / Player Customizer Modal (Universal LPC Format) */}
@@ -861,6 +907,8 @@ export const App: React.FC = () => {
         isOpen={isCustomizerOpen}
         onClose={() => setIsCustomizerOpen(false)}
         currentConfig={characterConfig}
+        userName={currentUser?.fullName || getUserDisplayName(currentUser)}
+        userRole={currentUser?.role}
         onSaveConfig={(newConfig) => {
           setCharacterConfig(newConfig);
           localStorage.setItem('neurosim_character_config', JSON.stringify(newConfig));
@@ -894,6 +942,9 @@ export const App: React.FC = () => {
         onJoinRoom={handleJoinRoom}
         onCreateRoom={handleCreateRoom}
         userName={getUserDisplayName(currentUser)}
+        userRole={currentUser?.role}
+        userAvatar={currentUser?.avatar}
+        participants={liveParticipants}
       />
     </div>
   );

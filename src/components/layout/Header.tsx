@@ -7,8 +7,8 @@ import { OfficeRoom } from '../../types/room';
 interface Props {
   mode: '2d' | 'list';
   onModeChange: (m: '2d' | 'list') => void;
-  reduceMotion: boolean;
-  onToggleReduceMotion: () => void;
+  reduceMotion?: boolean;
+  onToggleReduceMotion?: () => void;
   textScale: TextScale;
   onChangeTextScale: (s: TextScale) => void;
   highContrast: boolean;
@@ -37,7 +37,7 @@ const getUserDisplayName = (user: UserProfile | null): string => {
 export const Header: React.FC<Props> = ({
   mode,
   onModeChange,
-  reduceMotion,
+  reduceMotion = false,
   onToggleReduceMotion,
   textScale,
   onChangeTextScale,

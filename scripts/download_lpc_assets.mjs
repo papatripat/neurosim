@@ -50,12 +50,29 @@ const FILES = [
   'feet/shoes/revised/male/walk.png',
   'feet/shoes/ghillies/male/walk.png',
   'feet/shoes/sara/male/walk.png',
+  'torso/clothes/shortsleeve/shortsleeve/male/walk.png',
+  'torso/jacket/collared/male/walk/white.png',
+  'torso/clothes/vest_open/male/walk/white.png',
+  'torso/clothes/vest/male/walk/white.png',
+  'neck/tie/necktie/male/walk.png',
+  'neck/tie/bowtie/adult/walk.png',
+  'arms/wrists/cuffs/male/walk.png',
+  'torso/waist/belt_leather/male/walk.png',
+  'neck/scarf/walk.png',
+  'facial/earrings/stud/male/walk.png',
+  'head/faces/female/blush/walk.png',
+  'legs/skirts/straight/thin/walk.png',
+  'legs/skirts/plain/thin/walk.png',
+  'hair/bangs_bun/adult/walk.png',
+  'hair/wavy/adult/fg/walk.png',
+  'hair/wavy/adult/bg/walk.png',
 ];
 
 const PALETTE_FILES = [
   { url: 'body/body_ulpc.json', out: 'palettes/body.json' },
   { url: 'hair/hair_ulpc.json', out: 'palettes/hair.json' },
   { url: 'cloth/cloth_ulpc.json', out: 'palettes/cloth.json' },
+  { url: 'eye/eye_ulpc.json', out: 'palettes/eye.json' },
 ];
 
 const TARGET_DIR = path.resolve('public/assets/lpc');

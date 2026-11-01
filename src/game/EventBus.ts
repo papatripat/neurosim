@@ -21,7 +21,7 @@ export const GAME_EVENTS = {
   PAUSE_INPUT: 'pause-input',
   /** React UI closed modal/input -> unlock player & enable keyboard capture */
   RESUME_INPUT: 'resume-input',
-  /** Player triggered quick reaction emoji from GatherDock */
+  /** Player triggered quick reaction emoji from dock */
   TRIGGER_REACTION: 'trigger-reaction',
   /** Player sent an office chat message -> show 2D speech bubble above avatar */
   TRIGGER_CHAT_BUBBLE: 'trigger-chat-bubble',
@@ -33,6 +33,10 @@ export const GAME_EVENTS = {
   UPDATE_PLAYER_CHARACTER: 'update-player-character',
   /** User selected a room from Dashboard/Lobby -> teleport player directly to room coordinates */
   TELEPORT_TO_ROOM: 'teleport-to-room',
+  /** Screen share status changed (started/stopped) */
+  SCREEN_SHARE_CHANGED: 'screen-share-changed',
+  /** Player interacted to open/close screen share viewer */
+  TOGGLE_SCREEN_SHARE_VIEW: 'toggle-screen-share-view',
   /** Local player moved -> inform multiplayer service to broadcast */
   LOCAL_PLAYER_MOVED: 'local-player-moved',
   /** Remote player entered current room */
