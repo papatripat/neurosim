@@ -31,19 +31,12 @@ import { ParticipantsDrawer, Participant } from './components/gather/Participant
 import { OfficeChatDrawer, OfficeChatMessage } from './components/gather/OfficeChatDrawer';
 import { WebcamWidget } from './components/gather/WebcamWidget';
 import { ScreenShareWidget } from './components/gather/ScreenShareWidget';
+import { multiplayerService } from './services/multiplayer.service';
+import { PlayerPresence, PlayerChatPacket } from './types/multiplayer';
 
 export type AppView = 'landing' | 'dashboard' | 'room-lobby' | 'simulation';
 
-const INITIAL_PARTICIPANTS: Participant[] = [
-  {
-    id: 'user-baginda',
-    name: 'Baginda Putra Krista',
-    role: 'Frontend UI/UX & Aksesibilitas',
-    zone: 'Workstation Utama',
-    status: 'online',
-    isNPC: false,
-    portrait: '/assets/characters/resident/standing/south.png',
-  },
+const NPC_PARTICIPANTS: Participant[] = [
   {
     id: 'npc-rina',
     name: 'Bu Rina',
@@ -222,10 +215,12 @@ export const App: React.FC = () => {
     }
     return 'room-workspace';
   });
+  const [currentZoneName, setCurrentZoneName] = useState<string>('Workstation Utama');
 
   useEffect(() => {
     const handleZoneChanged = (data: { zoneId: string; name: string }) => {
       setCurrentZoneId(data.zoneId);
+      if (data.name) setCurrentZoneName(data.name);
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('neurosim_current_zone_id', data.zoneId);
       }
@@ -237,40 +232,9 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Live participants synced with authenticated currentUser
-  const liveParticipants = useMemo<Participant[]>(() => {
-    const userDisplayName = currentUser?.fullName || getUserDisplayName(currentUser);
-    const userRole = currentUser?.role || 'Frontend UI/UX & Aksesibilitas';
-    const userAvatar = currentUser?.avatar || '/assets/characters/resident/standing/south.png';
-
-    return INITIAL_PARTICIPANTS.map((p, idx) => {
-      if (idx === 0) {
-        return {
-          ...p,
-          name: userDisplayName,
-          role: userRole,
-          portrait: userAvatar,
-        };
-      }
-      return p;
-    });
-  }, [currentUser]);
-
-  // Hitung jumlah rekan (human yang join) + NPC aktif di kantor
-  const humanJoinedCount = useMemo(
-    () => Math.max(1, liveParticipants.filter((p) => !p.isNPC).length),
-    [liveParticipants]
-  );
-  const activeNpcCount = useMemo(
-    () => liveParticipants.filter((p) => p.isNPC).length,
-    [liveParticipants]
-  );
-  const totalOfficeParticipants = useMemo(
-    () => humanJoinedCount + activeNpcCount,
-    [humanJoinedCount, activeNpcCount]
-  );
   const [chatMessages, setChatMessages] = useState<OfficeChatMessage[]>(getInitialChatMessages);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [onlineRemotePlayers, setOnlineRemotePlayers] = useState<PlayerPresence[]>([]);
 
   // Character Customizer State (Universal LPC Format)
   const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
@@ -283,9 +247,37 @@ export const App: React.FC = () => {
     }
   });
 
+  const dynamicParticipants: Participant[] = React.useMemo(() => {
+    const localPart: Participant = {
+      id: `user-local-${currentUser?.id || 'me'}`,
+      name: `${getUserDisplayName(currentUser)} (Anda)`,
+      role: currentUser?.role || 'Staff Tim',
+      zone: currentZoneName || 'Workstation Utama',
+      status: userStatus === 'available' ? 'online' : (userStatus as any),
+      isNPC: false,
+      portrait: currentUser?.avatar || `/assets/characters/${characterConfig.archetype || 'resident'}/standing/south.png`,
+    };
+
+    const remotes: Participant[] = onlineRemotePlayers.map((p) => ({
+      id: `remote-${p.socketId}`,
+      name: p.fullName || p.username || 'Tamu',
+      role: p.role || 'Staff Tim',
+      zone: p.zone || 'Workstation Utama',
+      status: p.status === 'available' ? 'online' : (p.status as any),
+      isNPC: false,
+      portrait: p.avatar || `/assets/characters/${p.archetype || 'resident'}/standing/south.png`,
+    }));
+
+    return [localPart, ...remotes, ...NPC_PARTICIPANTS];
+  }, [currentUser, userStatus, characterConfig.archetype, onlineRemotePlayers, currentZoneName]);
+
+  const liveParticipants = dynamicParticipants;
+  const totalOfficeParticipants = dynamicParticipants.length;
+
   // Simpan preferensi kustomisasi karakter ke localStorage
   useEffect(() => {
     localStorage.setItem('neurosim_character_config', JSON.stringify(characterConfig));
+    localStorage.removeItem('neurosim_character_spritesheet');
   }, [characterConfig]);
 
   // Sinkronkan nama profil akun pengguna yang aktif ke konfigurasi karakter
@@ -456,6 +448,55 @@ export const App: React.FC = () => {
     retrySession(sc.initialDialogue);
   };
 
+  // Gabung ke room multiplayer online saat berada di tampilan simulasi
+  useEffect(() => {
+    if (currentView === 'simulation') {
+      multiplayerService.joinRoom({
+        roomId: currentRoom.code,
+        user: {
+          id: currentUser?.id,
+          username: currentUser?.username || 'Pengunjung',
+          fullName: currentUser?.fullName || getUserDisplayName(currentUser),
+          role: currentUser?.role || 'Staff Tim',
+          avatar: currentUser?.avatar || '/assets/characters/resident/standing/south.png',
+        },
+        characterConfig,
+        spawnCoords: { x: 1810, y: 790 },
+      });
+    } else {
+      multiplayerService.leaveRoom();
+    }
+  }, [currentView, currentRoom.code, currentUser, characterConfig]);
+
+  // Dengarkan pesan obrolan masuk dan pembaruan pemain online dari server
+  useEffect(() => {
+    const handleRemoteChat = (packet: PlayerChatPacket) => {
+      if (packet.socketId === multiplayerService.getSocketId()) return;
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: packet.id,
+          sender: packet.sender,
+          time: packet.time,
+          text: packet.text,
+          isSelf: false,
+        },
+      ]);
+    };
+
+    const handleOnlinePlayers = (players: PlayerPresence[]) => {
+      setOnlineRemotePlayers(players);
+    };
+
+    EventBus.on(GAME_EVENTS.REMOTE_CHAT_RECEIVED, handleRemoteChat);
+    EventBus.on(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, handleOnlinePlayers);
+
+    return () => {
+      EventBus.off(GAME_EVENTS.REMOTE_CHAT_RECEIVED, handleRemoteChat);
+      EventBus.off(GAME_EVENTS.ONLINE_PLAYERS_UPDATED, handleOnlinePlayers);
+    };
+  }, []);
+
   const handleSendOfficeChat = (text: string) => {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
@@ -470,12 +511,16 @@ export const App: React.FC = () => {
     };
     setChatMessages((prev) => [...prev, newMsg]);
 
-    // Munculkan gelembung obrolan 2D di atas avatar Phaser
+    // Munculkan gelembung obrolan 2D di atas avatar Phaser lokal
     EventBus.emit(GAME_EVENTS.TRIGGER_CHAT_BUBBLE, { text });
+
+    // Siarkan ke seluruh user di room secara realtime
+    multiplayerService.sendChat(text);
   };
 
   const handleSendReaction = (emoji: string) => {
     EventBus.emit(GAME_EVENTS.TRIGGER_REACTION, { emoji });
+    multiplayerService.sendReaction(emoji);
   };
 
   const handleCloseScreenShare = useCallback(() => {
@@ -733,18 +778,29 @@ export const App: React.FC = () => {
                 onToggleCam={() => setIsCamOn((c) => !c)}
                 isScreenSharing={isScreenSharing}
                 onToggleScreenShare={handleToggleScreenShare}
-                onOpenParticipants={() => setIsParticipantsOpen((p) => !p)}
+                onOpenParticipants={() => {
+                  setIsParticipantsOpen((p) => {
+                    if (!p) setIsOfficeChatOpen(false);
+                    return !p;
+                  });
+                }}
                 onOpenOfficeChat={() => {
                   setIsOfficeChatOpen((c) => {
-                    if (!c) setUnreadChatCount(0);
+                    if (!c) {
+                      setIsParticipantsOpen(false);
+                      setUnreadChatCount(0);
+                    }
                     return !c;
                   });
                 }}
                 onSendReaction={handleSendReaction}
-                participantsCount={totalOfficeParticipants}
+                participantsCount={dynamicParticipants.length}
                 unreadChatCount={unreadChatCount}
                 status={userStatus}
-                onChangeStatus={setUserStatus}
+                onChangeStatus={(newStatus) => {
+                  setUserStatus(newStatus);
+                  multiplayerService.sendStatus(newStatus);
+                }}
                 userName={getUserDisplayName(currentUser)}
                 userAvatar={currentUser?.avatar}
                 onOpenProfile={() => setIsAuthOpen(true)}
@@ -755,7 +811,7 @@ export const App: React.FC = () => {
               <ParticipantsDrawer
                 isOpen={isParticipantsOpen}
                 onClose={() => setIsParticipantsOpen(false)}
-                participants={liveParticipants}
+                participants={dynamicParticipants}
                 onStartScenario={handleStartScenario}
                 currentRoom={currentRoom}
                 onOpenRoomModal={() => {
@@ -861,7 +917,24 @@ export const App: React.FC = () => {
         onSaveConfig={(newConfig) => {
           setCharacterConfig(newConfig);
           localStorage.setItem('neurosim_character_config', JSON.stringify(newConfig));
+          localStorage.removeItem('neurosim_character_spritesheet');
           EventBus.emit(GAME_EVENTS.UPDATE_PLAYER_CHARACTER, newConfig);
+
+          // Update multiplayer presence immediately
+          if (currentView === 'simulation') {
+            multiplayerService.joinRoom({
+              roomId: currentRoom.code,
+              user: {
+                id: currentUser?.id,
+                username: currentUser?.username || 'Pengunjung',
+                fullName: currentUser?.fullName || getUserDisplayName(currentUser),
+                role: currentUser?.role || 'Staff Tim',
+                avatar: currentUser?.avatar || `/assets/characters/${newConfig.archetype || 'resident'}/standing/south.png`,
+              },
+              characterConfig: newConfig,
+              spawnCoords: { x: 1810, y: 790 },
+            });
+          }
         }}
       />
 

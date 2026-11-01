@@ -2,18 +2,24 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import dotenv from 'dotenv';
 
+import { setupRealtimeSocketIO } from './src/lib/socketHandler';
+
 // Muat variabel lingkungan dari .env
 dotenv.config();
 
 /**
- * Plugin API Internal untuk Vite Dev Server
- * Memungkinkan pemanggilan /api/* berjalan langsung
+ * Plugin API Internal & Real-Time Multiplayer untuk Vite Dev Server
+ * Memungkinkan pemanggilan /api/* dan koneksi WebSocket (Socket.IO) berjalan langsung
  * di server Vite (port 3000) tanpa perlu menjalankan server Express terpisah.
  */
 function neurosimApiPlugin(): Plugin {
   return {
     name: 'neurosim-api-plugin',
     configureServer(server) {
+      if (server.httpServer) {
+        setupRealtimeSocketIO(server.httpServer);
+      }
+
       server.middlewares.use(async (req, res, next) => {
         const url = req.url?.split('?')[0];
 

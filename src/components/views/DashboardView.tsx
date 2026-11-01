@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   User,
   ShieldCheck,
@@ -17,7 +17,7 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { UserProfile } from '../modals/AuthModal';
-import { CharacterCustomization } from '../../types/character';
+import { CharacterCustomization, CharacterDirection } from '../../types/character';
 import { OfficeTask } from '../../types/conversation';
 import { CharacterCanvasPreview } from '../character/CharacterCanvasPreview';
 
@@ -128,6 +128,7 @@ export const DashboardView: React.FC<Props> = ({
   onLogout,
   onBackToLanding,
 }) => {
+  const [previewDirection, setPreviewDirection] = useState<CharacterDirection>('south');
   const completedTasks = tasks.filter((t) => t.completed).length;
   const progressPercent = Math.round((completedTasks / tasks.length) * 100);
   const currentRoomId = mapZoneToRoomId(currentZoneId);
@@ -283,7 +284,8 @@ export const DashboardView: React.FC<Props> = ({
 
             <CharacterCanvasPreview
               config={characterConfig}
-              direction="south"
+              direction={previewDirection}
+              onChangeDirection={setPreviewDirection}
               zoom={2.6}
               className="my-1"
             />

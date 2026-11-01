@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `user_characters` (
   `pants_color` VARCHAR(30) DEFAULT 'charcoal',
   `shoes_type` VARCHAR(50) DEFAULT 'oxford-leather',
   `shoes_color` VARCHAR(30) DEFAULT 'black-leather',
-  `accessory` VARCHAR(50) DEFAULT 'id-badge',
+  `accessory` VARCHAR(50) DEFAULT 'none',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT `fk_user_characters_user` FOREIGN KEY (`user_id`) 
     REFERENCES `users` (`id`) ON DELETE CASCADE,

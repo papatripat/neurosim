@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CharacterCustomization, CharacterDirection } from '../../types/character';
-import { ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, Play, Pause } from 'lucide-react';
 import {
-  getLpcLayers,
   loadPalettes,
   loadImage,
+  getLpcLayers,
   recolorImageData,
 } from '../../lib/lpcCompositor';
 
 interface Props {
   config: CharacterCustomization;
-  direction: CharacterDirection;
+  direction?: CharacterDirection;
   onChangeDirection?: (dir: CharacterDirection) => void;
   className?: string;
   zoom?: number;
@@ -18,24 +18,33 @@ interface Props {
 
 export const CharacterCanvasPreview: React.FC<Props> = ({
   config,
-  direction,
+  direction: propDirection,
   onChangeDirection,
   className = '',
-  zoom: initialZoom = 3.0,
+  zoom: initialZoom = 2.8,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [internalDirection, setInternalDirection] = useState<CharacterDirection>(direction);
+  const [internalDirection, setInternalDirection] = useState<CharacterDirection>(
+    propDirection || 'south'
+  );
   const [isWalking, setIsWalking] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [zoom, setZoom] = useState(initialZoom);
   const [frameIndex, setFrameIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Sync internal direction when prop changes
+  // Sync internal state if propDirection changes externally
   useEffect(() => {
-    setInternalDirection(direction);
-  }, [direction]);
+    if (propDirection) {
+      setInternalDirection(propDirection);
+    }
+  }, [propDirection]);
 
-  const activeDirection = internalDirection;
+  // Current active direction (controlled if onChangeDirection provided, else uncontrolled fallback)
+  const currentDirection =
+    propDirection !== undefined && onChangeDirection !== undefined
+      ? propDirection
+      : internalDirection;
 
   const handleDirectionChange = (newDir: CharacterDirection) => {
     setInternalDirection(newDir);
@@ -43,19 +52,46 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
   };
 
   const handleRotate = () => {
-    const dirs: CharacterDirection[] = ['south', 'east', 'north', 'west'];
-    const nextIdx = (dirs.indexOf(activeDirection) + 1) % dirs.length;
+    const dirs: CharacterDirection[] = ['south', 'west', 'north', 'east'];
+    const nextIdx = (dirs.indexOf(currentDirection) + 1) % dirs.length;
     handleDirectionChange(dirs[nextIdx]);
   };
 
-  // Cached composited 576×256 canvas for the current config
-  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Flag if current configuration is an official pre-baked character role
+  const isOfficialArchetype = Boolean(
+    config.archetype && config.archetype !== 'custom'
+  );
 
-  // Re-composite character layers whenever config changes
+  // Cached composited 576×256 canvas for custom LPC character
+  const compositeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Cached image for official role spritesheet (576×512 aligned.png)
+  const officialImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Load official archetype spritesheet OR composite LPC layers whenever config changes
   useEffect(() => {
     let active = true;
     setIsLoading(true);
 
+    if (isOfficialArchetype) {
+      const role = config.archetype || 'resident';
+      const url = `/assets/characters/${role}/aligned.png`;
+      loadImage(url)
+        .then((img) => {
+          if (active) {
+            officialImageRef.current = img;
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.warn(`Official archetype load failed for ${url}:`, err);
+          if (active) setIsLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }
+
+    // Custom Modular Character: Composite Universal LPC Layers
     const buildComposite = async () => {
       try {
         const palettes = await loadPalettes();
@@ -104,14 +140,16 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
               layer.secondarySourceVariant &&
               layer.secondaryTargetVariant
             ) {
-              let secPalGroup: Record<string, string[]> | null = null;
-              if (layer.secondaryPaletteType === 'eye') secPalGroup = palettes.eye;
-              if (secPalGroup) {
-                const sSrcPal = secPalGroup[layer.secondarySourceVariant];
-                const sTgtPal = secPalGroup[layer.secondaryTargetVariant];
-                if (sSrcPal && sTgtPal) {
+              let palGroup: Record<string, string[]> | null = null;
+              if (layer.secondaryPaletteType === 'eye') palGroup = palettes.eye;
+              else if (layer.secondaryPaletteType === 'cloth') palGroup = palettes.cloth;
+
+              if (palGroup) {
+                const srcPal = palGroup[layer.secondarySourceVariant];
+                const tgtPal = palGroup[layer.secondaryTargetVariant];
+                if (srcPal && tgtPal) {
                   const imgData = tempCtx.getImageData(0, 0, 576, 256);
-                  recolorImageData(imgData, sSrcPal, sTgtPal);
+                  recolorImageData(imgData, srcPal, tgtPal);
                   tempCtx.putImageData(imgData, 0, 0);
                 }
               }
@@ -119,7 +157,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
             offCtx.drawImage(tempCanvas, 0, 0);
           } catch (err) {
-            console.warn(`Layer render failed: ${layer.id}`, err);
+            console.warn(`Layer render failed: ${layer.url}`, err);
           }
         }
 
@@ -128,7 +166,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
           setIsLoading(false);
         }
       } catch (err) {
-        console.error('Failed to composite LPC preview:', err);
+        console.error('Composite build error:', err);
         if (active) setIsLoading(false);
       }
     };
@@ -138,85 +176,124 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
     return () => {
       active = false;
     };
-  }, [config]);
+  }, [config, isOfficialArchetype]);
 
-  // Frame timing loop:
-  // LPC walk cycle: 8 walking frames (frames 1..8)
-  const maxWalkFrames = 8;
-  const frameInterval = isWalking ? 120 : 300;
+  // Frame timing loop for animation preview
+  // In aligned.png: 9 frames per row (idle = 9 frames, walk = 8 frames)
+  // In LPC: frame 0 = idle standing, frames 1..8 = walk cycle (8 frames)
+  const maxFrames = isOfficialArchetype ? (isWalking ? 8 : 9) : 8;
+  const frameInterval = isWalking ? 120 : 160;
 
   useEffect(() => {
+    if (!isPlaying) return;
     const timer = setInterval(() => {
-      if (isWalking) {
-        setFrameIndex((prev) => (prev + 1) % maxWalkFrames);
-      } else {
-        setFrameIndex(0);
-      }
+      setFrameIndex((prev) => (prev + 1) % maxFrames);
     }, frameInterval);
     return () => clearInterval(timer);
-  }, [isWalking, frameInterval]);
+  }, [isPlaying, isWalking, frameInterval, maxFrames]);
 
   // Render current frame to display canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    const comp = compositeCanvasRef.current;
-    if (!canvas || !comp) return;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // LPC walk.png row mapping:
-    // Row 0: North (up)
-    // Row 1: West (left)
-    // Row 2: South (down)
-    // Row 3: East (right)
-    let row = 2; // default south
-    if (activeDirection === 'north') row = 0;
-    else if (activeDirection === 'west') row = 1;
-    else if (activeDirection === 'south') row = 2;
-    else if (activeDirection === 'east') row = 3;
-
-    // Frame column in LPC walk.png:
-    // Frame 0 = idle/standing pose
-    // Frames 1..8 = walk cycle frames
-    let col = 0;
-    if (isWalking) {
-      col = 1 + (frameIndex % maxWalkFrames);
-    } else {
-      col = 0; // Standing frame
-    }
-
-    const srcX = col * 64;
-    const srcY = row * 64;
 
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Built-in LPC shadow layer (zPos: 0) handles ground contact seamlessly
+    // Draw floor pedestal shadow
+    const centerX = canvas.width / 2;
+    const groundY = canvas.height - 24 * (zoom / 2.8);
+    ctx.beginPath();
+    ctx.ellipse(centerX, groundY, 18 * (zoom / 2.2), 6 * (zoom / 2.2), 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.fill();
 
     // Draw 64x64 sprite scaled by zoom
     const destW = 64 * zoom;
     const destH = 64 * zoom;
     const destX = (canvas.width - destW) / 2;
-    const destY = (canvas.height - destH) / 2 - 6 * (zoom / 3);
+    const destY = (canvas.height - destH) / 2 - 4 * (zoom / 2.8);
 
-    ctx.drawImage(
-      comp,
-      srcX,
-      srcY,
-      64,
-      64,
-      Math.round(destX),
-      Math.round(destY),
-      Math.round(destW),
-      Math.round(destH)
-    );
-  }, [activeDirection, isWalking, frameIndex, zoom, isLoading]);
+    if (isOfficialArchetype) {
+      const img = officialImageRef.current;
+      if (!img) return;
+
+      // In aligned.png (576×512, 9 columns × 8 rows of 64×64 cells):
+      // Rows 0..3: Idle (South, East, North, West)
+      // Rows 4..7: Walk (South, East, North, West)
+      let row = 0;
+      if (isWalking) {
+        if (currentDirection === 'south') row = 4;
+        else if (currentDirection === 'east') row = 5;
+        else if (currentDirection === 'north') row = 6;
+        else if (currentDirection === 'west') row = 7;
+      } else {
+        if (currentDirection === 'south') row = 0;
+        else if (currentDirection === 'east') row = 1;
+        else if (currentDirection === 'north') row = 2;
+        else if (currentDirection === 'west') row = 3;
+      }
+
+      const col = isWalking
+        ? frameIndex % 8
+        : isPlaying
+        ? frameIndex % 9
+        : 0;
+
+      const srcX = col * 64;
+      const srcY = row * 64;
+
+      ctx.drawImage(
+        img,
+        srcX,
+        srcY,
+        64,
+        64,
+        Math.round(destX),
+        Math.round(destY),
+        Math.round(destW),
+        Math.round(destH)
+      );
+    } else {
+      const comp = compositeCanvasRef.current;
+      if (!comp) return;
+
+      // LPC walk.png row mapping:
+      // Row 0: North, Row 1: West, Row 2: South, Row 3: East
+      let row = 2;
+      if (currentDirection === 'north') row = 0;
+      else if (currentDirection === 'west') row = 1;
+      else if (currentDirection === 'south') row = 2;
+      else if (currentDirection === 'east') row = 3;
+
+      // Frame column in LPC walk.png:
+      // Frame 0 = idle/standing pose, Frames 1..8 = walk cycle frames
+      const col = isWalking ? 1 + (frameIndex % 8) : 0;
+
+      const srcX = col * 64;
+      const srcY = row * 64;
+
+      ctx.drawImage(
+        comp,
+        srcX,
+        srcY,
+        64,
+        64,
+        Math.round(destX),
+        Math.round(destY),
+        Math.round(destW),
+        Math.round(destH)
+      );
+    }
+  }, [currentDirection, isWalking, frameIndex, zoom, isLoading, isOfficialArchetype, isPlaying, config]);
 
   return (
     <div className={`flex flex-col items-center select-none ${className}`}>
       {/* Canvas Viewport */}
       <div className="relative w-48 h-48 sm:w-56 sm:h-56 bg-[#161a23] rounded-lg border-2 border-[#384152] shadow-inner overflow-hidden flex items-center justify-center">
-        {/* Subtle grid pattern background like Universal LPC Generator */}
+        {/* Subtle grid pattern background */}
         <div
           className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
@@ -243,11 +320,11 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
         {/* Direction Indicator Pill */}
         <div className="absolute top-2 left-2 z-20 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono text-[#a7b7bb] uppercase">
-          {activeDirection === 'south'
+          {currentDirection === 'south'
             ? 'Menghadap Depan'
-            : activeDirection === 'north'
+            : currentDirection === 'north'
             ? 'Menghadap Belakang'
-            : activeDirection === 'west'
+            : currentDirection === 'west'
             ? 'Menghadap Kiri'
             : 'Menghadap Kanan'}
         </div>
@@ -264,7 +341,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
               onClick={() => handleDirectionChange(d)}
               title={`Arah ${d}`}
               className={`px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors uppercase cursor-pointer ${
-                activeDirection === d
+                currentDirection === d
                   ? 'bg-teal text-soft shadow-xs'
                   : 'text-ink-muted hover:text-ink hover:bg-sand'
               }`}
@@ -284,7 +361,7 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
 
         {/* Animation & Zoom Controls */}
         <div className="flex items-center gap-1">
-          {/* Walk / Idle toggle with fixed width to eliminate layout shift */}
+          {/* Walk / Idle toggle with fixed width */}
           <button
             type="button"
             onClick={() => setIsWalking((w) => !w)}
@@ -295,6 +372,16 @@ export const CharacterCanvasPreview: React.FC<Props> = ({
             }`}
           >
             {isWalking ? 'Jalan' : 'Diam'}
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            type="button"
+            onClick={() => setIsPlaying((p) => !p)}
+            className="p-1 bg-cream hover:bg-sand border border-[#b5aa94] rounded text-ink transition-colors cursor-pointer"
+            title={isPlaying ? 'Jeda Animasi' : 'Putar Animasi'}
+          >
+            {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
           </button>
 
           {/* Zoom controls */}
